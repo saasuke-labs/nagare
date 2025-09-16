@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    {
+      "id": "flowchart-B-2",
+      "label": null,
+      "classList": ["node", "default", "Browser"],
+      "bbox": {
+        "x": -116.46875,
+        "y": -17,
+        "width": 232.9375,
+        "height": 34
+      }
+    }
+  ],
+  "edges": [],
+  "classDefs": {
+    "Browser": "fill:#fff,stroke:#222;"
+  }
+}
