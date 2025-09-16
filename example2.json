@@ -27,6 +27,8 @@
     {
       "from": "B",
       "to": "VM",
+      "fromId": "flowchart-B-8",
+      "toId": "flowchart-VM-9",
       "label": "request"
     }
   ],

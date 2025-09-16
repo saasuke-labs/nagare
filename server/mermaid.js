@@ -28,6 +28,30 @@ function extractEdgesFromCode(code) {
   return edges
 }
 
+// 1. Extract logical node names from Mermaid code
+function extractNodeNames(code) {
+  // Matches: B[...], VM, etc.
+  const nodeRegex = /^\s*([A-Za-z0-9_]+)\s*(?:\[.*\])?/gm
+  const names = new Set()
+  let match
+  while ((match = nodeRegex.exec(code))) {
+    names.add(match[1])
+  }
+  return Array.from(names)
+}
+
+// 2. Map logical names to SVG node ids
+function mapNamesToSvgIds(nodeNames, svgNodes) {
+  const mapping = {}
+  nodeNames.forEach((name) => {
+    const svgNode = svgNodes.find(
+      (n) => n.id && n.id.startsWith(`flowchart-${name}-`)
+    )
+    if (svgNode) mapping[name] = svgNode.id
+  })
+  return mapping
+}
+
 async function parseMermaid(code) {
   const browser = await puppeteer.launch()
   const page = await browser.newPage()
@@ -76,8 +100,17 @@ async function parseMermaid(code) {
     })
   )
 
-  // Extract edges
-  const edges = extractEdgesFromCode(code)
+  // 3. When building edges, add both logical and SVG ids
+  const nodeNames = extractNodeNames(code)
+  const nameToSvgId = mapNamesToSvgIds(nodeNames, nodes)
+
+  const edges = extractEdgesFromCode(code).map((e) => ({
+    from: e.from,
+    to: e.to,
+    fromId: nameToSvgId[e.from] || null,
+    toId: nameToSvgId[e.to] || null,
+    label: e.label,
+  }))
 
   await browser.close()
   const classDefs = extractClassDefs(code)
