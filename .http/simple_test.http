@@ -1,0 +1,16 @@
+POST http://localhost:3000/parse-mermaid
+Content-Type: application/json
+
+{
+    "code": "flowchart LR\nServer --> DB"
+}
+
+###
+
+
+POST http://localhost:3000/parse-mermaid
+Content-Type: application/json
+
+{
+    "code": "flowchart LR\n  B[Browser https://example.com]:::Browser --> S[Server api.example.com]:::Server\n  S --> D[(DB orders)]:::DB\n  B -.'url@1.5:https://app.example.com/dashboard'.-> B\n  D -.'highlight@2.2'.-> D\n\nclassDef Browser fill:#fff,stroke:#222;\nclassDef Server fill:#fff,stroke:#222;\nclassDef DB fill:#fff,stroke:#222;"
+}
