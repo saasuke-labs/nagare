@@ -30,7 +30,7 @@ async function parseMermaid(code) {
 
   await page.setContent(html, { waitUntil: "networkidle0" })
   await page.waitForSelector("svg")
-  await sleep(500) // Wait for rendering to complete
+  await sleep(2000) // Wait for rendering to complete
   // Extract nodes
   const nodes = await page.$$eval('g[id^="flowchart-"], g.node', (nodes) =>
     nodes.map((node) => {
