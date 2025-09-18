@@ -3,7 +3,11 @@
     {
       "id": "flowchart-B-8",
       "label": "Browser https://example.com",
-      "classList": ["node", "default", "Browser"],
+      "classList": [
+        "node",
+        "default",
+        "Browser"
+      ],
       "bbox": {
         "x": -116.46875,
         "y": -17,
@@ -14,7 +18,11 @@
     {
       "id": "flowchart-VM-9",
       "label": "VM",
-      "classList": ["node", "default", "VM"],
+      "classList": [
+        "node",
+        "default",
+        "VM"
+      ],
       "bbox": {
         "x": -17.875,
         "y": -17,
@@ -25,11 +33,22 @@
   ],
   "edges": [
     {
-      "from": "B",
-      "to": "VM",
-      "fromId": "flowchart-B-8",
-      "toId": "flowchart-VM-9",
-      "label": "request"
+      "x1": 232.9375,
+      "y1": 17,
+      "x2": 337.09375,
+      "y2": 17
+    },
+    {
+      "x1": null,
+      "y1": null,
+      "x2": null,
+      "y2": null
+    },
+    {
+      "x1": null,
+      "y1": null,
+      "x2": null,
+      "y2": null
     }
   ],
   "classDefs": {

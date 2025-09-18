@@ -1,0 +1,49 @@
+{
+  "width": 960,
+  "height": 540,
+  "fps": 60,
+  "durationSec": 3,
+  "bg": "#ffffff",
+  "fg": "#222222",
+  "nodes": [
+    {
+      "id": "B",
+      "label": "https://example.com",
+      "x": 200,
+      "y": 210,
+      "w": 240,
+      "h": 120,
+      "xTrack": [
+        { "T": 0.0, "V": -80, "Spring": { "K": 120, "Zeta": 0.78, "Mass": 1 } },
+        { "T": 0.5, "V": 0, "Spring": { "K": 120, "Zeta": 0.78, "Mass": 1 } }
+      ],
+      "opacity": [
+        { "T": 0.0, "V": 0, "Ease": 2 },
+        { "T": 0.3, "V": 1, "Ease": 2 }
+      ]
+    },
+    {
+      "id": "S",
+      "label": "api.example.com",
+      "x": 520,
+      "y": 210,
+      "w": 240,
+      "h": 120,
+      "opacity": [
+        { "T": 0.4, "V": 0, "Ease": 2 },
+        { "T": 0.8, "V": 1, "Ease": 2 }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "B",
+      "to": "S",
+      "flowOn": [
+        { "T": 0.9, "V": 0 },
+        { "T": 1.0, "V": 1 }
+      ]
+    }
+  ]
+}

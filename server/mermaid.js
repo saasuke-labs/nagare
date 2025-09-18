@@ -100,21 +100,59 @@ async function parseMermaid(code) {
     })
   )
 
+  const nodeLabels = extractNodeLabels(code)
+
+  const nodesWithLabels = nodes.map((n) => {
+    // Extract logical name from SVG id, e.g., flowchart-B-8 => B
+    const logicalName = n.id.match(/^flowchart-([^-]+)-/)?.[1]
+    return {
+      ...n,
+      label: nodeLabels[logicalName] || logicalName || null,
+    }
+  })
+
   // 3. When building edges, add both logical and SVG ids
   const nodeNames = extractNodeNames(code)
   const nameToSvgId = mapNamesToSvgIds(nodeNames, nodes)
 
-  const edges = extractEdgesFromCode(code).map((e) => ({
-    from: e.from,
-    to: e.to,
-    fromId: nameToSvgId[e.from] || null,
-    toId: nameToSvgId[e.to] || null,
-    label: e.label,
-  }))
+  const edges = await page.$$eval('g[class*="edge"]', (edges, nodes) =>
+    edges.map((edge) => {
+      const path = edge.querySelector("path")
+      let x1 = null,
+        y1 = null,
+        x2 = null,
+        y2 = null
+      if (path) {
+        // Parse the SVG path 'd' attribute (e.g., "M 10,20 C ... 100,200")
+        const d = path.getAttribute("d")
+        const matchStart = d.match(/M\s*([-\d.]+),([-\d.]+)/)
+        const matchEnd = d.match(/([-\d.]+),([-\d.]+)\s*$/)
+        if (matchStart && matchEnd) {
+          x1 = parseFloat(matchStart[1])
+          y1 = parseFloat(matchStart[2])
+          x2 = parseFloat(matchEnd[1])
+          y2 = parseFloat(matchEnd[2])
+        }
+      }
+      // ...extract label, fromId, toId as before...
+      return { x1, y1, x2, y2 }
+    })
+  )
 
   await browser.close()
   const classDefs = extractClassDefs(code)
-  return { nodes, edges, classDefs }
+  return { nodes: nodesWithLabels, edges, classDefs }
+}
+
+function extractNodeLabels(code) {
+  // Matches: B[Browser https://example.com]
+  const nodeLabelRegex = /^\s*([A-Za-z0-9_]+)\s*\[(.*?)\]/gm
+  const labels = {}
+  let match
+  while ((match = nodeLabelRegex.exec(code))) {
+    labels[match[1]] = match[2]
+  }
+  return labels
 }
 
 module.exports = { parseMermaid }
