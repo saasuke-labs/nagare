@@ -1,0 +1,3 @@
+{
+  "code": "flowchart LR\n  B[Browser https://example.com]:::Browser --> S[Server api.example.com]:::Server\n  subgraph VM[My Linux]\n    S --> D[(DB orders)]:::DB\n  end"
+}

@@ -16,47 +16,49 @@ import (
 	"strings"
 
 	"nagare-go/anim"
+	"nagare-go/mermaid"
+	"nagare-go/model"
 
 	"github.com/fogleman/gg"
 )
 
 // --------- Scene JSON (payload) ---------
 
-type KfN = anim.KfN
+//type KfN = anim.KfN
 
-type Node struct {
-	ID    string  `json:"id"`
-	Label string  `json:"label,omitempty"`
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
-	W     float64 `json:"w"`
-	H     float64 `json:"h"`
+// type Node struct {
+// 	ID    string  `json:"id"`
+// 	Label string  `json:"label,omitempty"`
+// 	X     float64 `json:"x"`
+// 	Y     float64 `json:"y"`
+// 	W     float64 `json:"w"`
+// 	H     float64 `json:"h"`
 
-	XTrack  []KfN `json:"xTrack,omitempty"`
-	YTrack  []KfN `json:"yTrack,omitempty"`
-	Opacity []KfN `json:"opacity,omitempty"`
-}
+// 	XTrack  []KfN `json:"xTrack,omitempty"`
+// 	YTrack  []KfN `json:"yTrack,omitempty"`
+// 	Opacity []KfN `json:"opacity,omitempty"`
+// }
 
-type Edge struct {
-	ID     string `json:"id"`
-	From   string `json:"from"`
-	To     string `json:"to"`
-	Label  string `json:"label,omitempty"`
-	FlowOn []KfN  `json:"flowOn,omitempty"`
-}
+// type Edge struct {
+// 	ID     string `json:"id"`
+// 	From   string `json:"from"`
+// 	To     string `json:"to"`
+// 	Label  string `json:"label,omitempty"`
+// 	FlowOn []KfN  `json:"flowOn,omitempty"`
+// }
 
-type Scene struct {
-	Width       int     `json:"width,omitempty"`  // default 960
-	Height      int     `json:"height,omitempty"` // default 540
-	FPS         float64 `json:"fps,omitempty"`    // default 15
-	DurationSec float64 `json:"durationSec"`      // required
+// type Scene struct {
+// 	Width       int     `json:"width,omitempty"`  // default 960
+// 	Height      int     `json:"height,omitempty"` // default 540
+// 	FPS         float64 `json:"fps,omitempty"`    // default 15
+// 	DurationSec float64 `json:"durationSec"`      // required
 
-	Nodes []Node `json:"nodes"`
-	Edges []Edge `json:"edges"`
+// 	Nodes []Node `json:"nodes"`
+// 	Edges []Edge `json:"edges"`
 
-	Bg string `json:"bg,omitempty"` // e.g. "#ffffff"
-	Fg string `json:"fg,omitempty"` // e.g. "#222222"
-}
+// 	Bg string `json:"bg,omitempty"` // e.g. "#ffffff"
+// 	Fg string `json:"fg,omitempty"` // e.g. "#222222"
+// }
 
 // --------- small color helpers ---------
 
@@ -102,23 +104,64 @@ func colorFromHex(hexStr string) color.Color {
 
 func main() {
 	http.HandleFunc("/render/gif", handleGIF)
+
+	http.HandleFunc("/render/mermaid/gif", handleMermaidGIF)
 	log.Println("listening on :8080  (POST /render/gif)")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func handleGIF(w http.ResponseWriter, r *http.Request) {
+func handleMermaidGIF(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Request Received")
 	if r.Method != http.MethodPost {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
 		return
 	}
-	var scene Scene
-	if err := json.NewDecoder(r.Body).Decode(&scene); err != nil {
+
+	var data struct {
+		Code string `json:"code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		fmt.Println("bad json: " + err.Error())
 
 		http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	fmt.Println("Data Code: ", data.Code)
+
+	g, err := mermaid.ParseFlowchart(data.Code)
+
+	if err != nil {
+		fmt.Println("bad mermaid: " + err.Error())
+		http.Error(w, "bad mermaid: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	dot := g.ToDOT()
+	L, err := mermaid.LayoutWithDotPlain(dot)
+	if err != nil {
+		fmt.Println("bad mermaid2: " + err.Error())
+		http.Error(w, "bad mermaid2: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	scene := mermaid.BuildScene(g, L, 15, 3.0, 960, 540)
+
+	buf, err := toGIF(scene)
+
+	if err != nil {
+		fmt.Println("bad json: " + err.Error())
+		http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("content-type", "image/gif")
+	w.WriteHeader(200)
+	_, _ = w.Write(buf.Bytes())
+
+}
+
+func toGIF(scene model.Scene) (bytes.Buffer, error) {
 
 	fmt.Println("Here Start")
 
@@ -138,8 +181,7 @@ func handleGIF(w http.ResponseWriter, r *http.Request) {
 		scene.Fg = "#222222"
 	}
 	if scene.DurationSec <= 0 {
-		http.Error(w, "durationSec required", http.StatusBadRequest)
-		return
+		return bytes.Buffer{}, fmt.Errorf("scene.DurationSec <= 0")
 	}
 
 	total := int(math.Round(scene.FPS * scene.DurationSec))
@@ -225,7 +267,29 @@ func handleGIF(w http.ResponseWriter, r *http.Request) {
 
 	var buf bytes.Buffer
 	if err := gif.EncodeAll(&buf, &gif.GIF{Image: frames, Delay: delays, LoopCount: 0}); err != nil {
-		http.Error(w, "gif encode: "+err.Error(), 500)
+		return bytes.Buffer{}, err
+	}
+	return buf, nil
+}
+
+func handleGIF(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Request Received")
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var scene model.Scene
+	if err := json.NewDecoder(r.Body).Decode(&scene); err != nil {
+		fmt.Println("bad json: " + err.Error())
+
+		http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	buf, err := toGIF(scene)
+
+	if err != nil {
+		http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -235,7 +299,7 @@ func handleGIF(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(buf.Bytes())
 }
 
-func nodeByID(nodes []Node, id string) *Node {
+func nodeByID(nodes []model.SceneNode, id string) *model.SceneNode {
 	for i := range nodes {
 		if nodes[i].ID == id {
 			return &nodes[i]
@@ -244,7 +308,7 @@ func nodeByID(nodes []Node, id string) *Node {
 	return nil
 }
 
-func at(track []KfN, t float64) float64 { return anim.AtNumber(track, t) }
+func at(track []model.KfN, t float64) float64 { return anim.AtNumber(track, t) }
 func clamp01(x float64) float64 {
 	if x < 0 {
 		return 0

@@ -1,43 +1,16 @@
 package anim
 
-import "math"
-
-// ----- types -----
-
-type EaseKind int
-
-const (
-	Linear EaseKind = iota
-	EaseIn
-	EaseOut
-	EaseInOut
+import (
+	"math"
+	"nagare-go/model"
 )
 
-// Cubic-bezier control points (CSS-like)
-type Bezier struct{ X1, Y1, X2, Y2 float64 }
-
-// Simple spring (damped harmonic oscillator params)
-type Spring struct {
-	K    float64 // stiffness (suggest 60..200)
-	Zeta float64 // damping ratio (0.5..1.2 nice)
-	Mass float64 // mass (>= 0, usually 1)
-}
-
-// Numeric keyframe (either eased or springy)
-// If Spring != nil, we use spring interpolation for this segment.
-type KfN struct {
-	T           float64
-	V           float64
-	Ease        EaseKind
-	EaseBezier  *Bezier
-	Spring      *Spring
-	VelocityOut float64
-}
+// ----- types -----
 
 // ----- public sampling -----
 
 // AtNumber returns value at time t from numeric keyframes (sorted by T).
-func AtNumber(kfs []KfN, t float64) float64 {
+func AtNumber(kfs []model.KfN, t float64) float64 {
 	n := len(kfs)
 	if n == 0 {
 		return 0
@@ -64,16 +37,16 @@ func AtNumber(kfs []KfN, t float64) float64 {
 
 // ----- easing curves -----
 
-func applyEase(u float64, k EaseKind, bez *Bezier) float64 {
+func applyEase(u float64, k model.EaseKind, bez *model.Bezier) float64 {
 	if bez != nil {
 		return cubicBezier(bez.X1, bez.Y1, bez.X2, bez.Y2, u)
 	}
 	switch k {
-	case EaseIn:
+	case model.EaseIn:
 		return u * u
-	case EaseOut:
+	case model.EaseOut:
 		return 1 - (1-u)*(1-u)
-	case EaseInOut:
+	case model.EaseInOut:
 		if u < 0.5 {
 			return 2 * u * u
 		}
@@ -109,7 +82,7 @@ func bezSlope(p1, p2, t float64) float64 {
 
 // ----- spring (closed form DHO) -----
 
-func springStep(a, b float64, s *Spring, vel0 float64, tau float64) float64 {
+func springStep(a, b float64, s *model.Spring, vel0 float64, tau float64) float64 {
 	if s == nil {
 		return b
 	}
