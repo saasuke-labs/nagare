@@ -19,17 +19,25 @@ func TestTokenize(t *testing.T) {
 			},
 		},
 		{
-			name:  "empty input",
-			input: "",
+			name:     "empty input",
+			input:    "",
+			expected: []Token{},
+		},
+		{
+			name:  "multiple lines",
+			input: "Server1\nServer2\nServer3",
 			expected: []Token{
-				{Type: IDENTIFIER, Value: ""},
+				{Type: IDENTIFIER, Value: "Server1"},
+				{Type: IDENTIFIER, Value: "Server2"},
+				{Type: IDENTIFIER, Value: "Server3"},
 			},
 		},
 		{
-			name:  "with whitespace",
-			input: "  Server  ",
+			name:  "with empty lines",
+			input: "Server1\n\nServer2",
 			expected: []Token{
-				{Type: IDENTIFIER, Value: "  Server  "},
+				{Type: IDENTIFIER, Value: "Server1"},
+				{Type: IDENTIFIER, Value: "Server2"},
 			},
 		},
 	}

@@ -1,5 +1,7 @@
 package tokenizer
 
+import "strings"
+
 // TokenType represents the type of token
 type TokenType int
 
@@ -15,11 +17,25 @@ type Token struct {
 
 // Tokenize converts input text into a sequence of tokens
 func Tokenize(input string) []Token {
-	// For now, we just treat the entire input as a single identifier
-	return []Token{
-		{
-			Type:  IDENTIFIER,
-			Value: input,
-		},
+	// Handle empty input
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return []Token{}
 	}
+
+	// Split input by newlines and create a token for each non-empty line
+	lines := strings.Split(input, "\n")
+	var tokens []Token
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			tokens = append(tokens, Token{
+				Type:  IDENTIFIER,
+				Value: line,
+			})
+		}
+	}
+
+	return tokens
 }

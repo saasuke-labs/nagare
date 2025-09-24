@@ -19,13 +19,33 @@ func TestParse(t *testing.T) {
 			},
 			expected: Node{
 				Type: NODE_ELEMENT,
-				Text: "Server",
+				Text: "",
+				Children: []Node{
+					{Type: NODE_ELEMENT, Text: "Server"},
+				},
+			},
+		},
+		{
+			name: "multiple identifiers",
+			tokens: []tokenizer.Token{
+				{Type: tokenizer.IDENTIFIER, Value: "Server1"},
+				{Type: tokenizer.IDENTIFIER, Value: "Server2"},
+				{Type: tokenizer.IDENTIFIER, Value: "Server3"},
+			},
+			expected: Node{
+				Type: NODE_ELEMENT,
+				Text: "",
+				Children: []Node{
+					{Type: NODE_ELEMENT, Text: "Server1"},
+					{Type: NODE_ELEMENT, Text: "Server2"},
+					{Type: NODE_ELEMENT, Text: "Server3"},
+				},
 			},
 		},
 		{
 			name:     "empty tokens",
 			tokens:   []tokenizer.Token{},
-			expected: Node{},
+			expected: Node{Type: NODE_ELEMENT},
 		},
 	}
 

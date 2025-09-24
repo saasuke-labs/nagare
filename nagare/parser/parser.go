@@ -18,12 +18,19 @@ type Node struct {
 
 // Parse converts tokens into an AST
 func Parse(tokens []tokenizer.Token) Node {
-	// For now, we create a single element node
-	if len(tokens) > 0 {
-		return Node{
-			Type: NODE_ELEMENT,
-			Text: tokens[0].Value,
-		}
+	root := Node{
+		Type: NODE_ELEMENT,
+		Text: "", // Root node doesn't have text
 	}
-	return Node{} // Empty node if no tokens
+
+	// Create a child node for each token
+	for _, token := range tokens {
+		child := Node{
+			Type: NODE_ELEMENT,
+			Text: token.Value,
+		}
+		root.Children = append(root.Children, child)
+	}
+
+	return root
 }
