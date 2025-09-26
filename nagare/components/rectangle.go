@@ -28,8 +28,8 @@ func (r *Rectangle) Draw(colWidth, rowHeight float64) string {
 			y="0"
 			width="%f"
 			height="%f"
-			fill="#cccccc"
-			stroke="#333333"
+			fill="#333333"
+			stroke="#cccccc"
 			stroke-width="2"/>
 
 		<!-- Text -->
@@ -38,7 +38,7 @@ func (r *Rectangle) Draw(colWidth, rowHeight float64) string {
 			y="%f"
 			font-family="Arial"
 			font-size="14"
-			fill="#333333"
+			fill="#cccccc"
 			text-anchor="middle"
 			dominant-baseline="middle">
 			%s

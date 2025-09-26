@@ -9,6 +9,7 @@ const (
 	IDENTIFIER TokenType = iota
 	LEFT_BRACE
 	RIGHT_BRACE
+	COLON // For type declarations like "name:Type"
 )
 
 // Token represents a lexical token
@@ -48,6 +49,9 @@ func Tokenize(input string) []Token {
 		case '}':
 			flushWord()
 			tokens = append(tokens, Token{Type: RIGHT_BRACE})
+		case ':':
+			flushWord()
+			tokens = append(tokens, Token{Type: COLON})
 		case '\n':
 			flushWord() // Force a word break on newline
 		case ' ', '\t':

@@ -8,17 +8,17 @@ import (
 )
 
 // NodeType represents the type of AST node
-type NodeType int
+type NodeType string
 
 const (
-	NODE_ELEMENT   NodeType = iota
-	NODE_CONTAINER          // Node that has nested elements
+	NODE_ELEMENT   NodeType = "Element"   // Default type for leaf nodes
+	NODE_CONTAINER NodeType = "Container" // Default type for nodes with children
 )
 
 // Node represents a node in the AST
 type Node struct {
-	Type     NodeType
-	Text     string
+	Type     NodeType // Can be a predefined type or a custom type string
+	Text     string   // The name/label of the node
 	Children []Node
 	Depth    int // Track nesting level
 }
@@ -66,30 +66,51 @@ func (p *Parser) parse(depth int) (Node, error) {
 		token := p.tokens[p.current]
 
 		switch token.Type {
+		case tokenizer.RIGHT_BRACE:
+			if depth == 0 {
+				return Node{}, errors.New("unexpected closing brace at root level")
+			}
+			return root, nil
 		case tokenizer.IDENTIFIER:
-			if p.current+1 < len(p.tokens) && p.tokens[p.current+1].Type == tokenizer.LEFT_BRACE {
+			// Look ahead for type declaration
+			nodeName := strings.TrimSpace(token.Value)
+			nodeType := NODE_ELEMENT // Default type
+			p.current++              // Move past identifier
+
+			// Check if next token is a colon (type declaration)
+			if p.current < len(p.tokens) && p.tokens[p.current].Type == tokenizer.COLON {
+				p.current++ // Move past colon
+				if p.current >= len(p.tokens) {
+					return Node{}, errors.New("unexpected end of input after colon")
+				}
+				if p.tokens[p.current].Type != tokenizer.IDENTIFIER {
+					return Node{}, errors.New("expected type after colon")
+				}
+				// Use the declared type
+				nodeType = NodeType(p.tokens[p.current].Value)
+				p.current++ // Move past type
+			}
+
+			// Check if it's a container (has braces)
+			isContainer := p.current < len(p.tokens) &&
+				p.tokens[p.current].Type == tokenizer.LEFT_BRACE
+
+			if isContainer {
 				// This is a container node
 				containerNode := Node{
-					Type:  NODE_CONTAINER,
-					Text:  strings.TrimSpace(token.Value),
+					Type:  NODE_CONTAINER, // Containers always use NODE_CONTAINER type
+					Text:  nodeName,
 					Depth: depth,
 				}
-				p.current += 2 // Skip the identifier and left brace
+				p.current++ // Skip the left brace
 
 				// Parse children until we find closing brace
-				for p.current < len(p.tokens) {
-					if p.tokens[p.current].Type == tokenizer.RIGHT_BRACE {
-						break
+				for p.current < len(p.tokens) && p.tokens[p.current].Type != tokenizer.RIGHT_BRACE {
+					childNode, err := p.parse(depth + 1)
+					if err != nil {
+						return Node{}, err
 					}
-					if p.tokens[p.current].Type == tokenizer.IDENTIFIER {
-						node := Node{
-							Type:  NODE_ELEMENT,
-							Text:  strings.TrimSpace(p.tokens[p.current].Value),
-							Depth: depth + 1,
-						}
-						containerNode.Children = append(containerNode.Children, node)
-					}
-					p.current++
+					containerNode.Children = append(containerNode.Children, childNode)
 				}
 
 				if p.current >= len(p.tokens) {
@@ -108,8 +129,8 @@ func (p *Parser) parse(depth int) (Node, error) {
 			} else {
 				// Regular node
 				node := Node{
-					Type:  NODE_ELEMENT,
-					Text:  strings.TrimSpace(token.Value),
+					Type:  nodeType, // Use declared type or default
+					Text:  nodeName,
 					Depth: depth,
 				}
 
@@ -118,13 +139,7 @@ func (p *Parser) parse(depth int) (Node, error) {
 				} else {
 					return node, nil
 				}
-				p.current++
 			}
-		case tokenizer.RIGHT_BRACE:
-			if depth == 0 {
-				return Node{}, errors.New("unexpected closing brace")
-			}
-			return root, nil
 		default:
 			p.current++
 		}

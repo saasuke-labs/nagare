@@ -116,14 +116,29 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 	// Ignore it and go straight to its children.
 	children := make([]components.Component, len(node.Children))
 	for i, child := range node.Children {
-		children[i] = &components.Rectangle{
-			Shape: components.Shape{
-				Width:  3, // Based on Grid system. 3 cells x 2 cells
-				Height: 2,
-				X:      int(float64(i*4) + 1), // 3 cells width + 1 cell gap
-				Y:      0,
-			},
-			Text: child.Text,
+
+		// FIME: HARDCODED TYPES
+		if child.Type == "Browser" {
+			children[i] = &components.Browser{
+				Shape: components.Shape{
+					Width:  3, // Based on Grid system. 3 cells x 2 cells
+					Height: 3,
+					X:      int(float64(i*4) + 1), // 3 cells width + 1 cell gap
+					Y:      0,
+				},
+				Text: child.Text,
+			}
+			continue
+		} else {
+			children[i] = &components.Rectangle{
+				Shape: components.Shape{
+					Width:  3, // Based on Grid system. 3 cells x 2 cells
+					Height: 2,
+					X:      int(float64(i*4) + 1), // 3 cells width + 1 cell gap
+					Y:      0,
+				},
+				Text: child.Text,
+			}
 		}
 	}
 
