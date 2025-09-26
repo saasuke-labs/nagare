@@ -3,6 +3,7 @@ package props
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -96,7 +97,21 @@ func ParseProps(input string, target interface{}) error {
 			field := t.Field(i)
 			if prop := field.Tag.Get("prop"); prop == key {
 				fmt.Printf("Setting field %s with tag %q to %q\n", field.Name, prop, value)
-				v.Field(i).SetString(value)
+				fieldValue := v.Field(i)
+
+				// Handle different field types
+				switch fieldValue.Kind() {
+				case reflect.String:
+					fieldValue.SetString(value)
+				case reflect.Int:
+					// Parse string as integer
+					if intValue, err := strconv.Atoi(value); err == nil {
+						fieldValue.SetInt(int64(intValue))
+					} else {
+						return fmt.Errorf("failed to parse %q as integer for field %s: %v", value, field.Name, err)
+					}
+				}
+
 				found = true
 				break
 			}

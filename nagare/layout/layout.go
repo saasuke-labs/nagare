@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	DefaultColumns = 12
+	DefaultColumns = 48
 )
 
 // Rect represents a rectangle in the layout
@@ -122,10 +122,10 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 		if child.Type == "Browser" {
 			browser := components.NewBrowser()
 			browser.Shape = components.Shape{
-				Width:  3, // Based on Grid system. 3 cells x 2 cells
-				Height: 3,
-				X:      int(float64(i*4) + 1), // 3 cells width + 1 cell gap
-				Y:      0,
+				Width:  12, // Based on Grid system. 3 cells x 2 cells
+				Height: 12,
+				X:      1, // 3 cells width + 1 cell gap
+				Y:      1,
 			}
 
 			// Set state and parse props if state exists
@@ -144,10 +144,10 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 		if child.Type == "VM" {
 			vm := components.NewVM()
 			vm.Shape = components.Shape{
-				Width:  4, // Based on Grid system. 3 cells x 2 cells
-				Height: 4,
-				X:      int(float64(i*4) + 1), // 3 cells width + 1 cell gap
-				Y:      0,
+				Width:  28, // Based on Grid system. 3 cells x 2 cells
+				Height: 20,
+				X:      20, // 3 cells width + 1 cell gap
+				Y:      1,
 			}
 
 			// Set state and parse props if state exists
@@ -157,6 +157,35 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 					// Parse props for this state
 					vm.Props.Parse(state.PropsDef)
 				}
+			}
+
+			// Process VM's children if any
+			if len(child.Children) > 0 {
+				childComponents := make([]components.Component, len(child.Children))
+				for j, grandchild := range child.Children {
+					switch grandchild.Type {
+					case "Server":
+						server := components.NewServer(grandchild.Text)
+						server.Shape = components.Shape{
+							Width:  12,
+							Height: 3,
+							X:      1,
+							Y:      j*4 + 1, // Stack vertically with spacing
+						}
+						if grandchild.State != "" {
+							if state, ok := grandchild.States[grandchild.State]; ok {
+								server.State = state.Name
+								server.Props.Parse(state.PropsDef)
+							}
+						}
+						childComponents[j] = server
+					// Add other types as needed
+					default:
+						fmt.Printf("Unknown child type: %s\n", grandchild.Type)
+						continue
+					}
+				}
+				vm.Children = childComponents
 			}
 
 			children[i] = vm

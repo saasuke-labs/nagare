@@ -146,7 +146,7 @@ import (
 // }
 
 func renderChildren(canvasWidth int, canvasHeight int, children []components.Component) string {
-	columns := 12
+	columns := 48
 	columnsWidth := float64(canvasWidth / columns)
 	rows := float64(canvasHeight) / columnsWidth
 	rowsHeight := float64(canvasHeight) / rows
@@ -160,7 +160,7 @@ func renderChildren(canvasWidth int, canvasHeight int, children []components.Com
 
 func drawGrid(canvasWidth, canvasHeight int) string {
 	var lines string = ""
-	columns := 12
+	columns := 48
 	columnsWidth := float64(canvasWidth) / float64(columns)
 	rows := canvasHeight / int(columnsWidth)
 	rowsHeight := canvasHeight / rows

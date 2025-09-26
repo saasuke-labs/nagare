@@ -51,12 +51,14 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 	code := `
 browser:Browser@home
 vps:VM@ubuntu {
-    nginx:App
-    app:App
+    nginx:Server@nginx
+    app:Server@app
 }
 
 @home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
 @ubuntu(title: "home@ubuntu", bg: "darkorange", fg: "#333", text: "Ubuntu")
+@nginx(title: "Nginx Server", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
+@app(title: "App Server", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
 `
 	html, err := createDiagram(code)
 	if err != nil {

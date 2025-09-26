@@ -32,16 +32,30 @@ func DefaultVMProps() VMProps {
 
 type VM struct {
 	Shape
-	Text  string
-	Props VMProps
-	State string // Current state name
+	Text     string
+	Props    VMProps
+	State    string // Current state name
+	Children []Component
 }
 
 // NewVM creates a new VM with default props
+func min(a, b float64) float64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func NewVM() *VM {
 	return &VM{
-		Props: DefaultVMProps(),
+		Props:    DefaultVMProps(),
+		Children: make([]Component, 0),
 	}
+}
+
+// AddChild adds a child component to the VM
+func (r *VM) AddChild(child Component) {
+	r.Children = append(r.Children, child)
 }
 
 const VMTemplate = `<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
@@ -141,5 +155,69 @@ func (r *VM) Draw(colWidth, rowHeight float64) string {
 		fmt.Printf("Error executing template: %v\n", err)
 		return ""
 	}
-	return result.String()
+
+	svg := result.String()
+
+	// Calculate the usable area for children within the content area
+	childAreaX := contentAreaX + actualWidth*0.02 // Add some padding from content area edge
+	childAreaY := contentAreaY + actualHeight*0.02
+	childAreaWidth := contentAreaWidth - actualWidth*0.04 // Subtract padding from both sides
+	childAreaHeight := contentAreaHeight - actualHeight*0.04
+
+	// If we have children, create a group for them with proper transformation
+	if len(r.Children) > 0 {
+		// Start the children group with translation to content area
+		svg += fmt.Sprintf(`<g transform="translate(%f,%f)">`,
+			float64(r.X)*colWidth+childAreaX,
+			float64(r.Y)*rowHeight+childAreaY)
+
+		// Calculate dimensions based on available space
+		maxChildrenPerRow := 3                                                    // We can fit 3 servers side by side
+		rowCount := (len(r.Children) + maxChildrenPerRow - 1) / maxChildrenPerRow // Round up division
+
+		// Calculate child dimensions as portion of content area
+		childWidth := childAreaWidth / float64(maxChildrenPerRow)
+		childHeight := childAreaHeight / float64(rowCount)
+
+		// Add some padding proportional to the smaller dimension
+		padding := min(childWidth, childHeight) * 0.1
+		effectiveChildWidth := childWidth - padding*2
+		effectiveChildHeight := childHeight - padding*2
+
+		// Draw each child
+		for i, child := range r.Children {
+			row := i / maxChildrenPerRow
+			col := i % maxChildrenPerRow
+
+			xPos := float64(col)*childWidth + padding
+			yPos := float64(row)*childHeight + padding
+
+			// Create a scaling transform for this child
+			svg += fmt.Sprintf(`<g transform="translate(%f,%f)">`,
+				xPos, yPos)
+
+			// Update child's position and size
+			if rect, ok := child.(interface{ SetBounds(x, y, w, h int) }); ok {
+				rect.SetBounds(
+					0, // Local coordinates
+					0,
+					int(effectiveChildWidth/colWidth), // Convert back to grid units
+					int(effectiveChildHeight/rowHeight),
+				)
+			}
+
+			// Draw the child with proper scaling
+			childSVG := child.Draw(
+				effectiveChildWidth/float64(int(effectiveChildWidth/colWidth)), // Scale to fit
+				effectiveChildHeight/float64(int(effectiveChildHeight/rowHeight)),
+			)
+			svg += childSVG
+			svg += "</g>"
+		}
+
+		// Close the children group
+		svg += "</g>"
+	}
+
+	return svg
 }
