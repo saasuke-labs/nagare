@@ -8,9 +8,10 @@ import (
 
 func TestParse(t *testing.T) {
 	tests := []struct {
-		name     string
-		tokens   []tokenizer.Token
-		expected Node
+		name          string
+		tokens        []tokenizer.Token
+		expected      Node
+		expectedError string
 	}{
 		{
 			name: "single identifier",
@@ -18,40 +19,75 @@ func TestParse(t *testing.T) {
 				{Type: tokenizer.IDENTIFIER, Value: "Server"},
 			},
 			expected: Node{
-				Type: NODE_ELEMENT,
-				Text: "",
+				Type:  NODE_ELEMENT,
+				Depth: 0,
 				Children: []Node{
-					{Type: NODE_ELEMENT, Text: "Server"},
+					{Type: NODE_ELEMENT, Text: "Server", Depth: 0},
 				},
 			},
 		},
 		{
-			name: "multiple identifiers",
+			name: "container with children",
 			tokens: []tokenizer.Token{
-				{Type: tokenizer.IDENTIFIER, Value: "Server1"},
-				{Type: tokenizer.IDENTIFIER, Value: "Server2"},
-				{Type: tokenizer.IDENTIFIER, Value: "Server3"},
+				{Type: tokenizer.IDENTIFIER, Value: "VM"},
+				{Type: tokenizer.LEFT_BRACE},
+				{Type: tokenizer.IDENTIFIER, Value: "nginx"},
+				{Type: tokenizer.IDENTIFIER, Value: "app"},
+				{Type: tokenizer.RIGHT_BRACE},
 			},
 			expected: Node{
-				Type: NODE_ELEMENT,
-				Text: "",
+				Type:  NODE_ELEMENT,
+				Depth: 0,
 				Children: []Node{
-					{Type: NODE_ELEMENT, Text: "Server1"},
-					{Type: NODE_ELEMENT, Text: "Server2"},
-					{Type: NODE_ELEMENT, Text: "Server3"},
+					{
+						Type:  NODE_CONTAINER,
+						Text:  "VM",
+						Depth: 0,
+						Children: []Node{
+							{Type: NODE_ELEMENT, Text: "nginx", Depth: 1},
+							{Type: NODE_ELEMENT, Text: "app", Depth: 1},
+						},
+					},
 				},
 			},
+		},
+		{
+			name: "too deep nesting",
+			tokens: []tokenizer.Token{
+				{Type: tokenizer.IDENTIFIER, Value: "VM"},
+				{Type: tokenizer.LEFT_BRACE},
+				{Type: tokenizer.IDENTIFIER, Value: "Server"},
+				{Type: tokenizer.LEFT_BRACE},
+				{Type: tokenizer.IDENTIFIER, Value: "App"},
+				{Type: tokenizer.RIGHT_BRACE},
+				{Type: tokenizer.RIGHT_BRACE},
+			},
+			expectedError: "nesting depth exceeded maximum of 1",
 		},
 		{
 			name:     "empty tokens",
 			tokens:   []tokenizer.Token{},
-			expected: Node{Type: NODE_ELEMENT},
+			expected: Node{Type: NODE_ELEMENT, Depth: 0},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Parse(tt.tokens)
+			got, err := Parse(tt.tokens)
+			if tt.expectedError != "" {
+				if err == nil {
+					t.Errorf("Parse() expected error %v, got nil", tt.expectedError)
+					return
+				}
+				if err.Error() != tt.expectedError {
+					t.Errorf("Parse() error = %v, want %v", err, tt.expectedError)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("Parse() unexpected error = %v", err)
+				return
+			}
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("Parse() = %v, want %v", got, tt.expected)
 			}

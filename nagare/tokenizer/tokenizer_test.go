@@ -40,6 +40,18 @@ func TestTokenize(t *testing.T) {
 				{Type: IDENTIFIER, Value: "Server2"},
 			},
 		},
+		{
+			name:  "nested structure",
+			input: "Browser\nVM {\n    nginx\n    app\n}",
+			expected: []Token{
+				{Type: IDENTIFIER, Value: "Browser"},
+				{Type: IDENTIFIER, Value: "VM"},
+				{Type: LEFT_BRACE},
+				{Type: IDENTIFIER, Value: "nginx"},
+				{Type: IDENTIFIER, Value: "app"},
+				{Type: RIGHT_BRACE},
+			},
+		},
 	}
 
 	for _, tt := range tests {

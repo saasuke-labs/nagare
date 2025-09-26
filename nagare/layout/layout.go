@@ -1,6 +1,9 @@
 package layout
 
-import "nagare/parser"
+import (
+	"fmt"
+	"nagare/parser"
+)
 
 // Rect represents a rectangle in the layout
 type Rect struct {
@@ -17,78 +20,117 @@ type Layout struct {
 	Children []Layout
 }
 
+func (n Layout) String() string {
+	if len(n.Children) == 0 {
+		return n.Text
+	}
+
+	childrenStr := ""
+
+	for _, child := range n.Children {
+		childrenStr += "[ " + child.String() + " ]"
+	}
+
+	return fmt.Sprintf("%s [%s]", n.Text, childrenStr)
+
+}
+
 const (
-	rectWidth  = 120.0
-	rectHeight = 60.0
-	maxColumns = 3
+	rectWidth       = 120.0
+	rectHeight      = 60.0
+	maxColumns      = 3
+	mainPadding     = 16.0 // Padding for the main layout
+	subPadding      = 8.0  // Padding for nested layouts
+	titleHeight     = 40.0 // Height reserved for container title
+	titleTopPadding = 20.0 // Padding above the container title
 )
 
 // Calculate computes the layout for an AST
 func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
-	if len(node.Children) == 0 {
-		// Single node case - center it
-		if node.Text != "" {
-			return Layout{
-				Bounds: Rect{
-					X:      (canvasWidth - rectWidth) / 2,
-					Y:      (canvasHeight - rectHeight) / 2,
-					Width:  rectWidth,
-					Height: rectHeight,
-				},
-				Text: node.Text,
-			}
+	if node.Type == parser.NODE_CONTAINER {
+		// Container node
+		childLayouts := make([]Layout, len(node.Children))
+
+		// Calculate total width needed for children in a row
+		childrenWidth := float64(len(node.Children)) * (rectWidth + mainPadding)
+		containerWidth := max(childrenWidth, 260.0) // Min container width
+
+		// Calculate height needed for container with title and children
+		containerHeight := rectHeight + titleHeight + mainPadding*2
+
+		// Position children in a row
+		for i, child := range node.Children {
+			childX := float64(i) * (rectWidth + mainPadding)
+			childLayout := Calculate(child, rectWidth, rectHeight)
+			childLayout.Bounds.X = childX
+			childLayout.Bounds.Y = 0 // Y offset handled by group transform in renderer
+			childLayouts[i] = childLayout
 		}
-		return Layout{} // Empty layout for empty node
-	}
 
-	// Calculate grid dimensions
-	numNodes := len(node.Children)
-	numColumns := min(numNodes, maxColumns)
-	numRows := (numNodes + maxColumns - 1) / maxColumns
-
-	// Calculate the width and height of each grid cell
-	cellWidth := canvasWidth / float64(numColumns)
-	cellHeight := canvasHeight / float64(numRows)
-
-	// Create layout for each child
-	var children []Layout
-	for i, child := range node.Children {
-		row := i / maxColumns
-		col := i % maxColumns
-
-		// Calculate center position of the current grid cell
-		cellCenterX := float64(col)*cellWidth + cellWidth/2
-		cellCenterY := float64(row)*cellHeight + cellHeight/2
-
-		// Position rectangle centered in the cell
-		x := cellCenterX - rectWidth/2
-		y := cellCenterY - rectHeight/2
-
-		childLayout := Layout{
+		// Center container in its allocated space
+		return Layout{
 			Bounds: Rect{
-				X:      x,
-				Y:      y,
-				Width:  rectWidth,
-				Height: rectHeight,
+				X:      (canvasWidth - containerWidth) / 2,
+				Y:      mainPadding,
+				Width:  containerWidth,
+				Height: containerHeight,
 			},
-			Text: child.Text,
+			Text:     node.Text,
+			Children: childLayouts,
 		}
-		children = append(children, childLayout)
 	}
 
-	// Root layout encompasses all children
+	if node.Text == "" {
+		// Root node - arrange children horizontally with equal spacing
+		childLayouts := make([]Layout, len(node.Children))
+		spacing := float64(canvasWidth) / float64(len(node.Children)+1)
+
+		for i, child := range node.Children {
+			childX := spacing*float64(i+1) - rectWidth/2
+			childLayout := Calculate(child, rectWidth*2, canvasHeight-mainPadding*2)
+			childLayout.Bounds.X = childX
+			childLayout.Bounds.Y = mainPadding
+			childLayouts[i] = childLayout
+		}
+
+		return Layout{
+			Bounds: Rect{
+				X:      0,
+				Y:      0,
+				Width:  canvasWidth,
+				Height: canvasHeight,
+			},
+			Children: childLayouts,
+		}
+	}
+
+	// Regular node (leaf)
 	return Layout{
 		Bounds: Rect{
 			X:      0,
 			Y:      0,
-			Width:  canvasWidth,
-			Height: canvasHeight,
+			Width:  rectWidth,
+			Height: rectHeight,
 		},
-		Children: children,
+		Text: node.Text,
 	}
 }
 
+func max(a, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func minf(a, b float64) float64 {
 	if a < b {
 		return a
 	}
