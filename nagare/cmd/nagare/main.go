@@ -55,8 +55,8 @@ vps:VM@ubuntu {
     app:App
 }
 
-@home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Blue Version")
-@ubuntu(url: "https://www.ubuntu.com", bg: "darkorange", fg: "#333", text: "Ubuntu")
+@home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
+@ubuntu(title: "home@ubuntu", bg: "darkorange", fg: "#333", text: "Ubuntu")
 `
 	html, err := createDiagram(code)
 	if err != nil {

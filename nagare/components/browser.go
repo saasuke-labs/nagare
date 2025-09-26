@@ -9,10 +9,11 @@ import (
 
 // BrowserProps defines the configurable properties for a Browser component
 type BrowserProps struct {
-	URL             string `prop:"url"`
-	BackgroundColor string `prop:"bg"`
-	ForegroundColor string `prop:"fg"`
-	Text            string `prop:"text"`
+	URL                    string `prop:"url"`
+	BackgroundColor        string `prop:"bg"`
+	ForegroundColor        string `prop:"fg"`
+	ContentBackgroundColor string `prop:"contentBg"`
+	Text                   string `prop:"text"`
 }
 
 // Parse implements the Props interface
@@ -23,10 +24,11 @@ func (b *BrowserProps) Parse(input string) error {
 // DefaultBrowserProps returns a BrowserProps with default values
 func DefaultBrowserProps() BrowserProps {
 	return BrowserProps{
-		URL:             "",
-		BackgroundColor: "#e6f3ff",
-		ForegroundColor: "#333333",
-		Text:            "",
+		URL:                    "",
+		BackgroundColor:        "#e6f3ff",
+		ForegroundColor:        "#333333",
+		ContentBackgroundColor: "#ffffff", // White content area by default
+		Text:                   "",
 	}
 }
 
@@ -49,7 +51,7 @@ const BrowserTemplate = `<g transform="translate({{printf "%.6f" .X}},{{printf "
                         <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
                         <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .TopBarHeight}}" rx="{{printf "%.6f" .CornerRadius}}" ry="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
                         <rect x="{{printf "%.6f" .UrlBarX}}" y="{{printf "%.6f" .UrlBarY}}" width="{{printf "%.6f" .UrlBarWidth}}" height="{{printf "%.6f" .UrlBarHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="#fff" stroke="{{.ForegroundColor}}" opacity="0.85"/>
-                        <rect x="{{printf "%.6f" .ContentAreaX}}" y="{{printf "%.6f" .ContentAreaY}}" width="{{printf "%.6f" .ContentAreaWidth}}" height="{{printf "%.6f" .ContentAreaHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}" opacity="0.9"/>
+                        <rect x="{{printf "%.6f" .ContentAreaX}}" y="{{printf "%.6f" .ContentAreaY}}" width="{{printf "%.6f" .ContentAreaWidth}}" height="{{printf "%.6f" .ContentAreaHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="{{.ContentBackgroundColor}}" stroke="{{.ForegroundColor}}" opacity="0.9"/>
                 </g>
                 <text x="{{printf "%.6f" (add .UrlBarX (mul .UrlBarWidth 0.5))}}" y="{{printf "%.6f" (add .UrlBarY (mul .UrlBarHeight 0.5))}}" text-anchor="middle" dominant-baseline="middle"
                         font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
@@ -65,29 +67,30 @@ const BrowserTemplate = `<g transform="translate({{printf "%.6f" .X}},{{printf "
         </g>`
 
 type BrowserTemplateData struct {
-	X                 float64
-	Y                 float64
-	Width             float64
-	Height            float64
-	CornerRadius      float64
-	TopBarHeight      float64
-	UrlBarWidth       float64
-	UrlBarHeight      float64
-	UrlBarX           float64
-	UrlBarY           float64
-	ContentAreaWidth  float64
-	ContentAreaHeight float64
-	ContentAreaX      float64
-	ContentAreaY      float64
-	ControlsX         float64
-	ControlsY         float64
-	ControlRadius     float64
-	ControlSpacing    float64
-	FontSize          float64
-	BackgroundColor   string
-	ForegroundColor   string
-	URL               string
-	Text              string
+	X                      float64
+	Y                      float64
+	Width                  float64
+	Height                 float64
+	CornerRadius           float64
+	TopBarHeight           float64
+	UrlBarWidth            float64
+	UrlBarHeight           float64
+	UrlBarX                float64
+	UrlBarY                float64
+	ContentAreaWidth       float64
+	ContentAreaHeight      float64
+	ContentAreaX           float64
+	ContentAreaY           float64
+	ControlsX              float64
+	ControlsY              float64
+	ControlRadius          float64
+	ControlSpacing         float64
+	FontSize               float64
+	BackgroundColor        string
+	ForegroundColor        string
+	ContentBackgroundColor string
+	URL                    string
+	Text                   string
 }
 
 func (r *Browser) Draw(colWidth, rowHeight float64) string {
@@ -115,29 +118,30 @@ func (r *Browser) Draw(colWidth, rowHeight float64) string {
 
 	// Create template data
 	data := BrowserTemplateData{
-		X:                 float64(r.X) * colWidth,
-		Y:                 float64(r.Y) * rowHeight,
-		Width:             actualWidth,
-		Height:            actualHeight,
-		CornerRadius:      cornerRadius,
-		TopBarHeight:      topBarHeight,
-		UrlBarWidth:       urlBarWidth,
-		UrlBarHeight:      urlBarHeight,
-		UrlBarX:           urlBarX,
-		UrlBarY:           urlBarY,
-		ContentAreaWidth:  contentAreaWidth,
-		ContentAreaHeight: contentAreaHeight,
-		ContentAreaX:      contentAreaX,
-		ContentAreaY:      contentAreaY,
-		ControlsX:         controlsX,
-		ControlsY:         controlsY,
-		ControlRadius:     controlRadius,
-		ControlSpacing:    controlSpacing,
-		FontSize:          fontSize,
-		BackgroundColor:   r.Props.BackgroundColor,
-		ForegroundColor:   r.Props.ForegroundColor,
-		URL:               r.Props.URL,
-		Text:              r.Props.Text,
+		X:                      float64(r.X) * colWidth,
+		Y:                      float64(r.Y) * rowHeight,
+		Width:                  actualWidth,
+		Height:                 actualHeight,
+		CornerRadius:           cornerRadius,
+		TopBarHeight:           topBarHeight,
+		UrlBarWidth:            urlBarWidth,
+		UrlBarHeight:           urlBarHeight,
+		UrlBarX:                urlBarX,
+		UrlBarY:                urlBarY,
+		ContentAreaWidth:       contentAreaWidth,
+		ContentAreaHeight:      contentAreaHeight,
+		ContentAreaX:           contentAreaX,
+		ContentAreaY:           contentAreaY,
+		ControlsX:              controlsX,
+		ControlsY:              controlsY,
+		ControlRadius:          controlRadius,
+		ControlSpacing:         controlSpacing,
+		FontSize:               fontSize,
+		BackgroundColor:        r.Props.BackgroundColor,
+		ForegroundColor:        r.Props.ForegroundColor,
+		ContentBackgroundColor: r.Props.ContentBackgroundColor,
+		URL:                    r.Props.URL,
+		Text:                   r.Props.Text,
 	}
 
 	// Create and execute template with custom functions

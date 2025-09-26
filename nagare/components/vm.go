@@ -9,10 +9,10 @@ import (
 
 // VMProps defines the configurable properties for a VM component
 type VMProps struct {
-	URL             string `prop:"url"`
-	BackgroundColor string `prop:"bg"`
-	ForegroundColor string `prop:"fg"`
-	Text            string `prop:"text"`
+	Title                  string `prop:"title"`
+	BackgroundColor        string `prop:"bg"`
+	ForegroundColor        string `prop:"fg"`
+	ContentBackgroundColor string `prop:"contentBg"`
 }
 
 // Parse implements the Props interface
@@ -23,10 +23,10 @@ func (b *VMProps) Parse(input string) error {
 // DefaultVMProps returns a VMProps with default values
 func DefaultVMProps() VMProps {
 	return VMProps{
-		URL:             "",
-		BackgroundColor: "#e6f3ff",
-		ForegroundColor: "#333333",
-		Text:            "",
+		Title:                  "",
+		BackgroundColor:        "#e6f3ff",
+		ForegroundColor:        "#333333",
+		ContentBackgroundColor: "#333333", // Dark content area by default
 	}
 }
 
@@ -48,46 +48,43 @@ const VMTemplate = `<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f"
                 <g class="ns" filter="url(#softShadow)">
                         <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
                         <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .TopBarHeight}}" rx="{{printf "%.6f" .CornerRadius}}" ry="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
-                        <rect x="{{printf "%.6f" .UrlBarX}}" y="{{printf "%.6f" .UrlBarY}}" width="{{printf "%.6f" .UrlBarWidth}}" height="{{printf "%.6f" .UrlBarHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="#fff" stroke="{{.ForegroundColor}}" opacity="0.85"/>
-                        <rect x="{{printf "%.6f" .ContentAreaX}}" y="{{printf "%.6f" .ContentAreaY}}" width="{{printf "%.6f" .ContentAreaWidth}}" height="{{printf "%.6f" .ContentAreaHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}" opacity="0.9"/>
+                        <rect x="{{printf "%.6f" .ContentAreaX}}" y="{{printf "%.6f" .ContentAreaY}}" width="{{printf "%.6f" .ContentAreaWidth}}" height="{{printf "%.6f" .ContentAreaHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="{{.ContentBackgroundColor}}" stroke="{{.ForegroundColor}}" opacity="0.9"/>
                 </g>
-                <text x="{{printf "%.6f" (add .UrlBarX (mul .UrlBarWidth 0.5))}}" y="{{printf "%.6f" (add .UrlBarY (mul .UrlBarHeight 0.5))}}" text-anchor="middle" dominant-baseline="middle"
-                        font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
-                        font-size="{{printf "%.6f" (mul .FontSize 0.8)}}" fill="{{.ForegroundColor}}">{{.URL}}</text>
-                <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (add .ContentAreaY (mul .ContentAreaHeight 0.5))}}" text-anchor="middle" dominant-baseline="middle"
-                        font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
-                        font-size="{{mul .FontSize 2}}" fill="{{.ForegroundColor}}">{{.Text}}</text>
                 <g transform="translate({{printf "%.6f" .ControlsX}},{{printf "%.6f" .ControlsY}})">
                         <circle r="{{printf "%.6f" .ControlRadius}}" cx="0" cy="{{printf "%.6f" (mul .ControlRadius 1.33)}}" fill="#ff5f57"/>
                         <circle r="{{printf "%.6f" .ControlRadius}}" cx="{{printf "%.6f" .ControlSpacing}}" cy="{{printf "%.6f" (mul .ControlRadius 1.33)}}" fill="#febc2e"/>
                         <circle r="{{printf "%.6f" .ControlRadius}}" cx="{{printf "%.6f" (mul .ControlSpacing 2)}}" cy="{{printf "%.6f" (mul .ControlRadius 1.33)}}" fill="#28c840"/>
+                        <!-- Title text positioned after controls -->
+                        <text x="{{printf "%.6f" (add (mul .ControlSpacing 3) (mul .ControlRadius 2))}}" 
+                              y="{{printf "%.6f" (mul .ControlRadius 1.33)}}" 
+                              text-anchor="start" 
+                              dominant-baseline="middle"
+                              font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+                              font-size="{{.FontSize}}" 
+                              fill="{{.ForegroundColor}}">{{.Title}}</text>
                 </g>
         </g>`
 
 type VMTemplateData struct {
-	X                 float64
-	Y                 float64
-	Width             float64
-	Height            float64
-	CornerRadius      float64
-	TopBarHeight      float64
-	UrlBarWidth       float64
-	UrlBarHeight      float64
-	UrlBarX           float64
-	UrlBarY           float64
-	ContentAreaWidth  float64
-	ContentAreaHeight float64
-	ContentAreaX      float64
-	ContentAreaY      float64
-	ControlsX         float64
-	ControlsY         float64
-	ControlRadius     float64
-	ControlSpacing    float64
-	FontSize          float64
-	BackgroundColor   string
-	ForegroundColor   string
-	URL               string
-	Text              string
+	X                      float64
+	Y                      float64
+	Width                  float64
+	Height                 float64
+	CornerRadius           float64
+	TopBarHeight           float64
+	ContentAreaWidth       float64
+	ContentAreaHeight      float64
+	ContentAreaX           float64
+	ContentAreaY           float64
+	ControlsX              float64
+	ControlsY              float64
+	ControlRadius          float64
+	ControlSpacing         float64
+	FontSize               float64
+	BackgroundColor        string
+	ForegroundColor        string
+	ContentBackgroundColor string
+	Title                  string
 }
 
 func (r *VM) Draw(colWidth, rowHeight float64) string {
@@ -99,10 +96,6 @@ func (r *VM) Draw(colWidth, rowHeight float64) string {
 	// Calculate all dimensions
 	cornerRadius := actualWidth * 0.015625        // 10/640
 	topBarHeight := actualHeight * 0.1047619      // 44/420
-	urlBarHeight := actualHeight * 0.0571428      // 24/420
-	urlBarWidth := actualWidth * 0.75             // 480/640
-	urlBarX := actualWidth * 0.15625              // 100/640
-	urlBarY := actualHeight * 0.0238095           // 10/420
 	contentAreaWidth := actualWidth * 0.9625      // 616/640
 	contentAreaHeight := actualHeight * 0.8380952 // 352/420
 	contentAreaX := actualWidth * 0.01875         // 12/640
@@ -115,29 +108,25 @@ func (r *VM) Draw(colWidth, rowHeight float64) string {
 
 	// Create template data
 	data := VMTemplateData{
-		X:                 float64(r.X) * colWidth,
-		Y:                 float64(r.Y) * rowHeight,
-		Width:             actualWidth,
-		Height:            actualHeight,
-		CornerRadius:      cornerRadius,
-		TopBarHeight:      topBarHeight,
-		UrlBarWidth:       urlBarWidth,
-		UrlBarHeight:      urlBarHeight,
-		UrlBarX:           urlBarX,
-		UrlBarY:           urlBarY,
-		ContentAreaWidth:  contentAreaWidth,
-		ContentAreaHeight: contentAreaHeight,
-		ContentAreaX:      contentAreaX,
-		ContentAreaY:      contentAreaY,
-		ControlsX:         controlsX,
-		ControlsY:         controlsY,
-		ControlRadius:     controlRadius,
-		ControlSpacing:    controlSpacing,
-		FontSize:          fontSize,
-		BackgroundColor:   r.Props.BackgroundColor,
-		ForegroundColor:   r.Props.ForegroundColor,
-		URL:               r.Props.URL,
-		Text:              r.Props.Text,
+		X:                      float64(r.X) * colWidth,
+		Y:                      float64(r.Y) * rowHeight,
+		Width:                  actualWidth,
+		Height:                 actualHeight,
+		CornerRadius:           cornerRadius,
+		TopBarHeight:           topBarHeight,
+		ContentAreaWidth:       contentAreaWidth,
+		ContentAreaHeight:      contentAreaHeight,
+		ContentAreaX:           contentAreaX,
+		ContentAreaY:           contentAreaY,
+		ControlsX:              controlsX,
+		ControlsY:              controlsY,
+		ControlRadius:          controlRadius,
+		ControlSpacing:         controlSpacing,
+		FontSize:               fontSize,
+		BackgroundColor:        r.Props.BackgroundColor,
+		ForegroundColor:        r.Props.ForegroundColor,
+		ContentBackgroundColor: r.Props.ContentBackgroundColor,
+		Title:                  r.Props.Title,
 	}
 
 	// Create and execute template with custom functions
