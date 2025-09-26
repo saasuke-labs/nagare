@@ -140,6 +140,28 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 			children[i] = browser
 			fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
 			continue
+		}
+		if child.Type == "VM" {
+			vm := components.NewVM()
+			vm.Shape = components.Shape{
+				Width:  4, // Based on Grid system. 3 cells x 2 cells
+				Height: 4,
+				X:      int(float64(i*4) + 1), // 3 cells width + 1 cell gap
+				Y:      0,
+			}
+
+			// Set state and parse props if state exists
+			if child.State != "" {
+				if state, ok := child.States[child.State]; ok {
+					vm.State = state.Name
+					// Parse props for this state
+					vm.Props.Parse(state.PropsDef)
+				}
+			}
+
+			children[i] = vm
+			fmt.Printf("State: %s, Props: %+v\n", vm.State, vm.Props)
+			continue
 		} else {
 			children[i] = &components.Rectangle{
 				Shape: components.Shape{

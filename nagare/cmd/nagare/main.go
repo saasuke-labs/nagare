@@ -50,12 +50,13 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 
 	code := `
 browser:Browser@home
-vps:VM {
+vps:VM@ubuntu {
     nginx:App
     app:App
 }
 
 @home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Blue Version")
+@ubuntu(url: "https://www.ubuntu.com", bg: "darkorange", fg: "#333", text: "Ubuntu")
 `
 	html, err := createDiagram(code)
 	if err != nil {

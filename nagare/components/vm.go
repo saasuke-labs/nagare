@@ -7,8 +7,8 @@ import (
 	"text/template"
 )
 
-// BrowserProps defines the configurable properties for a Browser component
-type BrowserProps struct {
+// VMProps defines the configurable properties for a VM component
+type VMProps struct {
 	URL             string `prop:"url"`
 	BackgroundColor string `prop:"bg"`
 	ForegroundColor string `prop:"fg"`
@@ -16,13 +16,13 @@ type BrowserProps struct {
 }
 
 // Parse implements the Props interface
-func (b *BrowserProps) Parse(input string) error {
+func (b *VMProps) Parse(input string) error {
 	return props.ParseProps(input, b)
 }
 
-// DefaultBrowserProps returns a BrowserProps with default values
-func DefaultBrowserProps() BrowserProps {
-	return BrowserProps{
+// DefaultVMProps returns a VMProps with default values
+func DefaultVMProps() VMProps {
+	return VMProps{
 		URL:             "",
 		BackgroundColor: "#e6f3ff",
 		ForegroundColor: "#333333",
@@ -30,21 +30,21 @@ func DefaultBrowserProps() BrowserProps {
 	}
 }
 
-type Browser struct {
+type VM struct {
 	Shape
 	Text  string
-	Props BrowserProps
+	Props VMProps
 	State string // Current state name
 }
 
-// NewBrowser creates a new Browser with default props
-func NewBrowser() *Browser {
-	return &Browser{
-		Props: DefaultBrowserProps(),
+// NewVM creates a new VM with default props
+func NewVM() *VM {
+	return &VM{
+		Props: DefaultVMProps(),
 	}
 }
 
-const BrowserTemplate = `<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+const VMTemplate = `<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
                 <g class="ns" filter="url(#softShadow)">
                         <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
                         <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .TopBarHeight}}" rx="{{printf "%.6f" .CornerRadius}}" ry="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
@@ -64,7 +64,7 @@ const BrowserTemplate = `<g transform="translate({{printf "%.6f" .X}},{{printf "
                 </g>
         </g>`
 
-type BrowserTemplateData struct {
+type VMTemplateData struct {
 	X                 float64
 	Y                 float64
 	Width             float64
@@ -90,8 +90,8 @@ type BrowserTemplateData struct {
 	Text              string
 }
 
-func (r *Browser) Draw(colWidth, rowHeight float64) string {
-	fmt.Println("Drawing browser at", r.X, r.Y, "size", r.Width, r.Height)
+func (r *VM) Draw(colWidth, rowHeight float64) string {
+	fmt.Println("Drawing VM at", r.X, r.Y, "size", r.Width, r.Height)
 
 	actualWidth := float64(r.Width) * colWidth
 	actualHeight := float64(r.Height) * rowHeight
@@ -114,7 +114,7 @@ func (r *Browser) Draw(colWidth, rowHeight float64) string {
 	fontSize := actualWidth * 0.05                // 13/640
 
 	// Create template data
-	data := BrowserTemplateData{
+	data := VMTemplateData{
 		X:                 float64(r.X) * colWidth,
 		Y:                 float64(r.Y) * rowHeight,
 		Width:             actualWidth,
@@ -146,7 +146,7 @@ func (r *Browser) Draw(colWidth, rowHeight float64) string {
 		"mul": func(a, b float64) float64 { return a * b },
 	}
 
-	tmpl := template.Must(template.New("browser").Funcs(funcMap).Parse(BrowserTemplate))
+	tmpl := template.Must(template.New("VM").Funcs(funcMap).Parse(VMTemplate))
 	var result bytes.Buffer
 	if err := tmpl.Execute(&result, data); err != nil {
 		fmt.Printf("Error executing template: %v\n", err)
