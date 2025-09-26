@@ -18,33 +18,4 @@ vps:VM {
 
 Becomes:
 
-<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
-	<!-- Background -->
-	<rect width="800" height="400" fill="#ffffff"></rect>
-	<line x1="0.000000" y1="0" x2="0.000000" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="66.666667" y1="0" x2="66.666667" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="133.333333" y1="0" x2="133.333333" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="200.000000" y1="0" x2="200.000000" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="266.666667" y1="0" x2="266.666667" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="333.333333" y1="0" x2="333.333333" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="400.000000" y1="0" x2="400.000000" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="466.666667" y1="0" x2="466.666667" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="533.333333" y1="0" x2="533.333333" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="600.000000" y1="0" x2="600.000000" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="666.666667" y1="0" x2="666.666667" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="733.333333" y1="0" x2="733.333333" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="800.000000" y1="0" x2="800.000000" y2="400" stroke="#e0e0e0" stroke-width="1"></line><line x1="0" y1="0.000000" x2="800" y2="0.000000" stroke="#e0e0e0" stroke-width="1"></line><line x1="0" y1="66.000000" x2="800" y2="66.000000" stroke="#e0e0e0" stroke-width="1"></line><line x1="0" y1="132.000000" x2="800" y2="132.000000" stroke="#e0e0e0" stroke-width="1"></line><line x1="0" y1="198.000000" x2="800" y2="198.000000" stroke="#e0e0e0" stroke-width="1"></line><line x1="0" y1="264.000000" x2="800" y2="264.000000" stroke="#e0e0e0" stroke-width="1"></line><line x1="0" y1="330.000000" x2="800" y2="330.000000" stroke="#e0e0e0" stroke-width="1"></line><line x1="0" y1="396.000000" x2="800" y2="396.000000" stroke="#e0e0e0" stroke-width="1"></line>
-	<g transform="translate(66.000000,0.000000)">
-                <g class="ns" filter="url(#softShadow)">
-                        <rect x="0" y="0" width="198.000000" height="198.000000" rx="3.093750" fill="#e6f3ff" stroke="#333"></rect>
-                        <rect x="0" y="0" width="198.000000" height="20.742856" rx="3.093750" ry="3.093750" fill="#e6f3ff" stroke="#333"></rect>
-                        <rect x="30.937500" y="4.714281" width="148.500000" height="11.314274" rx="1.856250" fill="#fff" stroke="#333" opacity="0.85"></rect>
-                        <rect x="3.712500" y="26.399993" width="190.575000" height="165.942850" rx="1.856250" fill="#e6f3ff" stroke="#333" opacity="0.9"></rect>
-                </g>
-                <text x="105.187500" y="10.371418" text-anchor="middle" dominant-baseline="middle" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="7.920000" fill="#333">https://www.nagare.com</text>
-                <text x="99.000000" y="109.371418" text-anchor="middle" dominant-baseline="middle" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="9.900000" fill="#333">Blue Version</text>
-                <g transform="translate(4.331250,6.599993)">
-                        <circle r="1.856250" cx="0" cy="2.468812" fill="#ff5f57"></circle>
-                        <circle r="1.856250" cx="5.568750" cy="2.468812" fill="#febc2e"></circle>
-                        <circle r="1.856250" cx="11.137500" cy="2.468812" fill="#28c840"></circle>
-                </g>
-        </g>
-	<g transform="translate(330.000000,0.000000)">
-		<!-- Element rectangle -->
-		<rect x="0" y="0" width="198.000000" height="132.000000" fill="#333333" stroke="#cccccc" stroke-width="2"></rect>
-
-    	<!-- Text -->
-    	<text x="66.000000" y="66.000000" font-family="Arial" font-size="14" fill="#cccccc" text-anchor="middle" dominant-baseline="middle">
-    		vps
-    	</text>
-    </g>
-
-</svg>
+![Example1](static/examples/example1.svg)
