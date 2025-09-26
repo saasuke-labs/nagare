@@ -49,11 +49,13 @@ func createDiagram(code string) (string, error) {
 func handleTest(w http.ResponseWriter, r *http.Request) {
 
 	code := `
-browser:Browser
+browser:Browser@home
 vps:VM {
     nginx:App
     app:App
 }
+
+@home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Blue Version")
 `
 	html, err := createDiagram(code)
 	if err != nil {

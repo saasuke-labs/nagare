@@ -15,12 +15,20 @@ const (
 	NODE_CONTAINER NodeType = "Container" // Default type for nodes with children
 )
 
+// State represents a named set of props for a node
+type State struct {
+	Name     string
+	PropsDef string // Raw props definition string to be parsed by components
+}
+
 // Node represents a node in the AST
 type Node struct {
 	Type     NodeType // Can be a predefined type or a custom type string
 	Text     string   // The name/label of the node
 	Children []Node
-	Depth    int // Track nesting level
+	Depth    int    // Track nesting level
+	State    string // Current state name if specified with @
+	States   map[string]State
 }
 
 func (n Node) String() string {
@@ -52,20 +60,126 @@ type Parser struct {
 	current int
 }
 
+// findNodesWithState returns all nodes in the tree that use the given state
+func (p *Parser) findNodesWithState(root *Node, stateName string) []*Node {
+	var nodes []*Node
+	if root.State == stateName {
+		nodes = append(nodes, root)
+	}
+	for i := range root.Children {
+		nodes = append(nodes, p.findNodesWithState(&root.Children[i], stateName)...)
+	}
+	return nodes
+}
+
+func (p *Parser) parseState() (*State, error) {
+	if p.current >= len(p.tokens) || p.tokens[p.current].Type != tokenizer.AT {
+		return nil, errors.New("expected @ for state definition")
+	}
+	p.current++ // Move past @
+
+	if p.current >= len(p.tokens) || p.tokens[p.current].Type != tokenizer.IDENTIFIER {
+		return nil, errors.New("expected state name after @")
+	}
+	name := p.tokens[p.current].Value
+	p.current++ // Move past state name
+
+	if p.current >= len(p.tokens) || p.tokens[p.current].Type != tokenizer.LEFT_PAREN {
+		return nil, errors.New("expected ( after state name")
+	}
+	p.current++ // Move past (
+
+	// Collect everything until the matching )
+	var propsDef strings.Builder
+	parenCount := 1
+	inQuotes := false
+
+	for p.current < len(p.tokens) && parenCount > 0 {
+		token := p.tokens[p.current]
+
+		switch {
+		case token.Type == tokenizer.IDENTIFIER && (token.Value == "\"" || token.Value == "'"):
+			inQuotes = !inQuotes
+			propsDef.WriteString("\"") // Always use double quotes
+		case token.Type == tokenizer.COMMA && !inQuotes:
+			propsDef.WriteString(",")
+		case token.Type == tokenizer.COLON && !inQuotes:
+			propsDef.WriteString(":")
+		case token.Type == tokenizer.LEFT_PAREN:
+			parenCount++
+			if parenCount > 1 {
+				propsDef.WriteString("(")
+			}
+		case token.Type == tokenizer.RIGHT_PAREN:
+			parenCount--
+			if parenCount > 0 {
+				propsDef.WriteString(")")
+			}
+		default:
+			propsDef.WriteString(token.Value)
+			if !inQuotes && token.Type != tokenizer.COLON && token.Type != tokenizer.COMMA {
+				nextToken := p.peekNext()
+				if nextToken != nil && nextToken.Type != tokenizer.COLON && nextToken.Type != tokenizer.COMMA {
+					propsDef.WriteString(" ")
+				}
+			}
+		}
+		p.current++
+	}
+
+	if parenCount > 0 {
+		return nil, errors.New("unclosed parenthesis in state definition")
+	}
+
+	return &State{
+		Name:     name,
+		PropsDef: propsDef.String(),
+	}, nil
+}
+
+func (p *Parser) peekNext() *tokenizer.Token {
+	if p.current+1 < len(p.tokens) {
+		return &p.tokens[p.current+1]
+	}
+	return nil
+}
+
 func (p *Parser) parse(depth int) (Node, error) {
 	if depth > 1 {
 		return Node{}, errors.New("nesting depth exceeded maximum of 1")
 	}
 
 	root := Node{
-		Type:  NODE_ELEMENT,
-		Depth: depth,
+		Type:   NODE_ELEMENT,
+		Depth:  depth,
+		States: make(map[string]State),
 	}
 
 	for p.current < len(p.tokens) {
 		token := p.tokens[p.current]
 
 		switch token.Type {
+		case tokenizer.AT:
+			if depth > 0 {
+				return Node{}, errors.New("state definitions must be at root level")
+			}
+			state, err := p.parseState()
+			if err != nil {
+				return Node{}, err
+			}
+
+			// Find all nodes that use this state
+			nodes := p.findNodesWithState(&root, state.Name)
+			if len(nodes) == 0 {
+				return Node{}, fmt.Errorf("no nodes found using state %s", state.Name)
+			}
+
+			// Add the state definition to all nodes that use it
+			fmt.Printf("State %s props: %s\n", state.Name, state.PropsDef)
+			for _, node := range nodes {
+				node.States[state.Name] = *state
+			}
+
 		case tokenizer.RIGHT_BRACE:
 			if depth == 0 {
 				return Node{}, errors.New("unexpected closing brace at root level")
@@ -91,16 +205,34 @@ func (p *Parser) parse(depth int) (Node, error) {
 				p.current++ // Move past type
 			}
 
+			// Check for state declaration with @
+			var stateName string
+			if p.current < len(p.tokens) && p.tokens[p.current].Type == tokenizer.AT {
+				p.current++ // Move past @
+				if p.current >= len(p.tokens) {
+					return Node{}, errors.New("unexpected end of input after @")
+				}
+				if p.tokens[p.current].Type != tokenizer.IDENTIFIER {
+					return Node{}, errors.New("expected state name after @")
+				}
+				stateName = p.tokens[p.current].Value
+				p.current++ // Move past state name
+			}
+
 			// Check if it's a container (has braces)
 			isContainer := p.current < len(p.tokens) &&
 				p.tokens[p.current].Type == tokenizer.LEFT_BRACE
 
+			states := make(map[string]State)
+
 			if isContainer {
 				// This is a container node
 				containerNode := Node{
-					Type:  NODE_CONTAINER, // Containers always use NODE_CONTAINER type
-					Text:  nodeName,
-					Depth: depth,
+					Type:   nodeType, // Use declared type or default
+					Text:   nodeName,
+					Depth:  depth,
+					State:  stateName,
+					States: states,
 				}
 				p.current++ // Skip the left brace
 
@@ -129,9 +261,11 @@ func (p *Parser) parse(depth int) (Node, error) {
 			} else {
 				// Regular node
 				node := Node{
-					Type:  nodeType, // Use declared type or default
-					Text:  nodeName,
-					Depth: depth,
+					Type:   nodeType, // Use declared type or default
+					Text:   nodeName,
+					Depth:  depth,
+					State:  stateName,
+					States: states,
 				}
 
 				if depth == 0 {

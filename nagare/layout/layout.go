@@ -1,6 +1,7 @@
 package layout
 
 import (
+	"fmt"
 	"nagare/components"
 	"nagare/parser"
 )
@@ -119,15 +120,25 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 
 		// FIME: HARDCODED TYPES
 		if child.Type == "Browser" {
-			children[i] = &components.Browser{
-				Shape: components.Shape{
-					Width:  3, // Based on Grid system. 3 cells x 2 cells
-					Height: 3,
-					X:      int(float64(i*4) + 1), // 3 cells width + 1 cell gap
-					Y:      0,
-				},
-				Text: child.Text,
+			browser := components.NewBrowser()
+			browser.Shape = components.Shape{
+				Width:  3, // Based on Grid system. 3 cells x 2 cells
+				Height: 3,
+				X:      int(float64(i*4) + 1), // 3 cells width + 1 cell gap
+				Y:      0,
 			}
+
+			// Set state and parse props if state exists
+			if child.State != "" {
+				if state, ok := child.States[child.State]; ok {
+					browser.State = state.Name
+					// Parse props for this state
+					browser.Props.Parse(state.PropsDef)
+				}
+			}
+
+			children[i] = browser
+			fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
 			continue
 		} else {
 			children[i] = &components.Rectangle{
