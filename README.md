@@ -2,6 +2,8 @@
 
 ## Examples
 
+Pull requests automatically run a preview workflow that boots the Nagare server, renders the `/test` diagram, and attaches the resulting SVG to the PR discussion for quick review.
+
 ### Browser and VM
 
 This is still in progress
