@@ -60,10 +60,7 @@ jobs:
           echo '--- Nagare server log ---'
           cat nagare/server.log || true
 
-      - name: Install librsvg
-        run: sudo apt-get install -y librsvg2-bin
-
-      - name: Convert SVG to PNG
+      - name: Validate SVG file
         run: |
           if [ ! -f nagare-test.svg ]; then
             echo "SVG output missing" >&2
@@ -75,24 +72,21 @@ jobs:
             exit 1
           fi
 
-          # Convert SVG to PNG with fixed dimensions
-          rsvg-convert -w 1600 -h 800 nagare-test.svg > nagare-test.png
-
-      - name: Upload diagram image
+      - name: Upload SVG diagram
         uses: actions/upload-artifact@v4
         with:
           name: nagare-test-preview
-          path: nagare-test.png
+          path: nagare-test.svg
           if-no-files-found: error
           retention-days: 1
 
-      - name: Comment PNG preview on PR
+      - name: Comment SVG preview on PR
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          # Create comment with the PNG link
+          # Create comment with the SVG link
           echo "### Nagare /test diagram preview" > comment.md
           echo "" >> comment.md
           echo "<details>" >> comment.md
@@ -103,32 +97,9 @@ jobs:
           echo "</details>" >> comment.md
 
           # Post the comment
-          gh pr comment "$PR_NUMBER" --body-file comment.md
-          rsvg-convert -w 1600 -h 800 nagare-test.svg > nagare-test.png
-
-      - name: Comment PNG preview on PR
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          # Base64 encode the PNG
-          PNG_BASE64=$(base64 -w 0 nagare-test.png)
-
-          # Create comment with the PNG embedded
-          echo "### Nagare /test diagram preview" > comment.md
-          echo "" >> comment.md
-          echo "<details>" >> comment.md
-          echo "<summary>View diagram</summary>" >> comment.md
-          echo "" >> comment.md
-          echo "<img alt='Nagare /test preview' src='data:image/png;base64,${PNG_BASE64}' style='max-width: 800px; width: 100%; height: auto;'>" >> comment.md
+          echo "![Nagare /test preview]($WORKFLOW_URL/artifacts/nagare-test-preview/nagare-test.svg)" >> comment.md
           echo "" >> comment.md
           echo "</details>" >> comment.md
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: nagare-test-preview
-          path: |
-            nagare-test.svg
-            nagare-test.png
-          if-no-files-found: error
+          # Post the comment
+          gh pr comment "$PR_NUMBER" --body-file comment.md
