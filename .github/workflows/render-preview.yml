@@ -61,12 +61,11 @@ jobs:
           echo '--- Nagare server log ---'
           cat nagare/server.log || true
 
-      - name: Comment SVG preview on PR
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+      - name: Install librsvg
+        run: sudo apt-get install -y librsvg2-bin
+
+      - name: Convert SVG to PNG
         run: |
-          # Check if SVG file exists and is not empty
           if [ ! -f nagare-test.svg ]; then
             echo "SVG output missing" >&2
             exit 1
@@ -76,32 +75,38 @@ jobs:
             echo "SVG file is empty" >&2
             exit 1
           fi
-          echo
 
+          # Convert SVG to PNG with 2x scale for better quality
+          rsvg-convert -w 1600 -h 800 nagare-test.svg > nagare-test.png
+
+      - name: Comment PNG preview on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
           # Create temporary directory for the comment file
           mkdir -p tmp
 
-          # Base64 encode the SVG
-          SVG_BASE64=$(base64 -w 0 nagare-test.svg)
+          # Base64 encode the PNG
+          PNG_BASE64=$(base64 -w 0 nagare-test.png)
 
-          # Generate the markdown comment with SVG as data URL
+          # Generate the markdown comment with PNG as data URL
           {
             echo "### Nagare /test diagram preview"
             echo
             echo "<details>"
             echo "<summary>View diagram</summary>"
             echo
-            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg+xml;base64,${SVG_BASE64}\" style=\"max-width: 800px; width: 100%; height: auto;\">"
+            echo "<img alt="Nagare /test preview" src="data:image/png;base64,${PNG_BASE64}" style="max-width: 800px; width: 100%; height: auto;">"
             echo
             echo "</details>"
           } > tmp/comment.md
 
-          # Post the comment
-          gh pr comment "$PR_NUMBER" --body-file tmp/comment.md
-
-      - name: Upload SVG artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: nagare-test-preview
-          path: nagare-test.svg
+          path: |
+            nagare-test.svg
+            nagare-test.png
           if-no-files-found: error
