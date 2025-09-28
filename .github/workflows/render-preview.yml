@@ -108,9 +108,10 @@ jobs:
             echo '```'
             echo "File size: $(wc -c < nagare-test.svg) bytes"
             echo "First 100 chars of base64: $(echo ${SVG_ENCODED} | head -c 100)"
+            echo "Full data URI: data:image/svg%2Bxml;base64,${SVG_ENCODED}" | head -c 150
             echo '```'
             echo
-            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg+xml;base64,${SVG_ENCODED}\" style=\"max-width: 800px; width: 100%; height: auto;\" />"
+            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg%2Bxml;base64,${SVG_ENCODED}\" style=\"max-width: 800px; width: 100%; height: auto;\" />"
             echo '</details>'
           } > comment.md
           gh pr comment "$PR_NUMBER" --body-file comment.md
