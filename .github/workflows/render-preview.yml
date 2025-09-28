@@ -78,21 +78,27 @@ jobs:
           # Convert SVG to PNG with fixed dimensions
           rsvg-convert -w 1600 -h 800 nagare-test.svg > nagare-test.png
 
+      - name: Upload diagram image
+        uses: actions/upload-artifact@v4
+        with:
+          name: nagare-test-preview
+          path: nagare-test.png
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Comment PNG preview on PR
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          # Base64 encode the PNG
-          PNG_BASE64=$(base64 -w 0 nagare-test.png)
-
-          # Create comment with the PNG embedded
+          # Create comment with the PNG link
           echo "### Nagare /test diagram preview" > comment.md
           echo "" >> comment.md
           echo "<details>" >> comment.md
           echo "<summary>View diagram</summary>" >> comment.md
           echo "" >> comment.md
-          echo "<img alt='Nagare /test preview' src='data:image/png;base64,${PNG_BASE64}' style='max-width: 800px; width: 100%; height: auto;'>" >> comment.md
+          echo "![Nagare /test preview]($WORKFLOW_URL/artifacts/nagare-test-preview/nagare-test.png)" >> comment.md
           echo "" >> comment.md
           echo "</details>" >> comment.md
 
