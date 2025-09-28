@@ -81,16 +81,17 @@ jobs:
           # Create temporary directory for the comment file
           mkdir -p tmp
 
-          # Generate the markdown comment with SVG
+          # Base64 encode the SVG
+          SVG_BASE64=$(base64 -w 0 nagare-test.svg)
+
+          # Generate the markdown comment with SVG as data URL
           {
             echo "### Nagare /test diagram preview"
             echo
             echo "<details>"
             echo "<summary>View diagram</summary>"
             echo
-            echo '```svg'
-            cat nagare-test.svg
-            echo '```'
+            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg+xml;base64,${SVG_BASE64}\" style=\"max-width: 800px; width: 100%; height: auto;\">"
             echo
             echo "</details>"
           } > tmp/comment.md
