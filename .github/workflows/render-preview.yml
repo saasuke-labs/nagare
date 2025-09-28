@@ -26,15 +26,19 @@ jobs:
         working-directory: nagare
         run: go mod download
 
+      - name: Build Nagare server
+        working-directory: nagare
+        run: go build -o nagare-server ./cmd/nagare
+
       - name: Start Nagare server
         run: |
           cd nagare
-          go run ./cmd/nagare/main.go > server.log 2>&1 &
+          ./nagare-server > server.log 2>&1 &
           echo $! > server.pid
 
       - name: Fetch /test SVG output
         run: |
-          for attempt in {1..20}; do
+          for attempt in {1..60}; do
             if curl -fsS http://localhost:8080/test -o nagare-test.svg; then
               exit 0
             fi
