@@ -26,15 +26,19 @@ jobs:
         working-directory: nagare
         run: go mod download
 
+      - name: Build Nagare server
+        working-directory: nagare
+        run: go build -o nagare-server ./cmd/nagare
+
       - name: Start Nagare server
         run: |
           cd nagare
-          go run ./cmd/nagare/main.go > server.log 2>&1 &
+          ./nagare-server > server.log 2>&1 &
           echo $! > server.pid
 
       - name: Fetch /test SVG output
         run: |
-          for attempt in {1..20}; do
+          for attempt in {1..60}; do
             if curl -fsS http://localhost:8080/test -o nagare-test.svg; then
               exit 0
             fi
@@ -66,12 +70,12 @@ jobs:
             exit 1
           fi
           SVG_ENCODED=$(base64 -w0 nagare-test.svg)
-          cat > comment.md <<COMMENT
-### Nagare /test diagram preview
-<details>
-<summary>Click to expand</summary>
-
-<img alt="Nagare /test preview" src="data:image/svg+xml;base64,${SVG_ENCODED}" />
-</details>
-COMMENT
+          {
+            echo '### Nagare /test diagram preview'
+            echo '<details>'
+            echo '<summary>Click to expand</summary>'
+            echo
+            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg+xml;base64,${SVG_ENCODED}\" />"
+            echo '</details>'
+          } > comment.md
           gh pr comment "$PR_NUMBER" --body-file comment.md
