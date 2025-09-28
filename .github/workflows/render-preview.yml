@@ -9,6 +9,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      packages: write
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -99,24 +100,29 @@ jobs:
           echo
 
           # Create the comment with both the encoded image and the raw SVG for debugging
-          # Create a gist with the SVG content
-          GIST_RESPONSE=$(gh gist create nagare-test.svg)
-          GIST_URL=$(echo "$GIST_RESPONSE" | grep -o 'https://gist.github.com/[^[:space:]]*')
-          RAW_URL=$(echo "$GIST_URL" | sed 's/gist.github.com/gist.githubusercontent.com/g')/raw/nagare-test.svg
+          # Upload the SVG as an artifact
+          echo "Uploading SVG as artifact..."
+          mkdir -p artifacts
+          cp nagare-test.svg artifacts/
 
           {
             echo '### Nagare /test diagram preview'
+            echo
             echo '<details>'
-            echo '<summary>Click to expand</summary>'
+            echo '<summary>View diagram</summary>'
             echo
-            echo '#### Debug Info:'
-            echo '```'
-            echo "File size: $(wc -c < nagare-test.svg) bytes"
-            echo "SVG available at: $GIST_URL"
+            echo '```svg'
+            cat nagare-test.svg
             echo
             echo '```'
-            echo
-            echo "![Nagare /test preview]($RAW_URL)"
             echo '</details>'
           } > comment.md
+          } > comment.md
           gh pr comment "$PR_NUMBER" --body-file comment.md
+
+      - name: Upload SVG artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: nagare-test-preview
+          path: artifacts/nagare-test.svg
+          if-no-files-found: error
