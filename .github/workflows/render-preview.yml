@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.x'
+          go-version: "1.24.x"
           cache: true
           cache-dependency-path: |
             nagare/go.mod
@@ -65,17 +65,52 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          # Debug output
+          echo "=== File existence and type ==="
+          ls -l nagare-test.svg || true
+          file nagare-test.svg || true
+
+          echo "=== File content preview ==="
+          head -n 5 nagare-test.svg || true
+
+          echo "=== Full file content ==="
+          cat nagare-test.svg || true
+
+          echo "=== File size ==="
+          wc -c nagare-test.svg || true
+
+          echo "=== Server response headers ==="
+          curl -v http://localhost:8080/test 2>&1 | grep "< " || true
+
           if [ ! -f nagare-test.svg ]; then
             echo "SVG output missing" >&2
             exit 1
           fi
+
+          # Check if file is empty
+          if [ ! -s nagare-test.svg ]; then
+            echo "SVG file is empty" >&2
+            exit 1
+          fi
+
           SVG_ENCODED=$(base64 -w0 nagare-test.svg)
+          echo "=== Base64 preview (first 100 chars) ==="
+          echo "${SVG_ENCODED}" | head -c 100
+          echo
+
+          # Create the comment with both the encoded image and the raw SVG for debugging
           {
             echo '### Nagare /test diagram preview'
             echo '<details>'
             echo '<summary>Click to expand</summary>'
             echo
-            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg+xml;base64,${SVG_ENCODED}\" />"
+            echo '#### Debug Info:'
+            echo '```'
+            echo "File size: $(wc -c < nagare-test.svg) bytes"
+            echo "First 100 chars of base64: $(echo ${SVG_ENCODED} | head -c 100)"
+            echo '```'
+            echo
+            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg+xml;base64,${SVG_ENCODED}\" style=\"max-width: 800px; width: 100%; height: auto;\" />"
             echo '</details>'
           } > comment.md
           gh pr comment "$PR_NUMBER" --body-file comment.md
