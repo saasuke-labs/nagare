@@ -66,62 +66,41 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          # Debug output
-          echo "=== File existence and type ==="
-          ls -l nagare-test.svg || true
-          file nagare-test.svg || true
-
-          echo "=== File content preview ==="
-          head -n 5 nagare-test.svg || true
-
-          echo "=== Full file content ==="
-          cat nagare-test.svg || true
-
-          echo "=== File size ==="
-          wc -c nagare-test.svg || true
-
-          echo "=== Server response headers ==="
-          curl -v http://localhost:8080/test 2>&1 | grep "< " || true
-
+          # Check if SVG file exists and is not empty
           if [ ! -f nagare-test.svg ]; then
             echo "SVG output missing" >&2
             exit 1
           fi
 
-          # Check if file is empty
           if [ ! -s nagare-test.svg ]; then
             echo "SVG file is empty" >&2
             exit 1
           fi
-
-          SVG_ENCODED=$(base64 -w0 nagare-test.svg)
-          echo "=== Base64 preview (first 100 chars) ==="
-          echo "${SVG_ENCODED}" | head -c 100
           echo
 
-          # Create the comment with both the encoded image and the raw SVG for debugging
-          # Create artifacts directory and copy SVG
-          echo "Preparing SVG artifact..."
-          mkdir -p artifacts
-          cp nagare-test.svg artifacts/
+          # Create temporary directory for the comment file
+          mkdir -p tmp
 
-          # Create the comment content
-          echo '### Nagare /test diagram preview' > comment.md
-          echo >> comment.md
-          echo '<details>' >> comment.md
-          echo '<summary>View diagram</summary>' >> comment.md
-          echo >> comment.md
-          echo '```svg' >> comment.md
-          cat nagare-test.svg >> comment.md
-          echo >> comment.md
-          echo '```' >> comment.md
-          echo '</details>' >> comment.md
-          } > comment.md
-          gh pr comment "$PR_NUMBER" --body-file comment.md
+          # Generate the markdown comment with SVG
+          {
+            echo "### Nagare /test diagram preview"
+            echo
+            echo "<details>"
+            echo "<summary>View diagram</summary>"
+            echo
+            echo '```svg'
+            cat nagare-test.svg
+            echo '```'
+            echo
+            echo "</details>"
+          } > tmp/comment.md
+
+          # Post the comment
+          gh pr comment "$PR_NUMBER" --body-file tmp/comment.md
 
       - name: Upload SVG artifact
         uses: actions/upload-artifact@v4
         with:
           name: nagare-test-preview
-          path: artifacts/nagare-test.svg
+          path: nagare-test.svg
           if-no-files-found: error
