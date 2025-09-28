@@ -121,7 +121,7 @@ jobs:
           gh pr comment "$PR_NUMBER" --body-file comment.md
 
       - name: Upload SVG artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: nagare-test-preview
           path: artifacts/nagare-test.svg
