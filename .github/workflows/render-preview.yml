@@ -100,23 +100,22 @@ jobs:
           echo
 
           # Create the comment with both the encoded image and the raw SVG for debugging
-          # Upload the SVG as an artifact
-          echo "Uploading SVG as artifact..."
+          # Create artifacts directory and copy SVG
+          echo "Preparing SVG artifact..."
           mkdir -p artifacts
           cp nagare-test.svg artifacts/
 
-          {
-            echo '### Nagare /test diagram preview'
-            echo
-            echo '<details>'
-            echo '<summary>View diagram</summary>'
-            echo
-            echo '```svg'
-            cat nagare-test.svg
-            echo
-            echo '```'
-            echo '</details>'
-          } > comment.md
+          # Create the comment content
+          echo '### Nagare /test diagram preview' > comment.md
+          echo >> comment.md
+          echo '<details>' >> comment.md
+          echo '<summary>View diagram</summary>' >> comment.md
+          echo >> comment.md
+          echo '```svg' >> comment.md
+          cat nagare-test.svg >> comment.md
+          echo >> comment.md
+          echo '```' >> comment.md
+          echo '</details>' >> comment.md
           } > comment.md
           gh pr comment "$PR_NUMBER" --body-file comment.md
 
