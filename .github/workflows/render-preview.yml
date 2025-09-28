@@ -72,19 +72,21 @@ jobs:
             exit 1
           fi
 
-      - name: Upload SVG diagram
-        uses: actions/upload-artifact@v4
-        with:
-          name: nagare-test-preview
-          path: nagare-test.svg
-          if-no-files-found: error
-          retention-days: 1
+      - name: Create gist with diagram
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Create a gist with the SVG file
+          GIST_URL=$(gh gist create nagare-test.svg | head -n1)
+          # Get the raw URL
+          RAW_URL="${GIST_URL/github.com/githubusercontent.com}/raw"
+          # Save for next step
+          echo "GIST_URL=$RAW_URL" >> $GITHUB_ENV
 
       - name: Comment SVG preview on PR
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           # Create comment with the SVG link
           echo "### Nagare /test diagram preview" > comment.md
@@ -92,12 +94,12 @@ jobs:
           echo "<details>" >> comment.md
           echo "<summary>View diagram</summary>" >> comment.md
           echo "" >> comment.md
-          echo "![Nagare /test preview]($WORKFLOW_URL/artifacts/nagare-test-preview/nagare-test.png)" >> comment.md
+          echo "![Nagare /test preview]($GIST_URL)" >> comment.md
           echo "" >> comment.md
           echo "</details>" >> comment.md
 
           # Post the comment
-          echo "![Nagare /test preview]($WORKFLOW_URL/artifacts/nagare-test-preview/nagare-test.svg)" >> comment.md
+          gh pr comment "$PR_NUMBER" --body-file comment.md
           echo "" >> comment.md
           echo "</details>" >> comment.md
 
