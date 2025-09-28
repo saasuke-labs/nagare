@@ -99,6 +99,11 @@ jobs:
           echo
 
           # Create the comment with both the encoded image and the raw SVG for debugging
+          # Create a gist with the SVG content
+          GIST_RESPONSE=$(gh gist create nagare-test.svg)
+          GIST_URL=$(echo "$GIST_RESPONSE" | grep -o 'https://gist.github.com/[^[:space:]]*')
+          RAW_URL=$(echo "$GIST_URL" | sed 's/gist.github.com/gist.githubusercontent.com/g')/raw/nagare-test.svg
+
           {
             echo '### Nagare /test diagram preview'
             echo '<details>'
@@ -107,12 +112,11 @@ jobs:
             echo '#### Debug Info:'
             echo '```'
             echo "File size: $(wc -c < nagare-test.svg) bytes"
-            echo "First 100 chars of base64: $(echo ${SVG_ENCODED} | head -c 100)"
-            echo "Full data URI: data:image/svg%2Bxml;base64,${SVG_ENCODED}" | head -c 150
+            echo "SVG available at: $GIST_URL"
             echo
             echo '```'
             echo
-            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg%2Bxml;base64,${SVG_ENCODED}\" style=\"max-width: 800px; width: 100%; height: auto;\" />"
+            echo "![Nagare /test preview]($RAW_URL)"
             echo '</details>'
           } > comment.md
           gh pr comment "$PR_NUMBER" --body-file comment.md
