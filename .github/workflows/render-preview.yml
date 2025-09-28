@@ -5,8 +5,29 @@ on:
 
 jobs:
   render:
-    runs-on: ubuntu-latest
-    permissions:
+    runs-on: ubuntu          # Create temporary directory for the comment file
+          mkdir -p tmp
+
+          # Base64 encode the PNG
+          PNG_BASE64=$(base64 -w 0 nagare-test.png)
+
+          # Generate the markdown comment with PNG as data URL
+          cat > tmp/comment.md << 'EOF'
+### Nagare /test diagram preview
+
+<details>
+<summary>View diagram</summary>
+
+EOF
+
+          # Add the image tag with proper quoting
+          echo "<img alt='Nagare /test preview' src='data:image/png;base64,${PNG_BASE64}' style='max-width: 800px; width: 100%; height: auto;'>" >> tmp/comment.md
+
+          # Close the details tag
+          cat >> tmp/comment.md << 'EOF'
+
+</details>
+EOFssions:
       contents: read
       pull-requests: write
       packages: write
@@ -84,23 +105,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          # Create temporary directory for the comment file
-          mkdir -p tmp
-
           # Base64 encode the PNG
           PNG_BASE64=$(base64 -w 0 nagare-test.png)
-
-          # Generate the markdown comment with PNG as data URL
-          {
-            echo "### Nagare /test diagram preview"
-            echo
-            echo "<details>"
-            echo "<summary>View diagram</summary>"
-            echo
-            echo "<img alt="Nagare /test preview" src="data:image/png;base64,${PNG_BASE64}" style="max-width: 800px; width: 100%; height: auto;">"
-            echo
-            echo "</details>"
-          } > tmp/comment.md
+          
+          # Create comment with the PNG embedded
+          echo "### Nagare /test diagram preview" > comment.md
+          echo "" >> comment.md
+          echo "<details>" >> comment.md
+          echo "<summary>View diagram</summary>" >> comment.md
+          echo "" >> comment.md
+          echo "<img alt='Nagare /test preview' src='data:image/png;base64,${PNG_BASE64}' style='max-width: 800px; width: 100%; height: auto;'>" >> comment.md
+          echo "" >> comment.md
+          echo "</details>" >> comment.md
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
