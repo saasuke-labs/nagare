@@ -70,12 +70,12 @@ jobs:
             exit 1
           fi
           SVG_ENCODED=$(base64 -w0 nagare-test.svg)
-          cat > comment.md <<COMMENT
-### Nagare /test diagram preview
-<details>
-<summary>Click to expand</summary>
-
-<img alt="Nagare /test preview" src="data:image/svg+xml;base64,${SVG_ENCODED}" />
-</details>
-COMMENT
+          {
+            echo '### Nagare /test diagram preview'
+            echo '<details>'
+            echo '<summary>Click to expand</summary>'
+            echo
+            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg+xml;base64,${SVG_ENCODED}\" />"
+            echo '</details>'
+          } > comment.md
           gh pr comment "$PR_NUMBER" --body-file comment.md
