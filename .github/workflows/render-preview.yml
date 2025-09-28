@@ -12,15 +12,15 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.x'
-          cache: true
-          cache-dependency-path: |
-            nagare/go.mod
-            nagare/go.sum
+          go-version-file: nagare/go.mod
+          check-latest: true
 
       - name: Download dependencies
         working-directory: nagare
@@ -29,13 +29,13 @@ jobs:
       - name: Start Nagare server
         run: |
           cd nagare
-          go run ./cmd/nagare/main.go > server.log 2>&1 &
-          echo $! > server.pid
+          go run ./cmd/nagare/main.go > ../server.log 2>&1 &
+          echo $! > ../server.pid
 
       - name: Fetch /test SVG output
         run: |
-          for attempt in {1..20}; do
-            if curl -fsS http://localhost:8080/test -o nagare-test.svg; then
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8080/test -o nagare-test.svg; then
               exit 0
             fi
             sleep 1
@@ -46,32 +46,66 @@ jobs:
       - name: Stop Nagare server
         if: always()
         run: |
-          if [ -f nagare/server.pid ]; then
-            kill $(cat nagare/server.pid) 2>/dev/null || true
-            sleep 1
-            if kill -0 $(cat nagare/server.pid) 2>/dev/null; then
-              kill -9 $(cat nagare/server.pid) 2>/dev/null || true
+          if [ -f server.pid ]; then
+            PID=$(cat server.pid)
+            if kill "$PID" 2>/dev/null; then
+              for attempt in {1..10}; do
+                if ! kill -0 "$PID" 2>/dev/null; then
+                  break
+                fi
+                sleep 1
+              done
+              kill -9 "$PID" 2>/dev/null || true
             fi
+            rm -f server.pid
           fi
           echo '--- Nagare server log ---'
-          cat nagare/server.log || true
+          cat server.log || true
 
       - name: Comment SVG preview on PR
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          if [ ! -f nagare-test.svg ]; then
-            echo "SVG output missing" >&2
-            exit 1
-          fi
-          SVG_ENCODED=$(base64 -w0 nagare-test.svg)
-          cat > comment.md <<COMMENT
-### Nagare /test diagram preview
-<details>
-<summary>Click to expand</summary>
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- nagare-test-preview -->';
+            const svgPath = 'nagare-test.svg';
+            if (!fs.existsSync(svgPath)) {
+              core.setFailed('SVG output missing');
+              return;
+            }
+            const svg = fs.readFileSync(svgPath, 'utf8');
+            const encoded = Buffer.from(svg).toString('base64');
+            const body = [
+              marker,
+              '### Nagare /test diagram preview',
+              '<details>',
+              '<summary>Click to expand</summary>',
+              '',
+              `<img alt="Nagare /test preview" src="data:image/svg+xml;base64,${encoded}" />`,
+              '</details>'
+            ].join('\n');
 
-<img alt="Nagare /test preview" src="data:image/svg+xml;base64,${SVG_ENCODED}" />
-</details>
-COMMENT
-          gh pr comment "$PR_NUMBER" --body-file comment.md
+            const issue_number = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100
+            });
+            const existing = comments.find(comment => comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body
+              });
+            }
