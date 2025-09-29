@@ -87,7 +87,13 @@ mutation($commentId: ID!, $name: String!, $contentType: String!, $file: Upload!)
 Q
 )
 
-operations=$(jq -n --arg query "$query" --arg commentId "$comment_node_id" '{
+operations_file=$(mktemp)
+map_file=$(mktemp)
+response_file=$(mktemp)
+comment_file=$(mktemp)
+trap 'rm -f "$comment_file" "$operations_file" "$map_file" "$response_file"' EXIT
+
+jq -n --arg query "$query" --arg commentId "$comment_node_id" '{
   query: $query,
   variables: {
     commentId: $commentId,
@@ -95,26 +101,34 @@ operations=$(jq -n --arg query "$query" --arg commentId "$comment_node_id" '{
     contentType: "image/svg+xml",
     file: null
   }
-}')
+}' >"$operations_file"
 
-response=$(curl -sSf \
+printf '{"0":["variables.file"]}' >"$map_file"
+
+http_status=$(curl -sS \
   -H "Authorization: bearer $GH_TOKEN" \
   -H "GraphQL-Features: comment-attachments" \
-  -F operations="$operations" \
-  -F 'map={"0":["variables.file"]}' \
-  -F 0=@"$diagram_path" \
+  -H "Accept: application/vnd.github+json" \
+  -F "operations=@${operations_file};type=application/json" \
+  -F "map=@${map_file};type=application/json" \
+  -F "0=@${diagram_path};type=image/svg+xml" \
+  -w '%{http_code}' \
+  -o "$response_file" \
   https://api.github.com/graphql)
 
-attachment_url=$(echo "$response" | jq -e -r '.data.uploadCommentAttachment.attachment.downloadUrl')
-
-if [[ -z "$attachment_url" || "$attachment_url" == "null" ]]; then
-  echo "failed to upload diagram attachment" >&2
-  echo "$response" | jq '.' >&2 || echo "$response" >&2
+if [[ "$http_status" -ge 400 ]]; then
+  echo "failed to upload diagram attachment (status $http_status)" >&2
+  cat "$response_file" >&2
   exit 1
 fi
 
-comment_file=$(mktemp)
-trap 'rm -f "$comment_file"' EXIT
+attachment_url=$(jq -e -r '.data.uploadCommentAttachment.attachment.downloadUrl' "$response_file")
+
+if [[ -z "$attachment_url" || "$attachment_url" == "null" ]]; then
+  echo "failed to parse attachment URL" >&2
+  cat "$response_file" >&2
+  exit 1
+fi
 
 cat >"$comment_file" <<EOF_COMMENT
 ### Nagare /test diagram preview
