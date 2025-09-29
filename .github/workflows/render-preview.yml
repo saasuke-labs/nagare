@@ -91,43 +91,31 @@ jobs:
             git push origin HEAD:"$BRANCH_NAME"
           fi
 
-          python - <<'PYCOMMENT'
-import os
-import pathlib
+          COMMENT_BODY="## 🎨 Generated SVG Examples\n\n"
 
-pr_number = os.environ["PR_NUMBER"]
-head_sha = os.environ["HEAD_SHA"]
-repo = os.environ["REPO"]
-run_id = os.environ["RUN_ID"]
-head_html = os.environ["HEAD_HTML"]
-server_url = os.environ["SERVER_URL"]
-images_dir = pathlib.Path(".github/pr-images") / f"pr-{pr_number}"
-svg_files = sorted(images_dir.glob("*.svg"))
-if not svg_files:
-    raise SystemExit("No SVG files available to comment")
+          counter=1
+          for svg_file in .github/pr-images/pr-$PR_NUMBER/*.svg; do
+            if [ -f "$svg_file" ]; then
+              filename=$(basename "$svg_file")
+              display_name="${filename%.svg}"
+              raw_url="https://raw.githubusercontent.com/$REPO/$HEAD_SHA/.github/pr-images/pr-$PR_NUMBER/$filename"
 
-lines = ["## 🎨 Generated SVG Examples", ""]
-for idx, path in enumerate(svg_files, 1):
-    name = path.stem
-    filename = path.name
-    raw_url = f"https://raw.githubusercontent.com/{repo}/{head_sha}/{images_dir.as_posix()}/{filename}"
-    lines.append(f"### Example {idx}: {name}")
-    lines.append(f"![{name}]({raw_url})")
-    lines.append("")
-    lines.append("<details><summary>View SVG source</summary>")
-    lines.append("")
-    lines.append(f"[`{filename}`]({raw_url})")
-    lines.append("")
-    lines.append("</details>")
-    lines.append("")
+              COMMENT_BODY+="### Example $counter: $display_name\n"
+              COMMENT_BODY+="![${display_name}](${raw_url})\n\n"
+              COMMENT_BODY+="<details><summary>View SVG source</summary>\n\n"
+              COMMENT_BODY+=$(printf '[`%s`](%s)\n\n' "$filename" "$raw_url")
+              COMMENT_BODY+="</details>\n\n"
 
-lines.append("---")
-lines.append(f"*Generated from commit: [`{head_sha}`]({head_html})*")
-lines.append(f"*Workflow run: [`{run_id}`]({server_url}/{repo}/actions/runs/{run_id})*")
-lines.append(f"*Images stored in: `{images_dir.as_posix()}/`*")
+              counter=$((counter + 1))
+            fi
+          done
 
-pathlib.Path("comment.md").write_text("\n".join(lines))
-PYCOMMENT
+          COMMENT_BODY+="---\n"
+          COMMENT_BODY+="*Generated from commit: [`$HEAD_SHA`]($HEAD_HTML)*\n"
+          COMMENT_BODY+="*Workflow run: [`$RUN_ID`]($SERVER_URL/$REPO/actions/runs/$RUN_ID)*\n"
+          COMMENT_BODY+="*Images stored in: `.github/pr-images/pr-$PR_NUMBER/`*"
+
+          printf '%b' "$COMMENT_BODY" > comment.md
 
           gh pr comment "$PR_NUMBER" --body-file comment.md
 
