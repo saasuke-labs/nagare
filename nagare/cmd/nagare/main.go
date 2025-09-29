@@ -67,7 +67,7 @@ vps:VM@ubuntu {
 	}
 
 	// Send response
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Write([]byte(html))
 }
 
@@ -86,6 +86,6 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send response
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Write([]byte(html))
 }

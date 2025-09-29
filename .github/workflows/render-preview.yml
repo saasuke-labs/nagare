@@ -7,7 +7,7 @@ jobs:
   render:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - name: Check out repository
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.x'
+          go-version: "1.24.x"
           cache: true
           cache-dependency-path: |
             nagare/go.mod
@@ -60,22 +60,64 @@ jobs:
           echo '--- Nagare server log ---'
           cat nagare/server.log || true
 
-      - name: Comment SVG preview on PR
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+      - name: Validate SVG file
         run: |
           if [ ! -f nagare-test.svg ]; then
             echo "SVG output missing" >&2
             exit 1
           fi
-          SVG_ENCODED=$(base64 -w0 nagare-test.svg)
-          {
-            echo '### Nagare /test diagram preview'
-            echo '<details>'
-            echo '<summary>Click to expand</summary>'
-            echo
-            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg+xml;base64,${SVG_ENCODED}\" />"
-            echo '</details>'
-          } > comment.md
+
+          if [ ! -s nagare-test.svg ]; then
+            echo "SVG file is empty" >&2
+            exit 1
+          fi
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and switch to diagrams branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_SHA=$(gh pr view ${{ github.event.pull_request.number }} --json headRefOid -q .headRefOid)
+          BRANCH_NAME="diagrams/pr-${{ github.event.pull_request.number }}-$PR_SHA"
+          git checkout -b "$BRANCH_NAME"
+
+          # Create diagrams directory if it doesn't exist
+          mkdir -p .diagrams
+          cp nagare-test.svg ".diagrams/pr-${{ github.event.pull_request.number }}.svg"
+
+          git add .diagrams
+          git commit -m "Add diagram for PR #${{ github.event.pull_request.number }}"
+          git push origin "$BRANCH_NAME"
+
+          # Save the URL for the next step
+          echo "DIAGRAM_URL=https://raw.githubusercontent.com/${{ github.repository }}/$BRANCH_NAME/.diagrams/pr-${{ github.event.pull_request.number }}.svg" >> $GITHUB_ENV
+
+      - name: Comment SVG preview on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Create comment with the diagram
+          echo "### Nagare /test diagram preview" > comment.md
+          echo "" >> comment.md
+          echo "<details>" >> comment.md
+          echo "<summary>View diagram</summary>" >> comment.md
+          echo "" >> comment.md
+          echo "<img alt='Nagare /test preview' src='$DIAGRAM_URL' style='max-width: 100%; height: auto;'>" >> comment.md
+          echo "" >> comment.md
+          echo "</details>" >> comment.md
+
+          # Post the comment
+          gh pr comment "$PR_NUMBER" --body-file comment.md
+
+          # Post the comment
+          gh pr comment "$PR_NUMBER" --body-file comment.md
+          echo "" >> comment.md
+          echo "</details>" >> comment.md
+
+          # Post the comment
           gh pr comment "$PR_NUMBER" --body-file comment.md
