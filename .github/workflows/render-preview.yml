@@ -7,7 +7,7 @@ jobs:
   render:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - name: Check out repository
@@ -60,22 +60,121 @@ jobs:
           echo '--- Nagare server log ---'
           cat nagare/server.log || true
 
-      - name: Comment SVG preview on PR
+      - name: Upload SVGs to repository and create PR comment
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          SERVER_URL: ${{ github.server_url }}
+          PR_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
-          if [ ! -f nagare-test.svg ]; then
-            echo "SVG output missing" >&2
-            exit 1
+          set -euo pipefail
+
+          if [ "$PR_REPO" != "$REPO" ]; then
+            echo "Skipping SVG upload because PR comes from a fork"
+            exit 0
           fi
-          SVG_ENCODED=$(base64 -w0 nagare-test.svg)
-          {
-            echo '### Nagare /test diagram preview'
-            echo '<details>'
-            echo '<summary>Click to expand</summary>'
-            echo
-            echo "<img alt=\"Nagare /test preview\" src=\"data:image/svg+xml;base64,${SVG_ENCODED}\" />"
-            echo '</details>'
-          } > comment.md
+
+          mkdir -p .github/pr-images/pr-$PR_NUMBER
+
+          if ! cp ./*.svg .github/pr-images/pr-$PR_NUMBER/ 2>/dev/null; then
+            echo "No SVG files found to upload"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH_NAME="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}"
+          git fetch origin "$BRANCH_NAME"
+          git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+
+          git add .github/pr-images/pr-$PR_NUMBER/
+          if git diff --cached --quiet; then
+            echo "No SVG updates to commit"
+            exit 0
+          fi
+
+          git commit -m "Add generated SVG examples for PR #$PR_NUMBER [skip ci]"
+
+          if ! git push origin "$BRANCH_NAME"; then
+            echo "Push failed; attempting to rebase onto latest remote" >&2
+            git fetch origin "$BRANCH_NAME"
+            git pull --rebase origin "$BRANCH_NAME"
+            git push origin "$BRANCH_NAME"
+          fi
+
+          CURRENT_SHA=$(git rev-parse HEAD)
+          HEAD_HTML="$SERVER_URL/$REPO/commit/$CURRENT_SHA"
+
+          COMMENT_BODY="## 🎨 Generated SVG Examples\n\n"
+
+          counter=1
+          for svg_file in .github/pr-images/pr-$PR_NUMBER/*.svg; do
+            if [ -f "$svg_file" ]; then
+              filename=$(basename "$svg_file")
+              display_name="${filename%.svg}"
+              raw_url="https://raw.githubusercontent.com/$REPO/$CURRENT_SHA/.github/pr-images/pr-$PR_NUMBER/$filename"
+
+              COMMENT_BODY+="### Example $counter: $display_name\n"
+              COMMENT_BODY+="![${display_name}](${raw_url})\n\n"
+              COMMENT_BODY+="<details><summary>View SVG source</summary>\n\n"
+              COMMENT_BODY+=$(printf '[`%s`](%s)\n\n' "$filename" "$raw_url")
+              COMMENT_BODY+="</details>\n\n"
+
+              counter=$((counter + 1))
+            fi
+          done
+
+          COMMENT_BODY+="---\n"
+          COMMENT_BODY+="*Generated from commit: [\`$CURRENT_SHA\`]($HEAD_HTML)*\n"
+          COMMENT_BODY+="*Workflow run: [\`$RUN_ID\`]($SERVER_URL/$REPO/actions/runs/$RUN_ID)*\n"
+          COMMENT_BODY+="*Images stored in: \`.github/pr-images/pr-$PR_NUMBER/\`*"
+
+          printf '%b' "$COMMENT_BODY" > comment.md
+
           gh pr comment "$PR_NUMBER" --body-file comment.md
+
+          echo "✅ SVG files uploaded and PR comment created successfully"
+
+      - name: Clean up old PR image directories (optional)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          if [ "$PR_REPO" != "$REPO" ]; then
+            echo "Skipping cleanup for forked PR"
+            exit 0
+          fi
+
+          BRANCH_NAME="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}"
+          git fetch origin "$BRANCH_NAME"
+          git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+
+          for dir in .github/pr-images/pr-*; do
+            if [ -d "$dir" ]; then
+              pr_num=$(basename "$dir" | sed 's/pr-//')
+              if ! gh pr view "$pr_num" >/dev/null 2>&1; then
+                echo "Cleaning up images for closed PR #$pr_num"
+                git rm -rf "$dir"
+              fi
+            fi
+          done
+
+          if ! git diff --cached --quiet 2>/dev/null; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "Clean up images for closed PRs [skip ci]"
+            git push origin "$BRANCH_NAME"
+          fi
+        continue-on-error: true
