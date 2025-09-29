@@ -69,10 +69,15 @@ jobs:
           GITHUB_HEAD_REF: ${{ github.head_ref }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
-          HEAD_HTML: ${{ github.event.pull_request.head.html_url }}
           SERVER_URL: ${{ github.server_url }}
+          PR_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
+
+          if [ "$PR_REPO" != "$REPO" ]; then
+            echo "Skipping SVG upload because PR comes from a fork"
+            exit 0
+          fi
 
           mkdir -p .github/pr-images/pr-$PR_NUMBER
 
@@ -84,12 +89,27 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          BRANCH_NAME="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}"
+          git fetch origin "$BRANCH_NAME"
+          git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+
           git add .github/pr-images/pr-$PR_NUMBER/
-          if ! git diff --cached --quiet; then
-            BRANCH_NAME="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}"
-            git commit -m "Add generated SVG examples for PR #$PR_NUMBER [skip ci]"
-            git push origin HEAD:"$BRANCH_NAME"
+          if git diff --cached --quiet; then
+            echo "No SVG updates to commit"
+            exit 0
           fi
+
+          git commit -m "Add generated SVG examples for PR #$PR_NUMBER [skip ci]"
+
+          if ! git push origin "$BRANCH_NAME"; then
+            echo "Push failed; attempting to rebase onto latest remote" >&2
+            git fetch origin "$BRANCH_NAME"
+            git pull --rebase origin "$BRANCH_NAME"
+            git push origin "$BRANCH_NAME"
+          fi
+
+          CURRENT_SHA=$(git rev-parse HEAD)
+          HEAD_HTML="$SERVER_URL/$REPO/commit/$CURRENT_SHA"
 
           COMMENT_BODY="## 🎨 Generated SVG Examples\n\n"
 
@@ -98,7 +118,7 @@ jobs:
             if [ -f "$svg_file" ]; then
               filename=$(basename "$svg_file")
               display_name="${filename%.svg}"
-              raw_url="https://raw.githubusercontent.com/$REPO/$HEAD_SHA/.github/pr-images/pr-$PR_NUMBER/$filename"
+              raw_url="https://raw.githubusercontent.com/$REPO/$CURRENT_SHA/.github/pr-images/pr-$PR_NUMBER/$filename"
 
               COMMENT_BODY+="### Example $counter: $display_name\n"
               COMMENT_BODY+="![${display_name}](${raw_url})\n\n"
@@ -111,7 +131,7 @@ jobs:
           done
 
           COMMENT_BODY+="---\n"
-          COMMENT_BODY+="*Generated from commit: [`$HEAD_SHA`]($HEAD_HTML)*\n"
+          COMMENT_BODY+="*Generated from commit: [`$CURRENT_SHA`]($HEAD_HTML)*\n"
           COMMENT_BODY+="*Workflow run: [`$RUN_ID`]($SERVER_URL/$REPO/actions/runs/$RUN_ID)*\n"
           COMMENT_BODY+="*Images stored in: `.github/pr-images/pr-$PR_NUMBER/`*"
 
@@ -126,8 +146,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+
+          if [ "$PR_REPO" != "$REPO" ]; then
+            echo "Skipping cleanup for forked PR"
+            exit 0
+          fi
+
+          BRANCH_NAME="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}"
+          git fetch origin "$BRANCH_NAME"
+          git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
 
           for dir in .github/pr-images/pr-*; do
             if [ -d "$dir" ]; then
@@ -143,7 +175,6 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git commit -m "Clean up images for closed PRs [skip ci]"
-            BRANCH_NAME="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD)}"
-            git push origin HEAD:"$BRANCH_NAME"
+            git push origin "$BRANCH_NAME"
           fi
         continue-on-error: true
