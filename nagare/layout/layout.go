@@ -150,8 +150,6 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 
 			if len(child.Children) > 0 {
 				childComponents := make([]components.Component, 0, len(child.Children))
-				contentOffsetX := vm.Shape.X + vm.Shape.Width*components.VMContentAreaXRatio
-				contentOffsetY := vm.Shape.Y + vm.Shape.Height*components.VMContentAreaYRatio
 
 				for _, grandchild := range child.Children {
 					switch grandchild.Type {
@@ -165,20 +163,8 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 						}
 
 						if idState, ok := grandchild.States[grandchild.Text]; ok {
-							geom, err := parseGeometry(idState.PropsDef)
-							if err == nil {
-								if geom.Width != nil {
-									server.Shape.Width = float64(*geom.Width)
-								}
-								if geom.Height != nil {
-									server.Shape.Height = float64(*geom.Height)
-								}
-								if geom.X != nil {
-									server.Shape.X = float64(*geom.X) - contentOffsetX
-								}
-								if geom.Y != nil {
-									server.Shape.Y = float64(*geom.Y) - contentOffsetY
-								}
+							if geom, err := parseGeometry(idState.PropsDef); err == nil {
+								applyGeometry(&server.Shape, geom)
 							} else {
 								fmt.Printf("failed to parse geometry for %s: %v\n", grandchild.Text, err)
 							}
@@ -191,6 +177,11 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 						if grandchild.State != "" {
 							if state, ok := grandchild.States[grandchild.State]; ok {
 								server.State = state.Name
+								if geom, err := parseGeometry(state.PropsDef); err == nil {
+									applyGeometry(&server.Shape, geom)
+								} else {
+									fmt.Printf("failed to parse geometry for state %s: %v\n", state.Name, err)
+								}
 								if err := server.Props.Parse(state.PropsDef); err != nil {
 									fmt.Printf("failed to parse props for state %s: %v\n", state.Name, err)
 								}
