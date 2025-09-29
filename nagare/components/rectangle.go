@@ -3,7 +3,7 @@ package components
 import "fmt"
 
 type Component interface {
-	Draw(xScale, yScale float64) string
+	Draw() string
 }
 
 type Shape struct {
@@ -18,7 +18,7 @@ type Rectangle struct {
 	Text string
 }
 
-func (r *Rectangle) Draw(_, _ float64) string {
+func (r *Rectangle) Draw() string {
 	fmt.Println("Drawing rectangle:", r.Text, "at", r.X, r.Y, "size", r.Width, r.Height)
 	return fmt.Sprintf(`
         <g transform="translate(%f,%f)">
