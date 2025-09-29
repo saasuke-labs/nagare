@@ -55,6 +55,8 @@ gh api repos/:owner/:repo/issues/:pr_number/comments \
 
 You can call the mutation from a GitHub Action (the `GITHUB_TOKEN` already has permission on the pull request) and avoid committing the artifacts anywhere in the repo. The extra `GraphQL-Features` header enables the preview API that unlocks comment attachments for API usage, while the `operations/map` payload follows the [GraphQL multipart upload specification](https://github.com/jaydenseric/graphql-multipart-request-spec).
 
+The repository's `render-preview` workflow now shells out to [`.github/scripts/post-diagram-comment.sh`](../.github/scripts/post-diagram-comment.sh), which encapsulates the logic above. The script reuses an existing bot comment marked with `<!-- nagare-test-diagram-preview -->`, creates a placeholder while the upload runs, then patches the comment body with a collapsible preview that references the newly returned CDN URL. You can run the script locally as long as `gh`, `curl`, and `jq` are available and the required environment variables (`GH_TOKEN`, `PR_NUMBER`, and `REPOSITORY`) are exported.
+
 ## 3. Publish diagrams as workflow artifacts
 
 When a full image upload is unnecessary, add the diagram as a build artifact and include a link to the artifact in the comment. Team members can download the archive straight from the PR checks panel. This does not render inline, but it keeps the pipeline simple and avoids storing binary assets in the repository.
