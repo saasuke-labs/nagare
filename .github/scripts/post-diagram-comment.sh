@@ -17,6 +17,8 @@ if [[ ! -s "$diagram_path" ]]; then
   exit 1
 fi
 
+diagram_name=$(basename "$diagram_path")
+
 if ! command -v gh >/dev/null 2>&1; then
   echo "gh CLI is required" >&2
   exit 1
@@ -87,30 +89,28 @@ mutation($commentId: ID!, $name: String!, $contentType: String!, $file: Upload!)
 Q
 )
 
-operations_file=$(mktemp)
-map_file=$(mktemp)
 response_file=$(mktemp)
 comment_file=$(mktemp)
-trap 'rm -f "$comment_file" "$operations_file" "$map_file" "$response_file"' EXIT
+trap 'rm -f "$comment_file" "$response_file"' EXIT
 
-jq -n --arg query "$query" --arg commentId "$comment_node_id" '{
+operations_json=$(jq -cn --arg query "$query" --arg commentId "$comment_node_id" --arg name "$diagram_name" '{
   query: $query,
   variables: {
     commentId: $commentId,
-    name: "nagare-test.svg",
+    name: $name,
     contentType: "image/svg+xml",
     file: null
   }
-}' >"$operations_file"
+}')
 
-printf '{"0":["variables.file"]}' >"$map_file"
+map_json='{"0":["variables.file"]}'
 
 http_status=$(curl -sS \
   -H "Authorization: bearer $GH_TOKEN" \
   -H "GraphQL-Features: comment-attachments" \
   -H "Accept: application/vnd.github+json" \
-  -F "operations=@${operations_file};type=application/json" \
-  -F "map=@${map_file};type=application/json" \
+  --form-string "operations=$operations_json" \
+  --form-string "map=$map_json" \
   -F "0=@${diagram_path};type=image/svg+xml" \
   -w '%{http_code}' \
   -o "$response_file" \
