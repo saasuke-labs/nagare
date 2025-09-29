@@ -23,8 +23,8 @@ If you already capture the `/test` response in CI, pipe it through a tiny saniti
 GitHub exposes a GraphQL mutation called `uploadCommentAttachment` that mirrors the drag-and-drop behaviour in the web UI. It stores the file on the `user-images.githubusercontent.com` CDN and returns a URL that you can embed in the comment body:
 
 ```bash
-ATTACHMENT_URL=$(gh api graphql \
-  -H 'GraphQL-Features: comment-attachments' \
+ATTACHMENT_URL=$(gh api graphql 
+  -H 'GraphQL-Features: comment-attachment
   -F commentId="$COMMENT_NODE_ID" \
   -F name="diagram.png" \
   -F contentType="image/png" \
@@ -37,10 +37,9 @@ ATTACHMENT_URL=$(gh api graphql \
   --jq '.data.uploadCommentAttachment.attachment.downloadUrl')
 
 gh api repos/:owner/:repo/issues/:pr_number/comments \
-  -f body="![diagram preview]($ATTACHMENT_URL)"
-```
-
+  -f body="![diagram preview]($ATTACH
 You can call the mutation from a GitHub Action (the `GITHUB_TOKEN` already has permission on the pull request) and avoid committing the artifacts anywhere in the repo. The extra `GraphQL-Features` header enables the preview API that unlocks comment attachments for CLI usage.
+
 
 ## 3. Publish diagrams as workflow artifacts
 
