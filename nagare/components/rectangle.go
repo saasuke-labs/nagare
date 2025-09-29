@@ -3,14 +3,14 @@ package components
 import "fmt"
 
 type Component interface {
-	Draw(colWidth, rowHeight float64) string
+	Draw(xScale, yScale float64) string
 }
 
 type Shape struct {
-	Width  int
-	Height int
-	X      int
-	Y      int
+	Width  float64
+	Height float64
+	X      float64
+	Y      float64
 }
 
 type Rectangle struct {
@@ -18,35 +18,35 @@ type Rectangle struct {
 	Text string
 }
 
-func (r *Rectangle) Draw(colWidth, rowHeight float64) string {
+func (r *Rectangle) Draw(_, _ float64) string {
 	fmt.Println("Drawing rectangle:", r.Text, "at", r.X, r.Y, "size", r.Width, r.Height)
 	return fmt.Sprintf(`
-	<g transform="translate(%f,%f)">
-		<!-- Element rectangle -->
-		<rect
-			x="0"
-			y="0"
-			width="%f"
-			height="%f"
-			fill="#333333"
-			stroke="#cccccc"
-			stroke-width="2"/>
+        <g transform="translate(%f,%f)">
+                <!-- Element rectangle -->
+                <rect
+                        x="0"
+                        y="0"
+                        width="%f"
+                        height="%f"
+                        fill="#333333"
+                        stroke="#cccccc"
+                        stroke-width="2"/>
 
-		<!-- Text -->
-		<text
-			x="%f"
-			y="%f"
-			font-family="Arial"
-			font-size="14"
-			fill="#cccccc"
-			text-anchor="middle"
-			dominant-baseline="middle">
-			%s
-		</text>
-	</g>`,
-		float64(r.X)*colWidth, float64(r.Y)*rowHeight,
-		float64(r.Width)*colWidth, float64(r.Height)*rowHeight,
-		float64(r.Width/2)*colWidth, float64(r.Height/2)*rowHeight,
+                <!-- Text -->
+                <text
+                        x="%f"
+                        y="%f"
+                        font-family="Arial"
+                        font-size="14"
+                        fill="#cccccc"
+                        text-anchor="middle"
+                        dominant-baseline="middle">
+                        %s
+                </text>
+        </g>`,
+		r.X, r.Y,
+		r.Width, r.Height,
+		r.Width/2, r.Height/2,
 		r.Text,
 	)
 }

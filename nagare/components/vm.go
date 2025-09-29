@@ -7,6 +7,13 @@ import (
 	"text/template"
 )
 
+const (
+	VMContentAreaXRatio      = 0.01875
+	VMContentAreaYRatio      = 0.1333333
+	VMContentAreaWidthRatio  = 0.9625
+	VMContentAreaHeightRatio = 0.8380952
+)
+
 // VMProps defines the configurable properties for a VM component
 type VMProps struct {
 	Title                  string `prop:"title"`
@@ -39,13 +46,6 @@ type VM struct {
 }
 
 // NewVM creates a new VM with default props
-func min(a, b float64) float64 {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func NewVM() *VM {
 	return &VM{
 		Props:    DefaultVMProps(),
@@ -101,11 +101,11 @@ type VMTemplateData struct {
 	Title                  string
 }
 
-func (r *VM) Draw(colWidth, rowHeight float64) string {
+func (r *VM) Draw(_, _ float64) string {
 	fmt.Println("Drawing VM at", r.X, r.Y, "size", r.Width, r.Height)
 
-	actualWidth := float64(r.Width) * colWidth
-	actualHeight := float64(r.Height) * rowHeight
+	actualWidth := r.Width
+	actualHeight := r.Height
 
 	// Calculate all dimensions
 	cornerRadius := actualWidth * 0.015625        // 10/640
@@ -122,8 +122,8 @@ func (r *VM) Draw(colWidth, rowHeight float64) string {
 
 	// Create template data
 	data := VMTemplateData{
-		X:                      float64(r.X) * colWidth,
-		Y:                      float64(r.Y) * rowHeight,
+		X:                      r.X,
+		Y:                      r.Y,
 		Width:                  actualWidth,
 		Height:                 actualHeight,
 		CornerRadius:           cornerRadius,
@@ -158,64 +158,17 @@ func (r *VM) Draw(colWidth, rowHeight float64) string {
 
 	svg := result.String()
 
-	// Calculate the usable area for children within the content area
-	childAreaX := contentAreaX + actualWidth*0.02 // Add some padding from content area edge
-	childAreaY := contentAreaY + actualHeight*0.02
-	childAreaWidth := contentAreaWidth - actualWidth*0.04 // Subtract padding from both sides
-	childAreaHeight := contentAreaHeight - actualHeight*0.04
-
-	// If we have children, create a group for them with proper transformation
+	// If we have children, position them relative to the VM's content area using
+	// the provided bounds from the layout stage.
 	if len(r.Children) > 0 {
-		// Start the children group with translation to content area
 		svg += fmt.Sprintf(`<g transform="translate(%f,%f)">`,
-			float64(r.X)*colWidth+childAreaX,
-			float64(r.Y)*rowHeight+childAreaY)
+			r.X+contentAreaX,
+			r.Y+contentAreaY)
 
-		// Calculate dimensions based on available space
-		maxChildrenPerRow := 3                                                    // We can fit 3 servers side by side
-		rowCount := (len(r.Children) + maxChildrenPerRow - 1) / maxChildrenPerRow // Round up division
-
-		// Calculate child dimensions as portion of content area
-		childWidth := childAreaWidth / float64(maxChildrenPerRow)
-		childHeight := childAreaHeight / float64(rowCount)
-
-		// Add some padding proportional to the smaller dimension
-		padding := min(childWidth, childHeight) * 0.1
-		effectiveChildWidth := childWidth - padding*2
-		effectiveChildHeight := childHeight - padding*2
-
-		// Draw each child
-		for i, child := range r.Children {
-			row := i / maxChildrenPerRow
-			col := i % maxChildrenPerRow
-
-			xPos := float64(col)*childWidth + padding
-			yPos := float64(row)*childHeight + padding
-
-			// Create a scaling transform for this child
-			svg += fmt.Sprintf(`<g transform="translate(%f,%f)">`,
-				xPos, yPos)
-
-			// Update child's position and size
-			if rect, ok := child.(interface{ SetBounds(x, y, w, h int) }); ok {
-				rect.SetBounds(
-					0, // Local coordinates
-					0,
-					int(effectiveChildWidth/colWidth), // Convert back to grid units
-					int(effectiveChildHeight/rowHeight),
-				)
-			}
-
-			// Draw the child with proper scaling
-			childSVG := child.Draw(
-				effectiveChildWidth/float64(int(effectiveChildWidth/colWidth)), // Scale to fit
-				effectiveChildHeight/float64(int(effectiveChildHeight/rowHeight)),
-			)
-			svg += childSVG
-			svg += "</g>"
+		for _, child := range r.Children {
+			svg += child.Draw(1, 1)
 		}
 
-		// Close the children group
 		svg += "</g>"
 	}
 

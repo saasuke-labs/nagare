@@ -110,6 +110,21 @@ func ParseProps(input string, target interface{}) error {
 					} else {
 						return fmt.Errorf("failed to parse %q as integer for field %s: %v", value, field.Name, err)
 					}
+				case reflect.Ptr:
+					elemType := fieldValue.Type().Elem()
+					switch elemType.Kind() {
+					case reflect.String:
+						strValue := value
+						fieldValue.Set(reflect.ValueOf(&strValue))
+					case reflect.Int:
+						if intValue, err := strconv.Atoi(value); err == nil {
+							fieldValue.Set(reflect.ValueOf(&intValue))
+						} else {
+							return fmt.Errorf("failed to parse %q as integer for field %s: %v", value, field.Name, err)
+						}
+					default:
+						return fmt.Errorf("unsupported pointer type for field %s", field.Name)
+					}
 				}
 
 				found = true
