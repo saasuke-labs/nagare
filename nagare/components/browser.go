@@ -93,11 +93,11 @@ type BrowserTemplateData struct {
 	Text                   string
 }
 
-func (r *Browser) Draw(colWidth, rowHeight float64) string {
+func (r *Browser) Draw(_, _ float64) string {
 	fmt.Println("Drawing browser at", r.X, r.Y, "size", r.Width, r.Height)
 
-	actualWidth := float64(r.Width) * colWidth
-	actualHeight := float64(r.Height) * rowHeight
+	actualWidth := r.Width
+	actualHeight := r.Height
 
 	// Calculate all dimensions
 	cornerRadius := actualWidth * 0.015625        // 10/640
@@ -118,8 +118,8 @@ func (r *Browser) Draw(colWidth, rowHeight float64) string {
 
 	// Create template data
 	data := BrowserTemplateData{
-		X:                      float64(r.X) * colWidth,
-		Y:                      float64(r.Y) * rowHeight,
+		X:                      r.X,
+		Y:                      r.Y,
 		Width:                  actualWidth,
 		Height:                 actualHeight,
 		CornerRadius:           cornerRadius,

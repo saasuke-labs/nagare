@@ -4,10 +4,17 @@ import (
 	"fmt"
 	"nagare/components"
 	"nagare/parser"
+	"nagare/props"
+	"strings"
 )
 
 const (
-	DefaultColumns = 48
+	defaultBrowserWidth  = 640.0
+	defaultBrowserHeight = 420.0
+	defaultVMWidth       = 640.0
+	defaultVMHeight      = 420.0
+	defaultServerWidth   = 200.0
+	defaultServerHeight  = 140.0
 )
 
 // Rect represents a rectangle in the layout
@@ -24,183 +31,230 @@ type Layout struct {
 	Children []components.Component
 }
 
-// func (n Layout) String() string {
-// 	if len(n.Children) == 0 {
-// 		return n.Text
-// 	}
+type geometryProps struct {
+	X      *int `prop:"x"`
+	Y      *int `prop:"y"`
+	Width  *int `prop:"w"`
+	Height *int `prop:"h"`
+}
 
-// 	childrenStr := ""
+func parseGeometry(def string) (geometryProps, error) {
+	geom := geometryProps{}
+	if strings.TrimSpace(def) == "" {
+		return geom, nil
+	}
+	if err := props.ParseProps(def, &geom); err != nil {
+		return geom, err
+	}
+	return geom, nil
+}
 
-// 	for _, child := range n.Children {
-// 		childrenStr += "[ " + child.String() + " ]"
-// 	}
+func applyGeometry(shape *components.Shape, geom geometryProps) {
+	if geom.Width != nil {
+		shape.Width = float64(*geom.Width)
+	}
+	if geom.Height != nil {
+		shape.Height = float64(*geom.Height)
+	}
+	if geom.X != nil {
+		shape.X = float64(*geom.X)
+	}
+	if geom.Y != nil {
+		shape.Y = float64(*geom.Y)
+	}
+}
 
-// 	return fmt.Sprintf("%s [%s]", n.Text, childrenStr)
+func applyServerGeometry(shape *components.Shape, geom geometryProps, offsetX, offsetY float64) {
+	if geom.Width != nil {
+		shape.Width = float64(*geom.Width)
+	}
+	if geom.Height != nil {
+		shape.Height = float64(*geom.Height)
+	}
+	if geom.X != nil {
+		shape.X = float64(*geom.X) - offsetX
+	}
+	if geom.Y != nil {
+		shape.Y = float64(*geom.Y) - offsetY
+	}
+}
 
-// }
+func resolveState(root parser.Node, node parser.Node, name string) (parser.State, bool) {
+	if node.States != nil {
+		if state, ok := node.States[name]; ok {
+			return state, true
+		}
+	}
 
-// const (
-// 	mainPadding     = 16.0 // Padding for the main layout
-// 	subPadding      = 8.0  // Padding for nested layouts
-// 	titleHeight     = 40.0 // Height reserved for container title
-// 	titleTopPadding = 20.0 // Padding above the container title
-// )
+	if root.Globals != nil {
+		if state, ok := root.Globals[name]; ok {
+			return state, true
+		}
+	}
+
+	return parser.State{}, false
+}
 
 // Calculate computes the layout for an AST
 func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
-	// columns := 12
-	// columnsWidth := float64(canvasWidth) / float64(columns)
-	// rows := canvasHeight / columnsWidth
-	// rowsHeight := canvasHeight / rows
+	boundsWidth := canvasWidth
+	boundsHeight := canvasHeight
 
-	// rectWidth := 3 * columnsWidth
-	// rectHeight := 2 * rowsHeight
+	if layoutState, ok := node.Globals["layout"]; ok {
+		if geom, err := parseGeometry(layoutState.PropsDef); err == nil {
+			if geom.Width != nil {
+				boundsWidth = float64(*geom.Width)
+			}
+			if geom.Height != nil {
+				boundsHeight = float64(*geom.Height)
+			}
+		} else {
+			fmt.Printf("failed to parse @layout props: %v\n", err)
+		}
+	}
 
-	// if node.Type == parser.NODE_CONTAINER {
-	// 	// Container node
-	// 	childLayouts := make([]Layout, len(node.Children))
+	children := make([]components.Component, 0, len(node.Children))
 
-	// 	// Calculate total width needed for children in a row
-	// 	childrenWidth := float64(len(node.Children)) * (rectWidth + mainPadding)
-	// 	containerWidth := max(childrenWidth, 260.0) // Min container width
-
-	// 	// Calculate height needed for container with title and children
-	// 	containerHeight := rectHeight + titleHeight + mainPadding*2
-
-	// 	// Position children in a row
-	// 	for i, child := range node.Children {
-	// 		childX := float64(i) * (rectWidth + mainPadding)
-	// 		childLayout := Calculate(child, rectWidth, rectHeight)
-	// 		childLayout.Bounds.X = childX
-	// 		childLayout.Bounds.Y = 0 // Y offset handled by group transform in renderer
-	// 		childLayouts[i] = childLayout
-	// 	}
-
-	// 	// Center container in its allocated space
-	// 	return Layout{
-	// 		Bounds: Rect{
-	// 			X:      (canvasWidth - containerWidth) / 2,
-	// 			Y:      mainPadding,
-	// 			Width:  containerWidth,
-	// 			Height: containerHeight,
-	// 		},
-	// 		Text:     node.Text,
-	// 		Children: childLayouts,
-	// 	}
-	// }
-
-	// if node.Text == "" {
-	// 	// Root node - arrange children horizontally with equal spacing
-	// 	childLayouts := make([]Layout, len(node.Children))
-	// 	spacing := float64(canvasWidth) / float64(len(node.Children)+1)
-
-	// 	for i, child := range node.Children {
-	// 		childX := spacing*float64(i+1) - rectWidth/2
-	// 		childLayout := Calculate(child, rectWidth*2, canvasHeight-mainPadding*2)
-	// 		childLayout.Bounds.X = childX
-	// 		childLayout.Bounds.Y = mainPadding
-	// 		childLayouts[i] = childLayout
-	// 	}
-
-	// 	return Layout{
-	// 		Bounds: Rect{
-	// 			X:      0,
-	// 			Y:      0,
-	// 			Width:  canvasWidth,
-	// 			Height: canvasHeight,
-	// 		},
-	// 		Children: childLayouts,
-	// 	}
-	// }
-
-	// We start with the root node being a container.
-	// Ignore it and go straight to its children.
-	children := make([]components.Component, len(node.Children))
-	for i, child := range node.Children {
-
-		// FIME: HARDCODED TYPES
-		if child.Type == "Browser" {
+	for _, child := range node.Children {
+		switch child.Type {
+		case "Browser":
 			browser := components.NewBrowser()
 			browser.Shape = components.Shape{
-				Width:  12, // Based on Grid system. 3 cells x 2 cells
-				Height: 12,
-				X:      1, // 3 cells width + 1 cell gap
-				Y:      1,
+				Width:  defaultBrowserWidth,
+				Height: defaultBrowserHeight,
+				X:      0,
+				Y:      0,
 			}
 
-			// Set state and parse props if state exists
-			if child.State != "" {
-				if state, ok := child.States[child.State]; ok {
-					browser.State = state.Name
-					// Parse props for this state
-					browser.Props.Parse(state.PropsDef)
+			if idState, ok := resolveState(node, child, child.Text); ok {
+				if geom, err := parseGeometry(idState.PropsDef); err == nil {
+					applyGeometry(&browser.Shape, geom)
+				} else {
+					fmt.Printf("failed to parse geometry for %s: %v\n", child.Text, err)
+				}
+
+				if err := browser.Props.Parse(idState.PropsDef); err != nil {
+					fmt.Printf("failed to parse props for %s: %v\n", child.Text, err)
 				}
 			}
 
-			children[i] = browser
+			if child.State != "" {
+				if state, ok := resolveState(node, child, child.State); ok {
+					browser.State = state.Name
+					if geom, err := parseGeometry(state.PropsDef); err == nil {
+						applyGeometry(&browser.Shape, geom)
+					} else {
+						fmt.Printf("failed to parse geometry for state %s: %v\n", state.Name, err)
+					}
+
+					if err := browser.Props.Parse(state.PropsDef); err != nil {
+						fmt.Printf("failed to parse props for state %s: %v\n", state.Name, err)
+					}
+				}
+			}
+
+			children = append(children, browser)
 			fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
-			continue
-		}
-		if child.Type == "VM" {
+		case "VM":
 			vm := components.NewVM()
 			vm.Shape = components.Shape{
-				Width:  28, // Based on Grid system. 3 cells x 2 cells
-				Height: 20,
-				X:      20, // 3 cells width + 1 cell gap
-				Y:      1,
+				Width:  defaultVMWidth,
+				Height: defaultVMHeight,
+				X:      0,
+				Y:      0,
 			}
 
-			// Set state and parse props if state exists
-			if child.State != "" {
-				if state, ok := child.States[child.State]; ok {
-					vm.State = state.Name
-					// Parse props for this state
-					vm.Props.Parse(state.PropsDef)
+			if idState, ok := resolveState(node, child, child.Text); ok {
+				if geom, err := parseGeometry(idState.PropsDef); err == nil {
+					applyGeometry(&vm.Shape, geom)
+				} else {
+					fmt.Printf("failed to parse geometry for %s: %v\n", child.Text, err)
+				}
+
+				if err := vm.Props.Parse(idState.PropsDef); err != nil {
+					fmt.Printf("failed to parse props for %s: %v\n", child.Text, err)
 				}
 			}
 
-			// Process VM's children if any
+			if child.State != "" {
+				if state, ok := resolveState(node, child, child.State); ok {
+					vm.State = state.Name
+					if geom, err := parseGeometry(state.PropsDef); err == nil {
+						applyGeometry(&vm.Shape, geom)
+					} else {
+						fmt.Printf("failed to parse geometry for state %s: %v\n", state.Name, err)
+					}
+
+					if err := vm.Props.Parse(state.PropsDef); err != nil {
+						fmt.Printf("failed to parse props for state %s: %v\n", state.Name, err)
+					}
+				}
+			}
+
 			if len(child.Children) > 0 {
-				childComponents := make([]components.Component, len(child.Children))
-				for j, grandchild := range child.Children {
+				childComponents := make([]components.Component, 0, len(child.Children))
+				contentOffsetX := vm.Shape.X + vm.Shape.Width*components.VMContentAreaXRatio
+				contentOffsetY := vm.Shape.Y + vm.Shape.Height*components.VMContentAreaYRatio
+
+				for _, grandchild := range child.Children {
 					switch grandchild.Type {
 					case "Server":
 						server := components.NewServer(grandchild.Text)
 						server.Shape = components.Shape{
-							Width:  12,
-							Height: 3,
-							X:      1,
-							Y:      j*4 + 1, // Stack vertically with spacing
+							Width:  defaultServerWidth,
+							Height: defaultServerHeight,
+							X:      0,
+							Y:      0,
 						}
-						if grandchild.State != "" {
-							if state, ok := grandchild.States[grandchild.State]; ok {
-								server.State = state.Name
-								server.Props.Parse(state.PropsDef)
+
+						if idState, ok := resolveState(node, grandchild, grandchild.Text); ok {
+							geom, err := parseGeometry(idState.PropsDef)
+							if err == nil {
+								applyServerGeometry(&server.Shape, geom, contentOffsetX, contentOffsetY)
+							} else {
+								fmt.Printf("failed to parse geometry for %s: %v\n", grandchild.Text, err)
+							}
+
+							if err := server.Props.Parse(idState.PropsDef); err != nil {
+								fmt.Printf("failed to parse props for %s: %v\n", grandchild.Text, err)
 							}
 						}
-						childComponents[j] = server
-					// Add other types as needed
+
+						if grandchild.State != "" {
+							if state, ok := resolveState(node, grandchild, grandchild.State); ok {
+								server.State = state.Name
+								if geom, err := parseGeometry(state.PropsDef); err == nil {
+									applyServerGeometry(&server.Shape, geom, contentOffsetX, contentOffsetY)
+								} else {
+									fmt.Printf("failed to parse geometry for state %s: %v\n", state.Name, err)
+								}
+
+								if err := server.Props.Parse(state.PropsDef); err != nil {
+									fmt.Printf("failed to parse props for state %s: %v\n", state.Name, err)
+								}
+							}
+						}
+
+						childComponents = append(childComponents, server)
 					default:
 						fmt.Printf("Unknown child type: %s\n", grandchild.Type)
-						continue
 					}
 				}
 				vm.Children = childComponents
 			}
 
-			children[i] = vm
+			children = append(children, vm)
 			fmt.Printf("State: %s, Props: %+v\n", vm.State, vm.Props)
-			continue
-		} else {
-			children[i] = &components.Rectangle{
+		default:
+			children = append(children, &components.Rectangle{
 				Shape: components.Shape{
-					Width:  3, // Based on Grid system. 3 cells x 2 cells
-					Height: 2,
-					X:      int(float64(i*4) + 1), // 3 cells width + 1 cell gap
+					Width:  defaultServerWidth,
+					Height: defaultServerHeight,
+					X:      0,
 					Y:      0,
 				},
 				Text: child.Text,
-			}
+			})
 		}
 	}
 
@@ -208,31 +262,9 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 		Bounds: Rect{
 			X:      0,
 			Y:      0,
-			Width:  canvasWidth,
-			Height: canvasHeight,
+			Width:  boundsWidth,
+			Height: boundsHeight,
 		},
 		Children: children,
 	}
-
 }
-
-// func max(a, b float64) float64 {
-// 	if a > b {
-// 		return a
-// 	}
-// 	return b
-// }
-
-// func min(a, b int) int {
-// 	if a < b {
-// 		return a
-// 	}
-// 	return b
-// }
-
-// func minf(a, b float64) float64 {
-// 	if a < b {
-// 		return a
-// 	}
-// 	return b
-// }

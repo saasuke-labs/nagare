@@ -35,12 +35,21 @@ func createDiagram(code string) (string, error) {
 	fmt.Printf("AST: \n%+v\n", ast)
 
 	// 3. Layout
-	const canvasWidth, canvasHeight = 800, 400
-	l := layout.Calculate(ast, canvasWidth, canvasHeight)
+	const defaultCanvasWidth, defaultCanvasHeight = 800.0, 400.0
+	l := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
 
 	fmt.Printf("Layout: \n%+v\n", l)
 
-	// 4. Render
+	// 4. Render using the computed layout dimensions
+	canvasWidth := int(l.Bounds.Width)
+	canvasHeight := int(l.Bounds.Height)
+	if canvasWidth == 0 {
+		canvasWidth = int(defaultCanvasWidth)
+	}
+	if canvasHeight == 0 {
+		canvasHeight = int(defaultCanvasHeight)
+	}
+
 	html := renderer.Render(l, canvasWidth, canvasHeight)
 	fmt.Println(html)
 	return html, nil

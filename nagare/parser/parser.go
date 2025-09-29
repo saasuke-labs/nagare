@@ -29,6 +29,7 @@ type Node struct {
 	Depth    int    // Track nesting level
 	State    string // Current state name if specified with @
 	States   map[string]State
+	Globals  map[string]State
 }
 
 func (n Node) String() string {
@@ -68,6 +69,18 @@ func (p *Parser) findNodesWithState(root *Node, stateName string) []*Node {
 	}
 	for i := range root.Children {
 		nodes = append(nodes, p.findNodesWithState(&root.Children[i], stateName)...)
+	}
+	return nodes
+}
+
+// findNodesWithName returns all nodes in the tree that have the given identifier
+func (p *Parser) findNodesWithName(root *Node, name string) []*Node {
+	var nodes []*Node
+	if root.Text == name {
+		nodes = append(nodes, root)
+	}
+	for i := range root.Children {
+		nodes = append(nodes, p.findNodesWithName(&root.Children[i], name)...)
 	}
 	return nodes
 }
@@ -150,9 +163,9 @@ func (p *Parser) parse(depth int) (Node, error) {
 	}
 
 	root := Node{
-		Type:   NODE_ELEMENT,
-		Depth:  depth,
-		States: make(map[string]State),
+		Type:    NODE_ELEMENT,
+		Depth:   depth,
+		Globals: make(map[string]State),
 	}
 
 	for p.current < len(p.tokens) {
@@ -168,15 +181,25 @@ func (p *Parser) parse(depth int) (Node, error) {
 				return Node{}, err
 			}
 
-			// Find all nodes that use this state
-			nodes := p.findNodesWithState(&root, state.Name)
-			if len(nodes) == 0 {
-				return Node{}, fmt.Errorf("no nodes found using state %s", state.Name)
+			// Store the state definition for lookup during layout/render phases
+			root.Globals[state.Name] = *state
+
+			// Associate the state with nodes that explicitly reference it by state name
+			fmt.Printf("State %s props: %s\n", state.Name, state.PropsDef)
+			nodesByState := p.findNodesWithState(&root, state.Name)
+			for _, node := range nodesByState {
+				if node.States == nil {
+					node.States = make(map[string]State)
+				}
+				node.States[state.Name] = *state
 			}
 
-			// Add the state definition to all nodes that use it
-			fmt.Printf("State %s props: %s\n", state.Name, state.PropsDef)
-			for _, node := range nodes {
+			// Also associate the state with nodes that match the identifier/name
+			nodesByName := p.findNodesWithName(&root, state.Name)
+			for _, node := range nodesByName {
+				if node.States == nil {
+					node.States = make(map[string]State)
+				}
 				node.States[state.Name] = *state
 			}
 
@@ -223,9 +246,12 @@ func (p *Parser) parse(depth int) (Node, error) {
 			isContainer := p.current < len(p.tokens) &&
 				p.tokens[p.current].Type == tokenizer.LEFT_BRACE
 
-			states := make(map[string]State)
+			var states map[string]State
 
 			if isContainer {
+				if nodeType == NODE_ELEMENT {
+					nodeType = NODE_CONTAINER
+				}
 				// This is a container node
 				containerNode := Node{
 					Type:   nodeType, // Use declared type or default
@@ -279,5 +305,8 @@ func (p *Parser) parse(depth int) (Node, error) {
 		}
 	}
 
+	if len(root.Globals) == 0 {
+		root.Globals = nil
+	}
 	return root, nil
 }
