@@ -148,7 +148,7 @@ import (
 func renderChildren(children []components.Component) string {
 	var elements string
 	for _, child := range children {
-		elements += child.Draw(1, 1)
+		elements += child.Draw()
 	}
 	return elements
 }

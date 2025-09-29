@@ -1,0 +1,113 @@
+<svg width="950" height="400" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background -->
+        <rect width="950" height="400" fill="#ffffff"/>
+        <line x1="0.000000" y1="0" x2="0.000000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="19.791667" y1="0" x2="19.791667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="39.583333" y1="0" x2="39.583333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="59.375000" y1="0" x2="59.375000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="79.166667" y1="0" x2="79.166667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="98.958333" y1="0" x2="98.958333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="118.750000" y1="0" x2="118.750000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="138.541667" y1="0" x2="138.541667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="158.333333" y1="0" x2="158.333333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="178.125000" y1="0" x2="178.125000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="197.916667" y1="0" x2="197.916667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="217.708333" y1="0" x2="217.708333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="237.500000" y1="0" x2="237.500000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="257.291667" y1="0" x2="257.291667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="277.083333" y1="0" x2="277.083333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="296.875000" y1="0" x2="296.875000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="316.666667" y1="0" x2="316.666667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="336.458333" y1="0" x2="336.458333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="356.250000" y1="0" x2="356.250000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="376.041667" y1="0" x2="376.041667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="395.833333" y1="0" x2="395.833333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="415.625000" y1="0" x2="415.625000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="435.416667" y1="0" x2="435.416667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="455.208333" y1="0" x2="455.208333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="475.000000" y1="0" x2="475.000000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="494.791667" y1="0" x2="494.791667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="514.583333" y1="0" x2="514.583333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="534.375000" y1="0" x2="534.375000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="554.166667" y1="0" x2="554.166667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="573.958333" y1="0" x2="573.958333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="593.750000" y1="0" x2="593.750000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="613.541667" y1="0" x2="613.541667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="633.333333" y1="0" x2="633.333333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="653.125000" y1="0" x2="653.125000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="672.916667" y1="0" x2="672.916667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="692.708333" y1="0" x2="692.708333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="712.500000" y1="0" x2="712.500000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="732.291667" y1="0" x2="732.291667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="752.083333" y1="0" x2="752.083333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="771.875000" y1="0" x2="771.875000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="791.666667" y1="0" x2="791.666667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="811.458333" y1="0" x2="811.458333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="831.250000" y1="0" x2="831.250000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="851.041667" y1="0" x2="851.041667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="870.833333" y1="0" x2="870.833333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="890.625000" y1="0" x2="890.625000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="910.416667" y1="0" x2="910.416667" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="930.208333" y1="0" x2="930.208333" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="950.000000" y1="0" x2="950.000000" y2="400" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="0.000000" x2="950" y2="0.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="19.000000" x2="950" y2="19.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="38.000000" x2="950" y2="38.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="57.000000" x2="950" y2="57.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="76.000000" x2="950" y2="76.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="95.000000" x2="950" y2="95.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="114.000000" x2="950" y2="114.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="133.000000" x2="950" y2="133.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="152.000000" x2="950" y2="152.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="171.000000" x2="950" y2="171.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="190.000000" x2="950" y2="190.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="209.000000" x2="950" y2="209.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="228.000000" x2="950" y2="228.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="247.000000" x2="950" y2="247.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="266.000000" x2="950" y2="266.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="285.000000" x2="950" y2="285.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="304.000000" x2="950" y2="304.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="323.000000" x2="950" y2="323.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="342.000000" x2="950" y2="342.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="361.000000" x2="950" y2="361.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="380.000000" x2="950" y2="380.000000" stroke="#e0e0e0" stroke-width="1"/><line x1="0" y1="399.000000" x2="950" y2="399.000000" stroke="#e0e0e0" stroke-width="1"/>
+        <g transform="translate(50.000000,125.000000)">
+                <g class="ns" filter="url(#softShadow)">
+                        <rect x="0" y="0" width="200.000000" height="150.000000" rx="3.125000" fill="#e6f3ff" stroke="#333"/>
+                        <rect x="0" y="0" width="200.000000" height="15.714285" rx="3.125000" ry="3.125000" fill="#e6f3ff" stroke="#333"/>
+                        <rect x="31.250000" y="3.571425" width="150.000000" height="8.571420" rx="1.875000" fill="#fff" stroke="#333" opacity="0.85"/>
+                        <rect x="3.750000" y="19.999995" width="192.500000" height="125.714280" rx="1.875000" fill="#ffffff" stroke="#333" opacity="0.9"/>
+                </g>
+                <text x="106.250000" y="7.857135" text-anchor="middle" dominant-baseline="middle"
+                        font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+                        font-size="8.000000" fill="#333">https://www.nagare.com</text>
+                <text x="100.000000" y="82.857135" text-anchor="middle" dominant-baseline="middle"
+                        font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+                        font-size="20" fill="#333">Home Page</text>
+                <g transform="translate(4.375000,4.999995)">
+                        <circle r="1.875000" cx="0" cy="2.493750" fill="#ff5f57"/>
+                        <circle r="1.875000" cx="5.625000" cy="2.493750" fill="#febc2e"/>
+                        <circle r="1.875000" cx="11.250000" cy="2.493750" fill="#28c840"/>
+                </g>
+        </g><g transform="translate(300.000000,50.000000)">
+                <g class="ns" filter="url(#softShadow)">
+                        <rect x="0" y="0" width="600.000000" height="300.000000" rx="9.375000" fill="darkorange" stroke="#333"/>
+                        <rect x="0" y="0" width="600.000000" height="31.428570" rx="9.375000" ry="9.375000" fill="darkorange" stroke="#333"/>
+                        <rect x="11.250000" y="39.999990" width="577.500000" height="251.428560" rx="5.625000" fill="#333333" stroke="#333" opacity="0.9"/>
+                </g>
+                <g transform="translate(13.125000,9.999990)">
+                        <circle r="5.625000" cx="0" cy="7.481250" fill="#ff5f57"/>
+                        <circle r="5.625000" cx="16.875000" cy="7.481250" fill="#febc2e"/>
+                        <circle r="5.625000" cx="33.750000" cy="7.481250" fill="#28c840"/>
+                        <!-- Title text positioned after controls -->
+                        <text x="61.875000" 
+                              y="7.481250" 
+                              text-anchor="start" 
+                              dominant-baseline="middle"
+                              font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+                              font-size="30" 
+                              fill="#333">home@ubuntu</text>
+                </g>
+        </g><g transform="translate(311.250000,89.999990)">
+<g transform="translate(0.000000,0.000000)">
+    <!-- Main server box -->
+    <rect x="0" y="0" width="200.000000" height="140.000000" 
+          rx="14.000000" ry="14.000000" 
+          fill="#e6f3ff" stroke="#333" stroke-width="2"/>
+    
+    <!-- Icon -->
+    
+    
+    <g transform="translate(21.000000,21.000000)">
+        
+        <!-- Nginx icon -->
+        <rect x="0" y="0" width="98.000000" height="98.000000" fill="#009639"/>
+        <text x="49.000000" y="68.600000" 
+              fill="#ffffff" font-family="Arial" font-size="58.800000" 
+              text-anchor="middle">N</text>
+        
+    </g>
+    
+    <!-- Title -->
+    <text x="161.000000" 
+          y="84.000000" 
+          fill="#333" 
+          font-family="Arial" 
+          font-size="56.000000"
+          >Nginx</text>
+    
+    <!-- Port display -->
+    <text x="179.000000" 
+          y="84.000000" 
+          fill="#333" 
+          font-family="Arial" 
+          font-size="49.000000"
+          text-anchor="end">:80</text>
+</g>
+<g transform="translate(0.000000,0.000000)">
+    <!-- Main server box -->
+    <rect x="0" y="0" width="200.000000" height="140.000000" 
+          rx="14.000000" ry="14.000000" 
+          fill="#f0f8ff" stroke="#333" stroke-width="2"/>
+    
+    <!-- Icon -->
+    
+    
+    <g transform="translate(21.000000,21.000000)">
+        
+        <!-- Golang icon -->
+        <rect x="0" y="0" width="98.000000" height="98.000000" fill="#00ADD8"/>
+        <text x="49.000000" y="68.600000" 
+              fill="#ffffff" font-family="Arial" font-size="58.800000" 
+              text-anchor="middle">Go</text>
+        
+    </g>
+    
+    <!-- Title -->
+    <text x="161.000000" 
+          y="84.000000" 
+          fill="#333" 
+          font-family="Arial" 
+          font-size="56.000000"
+          >App</text>
+    
+    <!-- Port display -->
+    <text x="179.000000" 
+          y="84.000000" 
+          fill="#333" 
+          font-family="Arial" 
+          font-size="49.000000"
+          text-anchor="end">:8080</text>
+</g></g>
+</svg>

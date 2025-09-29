@@ -101,7 +101,7 @@ type VMTemplateData struct {
 	Title                  string
 }
 
-func (r *VM) Draw(_, _ float64) string {
+func (r *VM) Draw() string {
 	fmt.Println("Drawing VM at", r.X, r.Y, "size", r.Width, r.Height)
 
 	actualWidth := r.Width
@@ -166,7 +166,7 @@ func (r *VM) Draw(_, _ float64) string {
 			r.Y+contentAreaY)
 
 		for _, child := range r.Children {
-			svg += child.Draw(1, 1)
+			svg += child.Draw()
 		}
 
 		svg += "</g>"

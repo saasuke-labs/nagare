@@ -70,7 +70,7 @@ func (s *Server) Configure(props string) error {
 }
 
 // Draw implements the Component interface
-func (s *Server) Draw(_, _ float64) string {
+func (s *Server) Draw() string {
 	actualWidth := s.Width
 	actualHeight := s.Height
 

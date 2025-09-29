@@ -93,7 +93,7 @@ type BrowserTemplateData struct {
 	Text                   string
 }
 
-func (r *Browser) Draw(_, _ float64) string {
+func (r *Browser) Draw() string {
 	fmt.Println("Drawing browser at", r.X, r.Y, "size", r.Width, r.Height)
 
 	actualWidth := r.Width
