@@ -77,47 +77,61 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Create and switch to diagrams branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          PR_SHA=$(gh pr view ${{ github.event.pull_request.number }} --json headRefOid -q .headRefOid)
-          BRANCH_NAME="diagrams/pr-${{ github.event.pull_request.number }}-$PR_SHA"
-          git checkout -b "$BRANCH_NAME"
-
-          # Create diagrams directory if it doesn't exist
-          mkdir -p .diagrams
-          cp nagare-test.svg ".diagrams/pr-${{ github.event.pull_request.number }}.svg"
-
-          git add .diagrams
-          git commit -m "Add diagram for PR #${{ github.event.pull_request.number }}"
-          git push origin "$BRANCH_NAME"
-
-          # Save the URL for the next step
-          echo "DIAGRAM_URL=https://raw.githubusercontent.com/${{ github.repository }}/$BRANCH_NAME/.diagrams/pr-${{ github.event.pull_request.number }}.svg" >> $GITHUB_ENV
-
-      - name: Comment SVG preview on PR
+      - name: Upload diagram and comment on PR
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          # Create comment with the diagram
-          echo "### Nagare /test diagram preview" > comment.md
-          echo "" >> comment.md
-          echo "<details>" >> comment.md
-          echo "<summary>View diagram</summary>" >> comment.md
-          echo "" >> comment.md
-          echo "<img alt='Nagare /test preview' src='$DIAGRAM_URL' style='max-width: 100%; height: auto;'>" >> comment.md
-          echo "" >> comment.md
-          echo "</details>" >> comment.md
+          set -euo pipefail
 
-          # Post the comment
-          gh pr comment "$PR_NUMBER" --body-file comment.md
+          marker="<!-- nagare-test-diagram-preview -->"
 
-          # Post the comment
-          gh pr comment "$PR_NUMBER" --body-file comment.md
-          echo "" >> comment.md
-          echo "</details>" >> comment.md
+          existing_comment=$(gh api repos/$REPOSITORY/issues/$PR_NUMBER/comments --paginate \
+            --jq "map(select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\")))) | first")
 
-          # Post the comment
-          gh pr comment "$PR_NUMBER" --body-file comment.md
+          if [ "$existing_comment" != "null" ] && [ -n "$existing_comment" ]; then
+            comment_id=$(echo "$existing_comment" | jq -r '.id')
+            comment_node_id=$(echo "$existing_comment" | jq -r '.node_id')
+          else
+            placeholder_body=$'### Nagare /test diagram preview\n'$marker$'\n\nUploading preview…'
+            new_comment=$(gh api repos/$REPOSITORY/issues/$PR_NUMBER/comments -f body="$placeholder_body")
+            comment_id=$(echo "$new_comment" | jq -r '.id')
+            comment_node_id=$(echo "$new_comment" | jq -r '.node_id')
+          fi
+
+          query='mutation($commentId: ID!, $name: String!, $contentType: String!, $file: Upload!) {
+            uploadCommentAttachment(input: {commentId: $commentId, name: $name, contentType: $contentType, file: $file}) {
+              attachment { downloadUrl }
+            }
+          }'
+
+          operations=$(jq -n --arg query "$query" --arg commentId "$comment_node_id" '{
+            query: $query,
+            variables: {
+              commentId: $commentId,
+              name: "nagare-test.svg",
+              contentType: "image/svg+xml",
+              file: null
+            }
+          }')
+
+          upload_response=$(curl -sSf \
+            -H "Authorization: bearer $GH_TOKEN" \
+            -H "GraphQL-Features: comment-attachments" \
+            -F operations="$operations" \
+            -F 'map={"0":["variables.file"]}' \
+            -F 0=@nagare-test.svg \
+            https://api.github.com/graphql)
+
+          attachment_url=$(echo "$upload_response" | jq -r '.data.uploadCommentAttachment.attachment.downloadUrl')
+
+          if [ -z "$attachment_url" ] || [ "$attachment_url" = "null" ]; then
+            echo "Failed to upload comment attachment" >&2
+            echo "$upload_response" | jq '.' >&2 || echo "$upload_response" >&2
+            exit 1
+          fi
+
+          python - "$attachment_url" -c 'import sys; url = sys.argv[1]; lines = ["### Nagare /test diagram preview", "<!-- nagare-test-diagram-preview -->", "", "<details>", "<summary>View diagram</summary>", "", "![Nagare /test preview](__DIAGRAM_URL__)", "", "</details>"]; open("comment.md", "w").write("\n".join(lines).replace("__DIAGRAM_URL__", url))'
+
+          gh api repos/$REPOSITORY/issues/comments/$comment_id -X PATCH -F body="$(cat comment.md)"
