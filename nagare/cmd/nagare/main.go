@@ -49,11 +49,17 @@ func createDiagram(code string) (string, error) {
 func handleTest(w http.ResponseWriter, r *http.Request) {
 
 	code := `
+layout(w:800,h:400)
+
+	
 browser:Browser@home
 vps:VM@ubuntu {
     nginx:Server@nginx
     app:Server@app
 }
+
+@browser(x:50,y:50,w:300,h:300)
+@vps(x:400,y:50,w:400,h:300)
 
 @home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
 @ubuntu(title: "home@ubuntu", bg: "darkorange", fg: "#333", text: "Ubuntu")
