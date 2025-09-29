@@ -35,12 +35,21 @@ func createDiagram(code string) (string, error) {
 	fmt.Printf("AST: \n%+v\n", ast)
 
 	// 3. Layout
-	const canvasWidth, canvasHeight = 800, 400
-	l := layout.Calculate(ast, canvasWidth, canvasHeight)
+	const defaultCanvasWidth, defaultCanvasHeight = 800.0, 400.0
+	l := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
 
 	fmt.Printf("Layout: \n%+v\n", l)
 
-	// 4. Render
+	// 4. Render using the computed layout dimensions
+	canvasWidth := int(l.Bounds.Width)
+	canvasHeight := int(l.Bounds.Height)
+	if canvasWidth == 0 {
+		canvasWidth = int(defaultCanvasWidth)
+	}
+	if canvasHeight == 0 {
+		canvasHeight = int(defaultCanvasHeight)
+	}
+
 	html := renderer.Render(l, canvasWidth, canvasHeight)
 	fmt.Println(html)
 	return html, nil
@@ -49,11 +58,19 @@ func createDiagram(code string) (string, error) {
 func handleTest(w http.ResponseWriter, r *http.Request) {
 
 	code := `
+@layout(w:950,h:400)
+
+	
 browser:Browser@home
 vps:VM@ubuntu {
     nginx:Server@nginx
     app:Server@app
 }
+
+@browser(x:50,y:50,w:300,h:300)
+@vps(x:400,y:50,w:550,h:300)
+@nginx(x:475,y:150,w:200,h:150)
+@app(x:700,y:150,w:200,h:150)
 
 @home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
 @ubuntu(title: "home@ubuntu", bg: "darkorange", fg: "#333", text: "Ubuntu")

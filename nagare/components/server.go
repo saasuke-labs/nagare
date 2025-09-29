@@ -70,9 +70,9 @@ func (s *Server) Configure(props string) error {
 }
 
 // Draw implements the Component interface
-func (s *Server) Draw(colWidth, rowHeight float64) string {
-	actualWidth := float64(s.Width) * colWidth
-	actualHeight := float64(s.Height) * rowHeight
+func (s *Server) Draw(_, _ float64) string {
+	actualWidth := s.Width
+	actualHeight := s.Height
 
 	data := struct {
 		X      float64
@@ -82,8 +82,8 @@ func (s *Server) Draw(colWidth, rowHeight float64) string {
 		Props  ServerProps
 		Text   string
 	}{
-		X:      float64(s.X) * colWidth,
-		Y:      float64(s.Y) * rowHeight,
+		X:      s.X,
+		Y:      s.Y,
 		Width:  actualWidth,
 		Height: actualHeight,
 		Props:  s.Props,
