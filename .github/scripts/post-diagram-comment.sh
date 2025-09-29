@@ -83,7 +83,10 @@ fi
 query=$(cat <<'Q'
 mutation($commentId: ID!, $name: String!, $contentType: String!, $file: Upload!) {
   uploadCommentAttachment(input: {commentId: $commentId, name: $name, contentType: $contentType, file: $file}) {
-    attachment { downloadUrl }
+    attachment {
+      displayUrl
+      downloadUrl
+    }
   }
 }
 Q
@@ -122,13 +125,16 @@ if [[ "$http_status" -ge 400 ]]; then
   exit 1
 fi
 
-attachment_url=$(jq -e -r '.data.uploadCommentAttachment.attachment.downloadUrl' "$response_file")
+display_url=$(jq -e -r '.data.uploadCommentAttachment.attachment.displayUrl // empty' "$response_file")
+download_url=$(jq -e -r '.data.uploadCommentAttachment.attachment.downloadUrl // empty' "$response_file")
 
-if [[ -z "$attachment_url" || "$attachment_url" == "null" ]]; then
-  echo "failed to parse attachment URL" >&2
+if [[ -z "$display_url" && -z "$download_url" ]]; then
+  echo "failed to parse attachment URLs" >&2
   cat "$response_file" >&2
   exit 1
 fi
+
+attachment_url=${display_url:-$download_url}
 
 cat >"$comment_file" <<EOF_COMMENT
 ### Nagare /test diagram preview
