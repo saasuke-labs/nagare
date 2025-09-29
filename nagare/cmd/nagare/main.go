@@ -72,8 +72,8 @@ vps:VM@ubuntu {
 
 @home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
 @ubuntu(title: "home@ubuntu", bg: "darkorange", fg: "#333", text: "Ubuntu")
-@nginx(x:50,y:50,w:75,h:50, title: "Nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
-@app(x:175,y:50,w:75,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
+@nginx(x:50,y:50,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
+@app(x:350,y:50,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
 `
 	html, err := createDiagram(code)
 	if err != nil {
