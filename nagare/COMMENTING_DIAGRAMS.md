@@ -24,6 +24,7 @@ GitHub exposes a GraphQL mutation called `uploadCommentAttachment` that mirrors 
 
 ```bash
 ATTACHMENT_URL=$(gh api graphql \
+  -H 'GraphQL-Features: comment-attachments' \
   -F commentId="$COMMENT_NODE_ID" \
   -F name="diagram.png" \
   -F contentType="image/png" \
@@ -39,7 +40,7 @@ gh api repos/:owner/:repo/issues/:pr_number/comments \
   -f body="![diagram preview]($ATTACHMENT_URL)"
 ```
 
-You can call the mutation from a GitHub Action (the `GITHUB_TOKEN` already has permission on the pull request) and avoid committing the artifacts anywhere in the repo.
+You can call the mutation from a GitHub Action (the `GITHUB_TOKEN` already has permission on the pull request) and avoid committing the artifacts anywhere in the repo. The extra `GraphQL-Features` header enables the preview API that unlocks comment attachments for CLI usage.
 
 ## 3. Publish diagrams as workflow artifacts
 

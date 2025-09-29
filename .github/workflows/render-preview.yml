@@ -101,6 +101,7 @@ jobs:
           fi
 
           attachment_url=$(gh api graphql \
+            -H 'GraphQL-Features: comment-attachments' \
             -F commentId="$comment_node_id" \
             -F name="nagare-test.svg" \
             -F contentType="image/svg+xml" \
