@@ -112,25 +112,6 @@ jobs:
             }' \
             --jq '.data.uploadCommentAttachment.attachment.downloadUrl')
 
-          cat > comment.md <<'EOF'
-### Nagare /test diagram preview
-<!-- nagare-test-diagram-preview -->
-
-<details>
-<summary>View diagram</summary>
-
-![Nagare /test preview](__DIAGRAM_URL__)
-
-</details>
-EOF
-
-          python - "$attachment_url" <<'PY'
-import pathlib
-import sys
-
-url = sys.argv[1]
-path = pathlib.Path("comment.md")
-path.write_text(path.read_text().replace("__DIAGRAM_URL__", url))
-PY
+          python - "$attachment_url" -c 'import sys; url = sys.argv[1]; lines = ["### Nagare /test diagram preview", "<!-- nagare-test-diagram-preview -->", "", "<details>", "<summary>View diagram</summary>", "", "![Nagare /test preview](__DIAGRAM_URL__)", "", "</details>"]; open("comment.md", "w").write("\n".join(lines).replace("__DIAGRAM_URL__", url))'
 
           gh api repos/$REPOSITORY/issues/comments/$comment_id -X PATCH -F body="$(cat comment.md)"
