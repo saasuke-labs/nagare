@@ -23,13 +23,26 @@ type State struct {
 
 // Node represents a node in the AST
 type Node struct {
-	Type     NodeType // Can be a predefined type or a custom type string
-	Text     string   // The name/label of the node
-	Children []Node
-	Depth    int    // Track nesting level
-	State    string // Current state name if specified with @
-	States   map[string]State
-	Globals  map[string]State
+	Type        NodeType // Can be a predefined type or a custom type string
+	Text        string   // The name/label of the node
+	Children    []Node
+	Depth       int    // Track nesting level
+	State       string // Current state name if specified with @
+	States      map[string]State
+	Globals     map[string]State
+	Connections []Connection
+}
+
+// ConnectionEndpoint references a node and a specific anchor on that node
+type ConnectionEndpoint struct {
+	NodeID string
+	Anchor string
+}
+
+// Connection describes a directional link between two nodes in the AST
+type Connection struct {
+	From ConnectionEndpoint
+	To   ConnectionEndpoint
 }
 
 func (n Node) String() string {

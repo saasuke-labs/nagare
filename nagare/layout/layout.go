@@ -27,8 +27,26 @@ type Rect struct {
 
 // Layout represents the computed layout of an element
 type Layout struct {
-	Bounds   Rect
-	Children []components.Component
+	Bounds      Rect
+	Children    []components.Component
+	NodeIndex   map[string]components.Shape
+	Connections []Arrow
+}
+
+// Point represents a coordinate on the canvas
+type Point struct {
+	X float64
+	Y float64
+}
+
+// Arrow captures the resolved geometry for a connection between two nodes
+type Arrow struct {
+	FromID     string
+	ToID       string
+	FromAnchor string
+	ToAnchor   string
+	Start      Point
+	End        Point
 }
 
 type geometryProps struct {
@@ -64,6 +82,76 @@ func applyGeometry(shape *components.Shape, geom geometryProps) {
 	}
 }
 
+func resolveAnchor(shape components.Shape, anchor string) Point {
+	anchor = strings.ToLower(strings.TrimSpace(anchor))
+	center := Point{
+		X: shape.X + shape.Width*0.5,
+		Y: shape.Y + shape.Height*0.5,
+	}
+
+	if anchor == "" || anchor == "c" || anchor == "center" || anchor == "mid" || anchor == "middle" {
+		return center
+	}
+
+	switch anchor {
+	case "w", "west":
+		return Point{X: shape.X, Y: center.Y}
+	case "e", "east":
+		return Point{X: shape.X + shape.Width, Y: center.Y}
+	case "n", "north":
+		return Point{X: center.X, Y: shape.Y}
+	case "s", "south":
+		return Point{X: center.X, Y: shape.Y + shape.Height}
+	}
+
+	resolveEdge := func(base, variant byte) (Point, bool) {
+		switch base {
+		case 'w', 'e':
+			x := shape.X
+			if base == 'e' {
+				x += shape.Width
+			}
+			y := shape.Y + shape.Height*0.5
+			switch variant {
+			case 'n':
+				y = shape.Y + shape.Height*0.25
+			case 's':
+				y = shape.Y + shape.Height*0.75
+			default:
+				return Point{}, false
+			}
+			return Point{X: x, Y: y}, true
+		case 'n', 's':
+			y := shape.Y
+			if base == 's' {
+				y += shape.Height
+			}
+			x := shape.X + shape.Width*0.5
+			switch variant {
+			case 'w':
+				x = shape.X + shape.Width*0.25
+			case 'e':
+				x = shape.X + shape.Width*0.75
+			default:
+				return Point{}, false
+			}
+			return Point{X: x, Y: y}, true
+		}
+		return Point{}, false
+	}
+
+	if len(anchor) == 2 {
+		if point, ok := resolveEdge(anchor[0], anchor[1]); ok {
+			return point
+		}
+		if point, ok := resolveEdge(anchor[1], anchor[0]); ok {
+			return point
+		}
+	}
+
+	return center
+}
+
 // Calculate computes the layout for an AST
 func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 	boundsWidth := canvasWidth
@@ -83,6 +171,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 	}
 
 	children := make([]components.Component, 0, len(node.Children))
+	nodeIndex := make(map[string]components.Shape)
 
 	for _, child := range node.Children {
 		switch child.Type {
@@ -117,6 +206,9 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 			}
 
 			children = append(children, browser)
+			if child.Text != "" {
+				nodeIndex[child.Text] = browser.Shape
+			}
 			fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
 		case "VM":
 			vm := components.NewVM()
@@ -146,6 +238,10 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 						fmt.Printf("failed to parse props for state %s: %v\n", state.Name, err)
 					}
 				}
+			}
+
+			if child.Text != "" {
+				nodeIndex[child.Text] = vm.Shape
 			}
 
 			if len(child.Children) > 0 {
@@ -189,6 +285,13 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 						}
 
 						childComponents = append(childComponents, server)
+
+						if grandchild.Text != "" {
+							absolute := server.Shape
+							absolute.X += vm.Shape.X + vm.Shape.Width*components.VMContentAreaXRatio
+							absolute.Y += vm.Shape.Y + vm.Shape.Height*components.VMContentAreaYRatio
+							nodeIndex[grandchild.Text] = absolute
+						}
 					default:
 						fmt.Printf("Unknown child type: %s\n", grandchild.Type)
 					}
@@ -199,7 +302,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 			children = append(children, vm)
 			fmt.Printf("State: %s, Props: %+v\n", vm.State, vm.Props)
 		default:
-			children = append(children, &components.Rectangle{
+			rect := &components.Rectangle{
 				Shape: components.Shape{
 					Width:  defaultServerWidth,
 					Height: defaultServerHeight,
@@ -207,8 +310,39 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 					Y:      0,
 				},
 				Text: child.Text,
-			})
+			}
+			children = append(children, rect)
+			if child.Text != "" {
+				nodeIndex[child.Text] = rect.Shape
+			}
 		}
+	}
+
+	connections := make([]Arrow, 0, len(node.Connections))
+	for _, conn := range node.Connections {
+		fromShape, ok := nodeIndex[conn.From.NodeID]
+		if !ok {
+			fmt.Printf("unknown connection source: %s\n", conn.From.NodeID)
+			continue
+		}
+
+		toShape, ok := nodeIndex[conn.To.NodeID]
+		if !ok {
+			fmt.Printf("unknown connection target: %s\n", conn.To.NodeID)
+			continue
+		}
+
+		start := resolveAnchor(fromShape, conn.From.Anchor)
+		end := resolveAnchor(toShape, conn.To.Anchor)
+
+		connections = append(connections, Arrow{
+			FromID:     conn.From.NodeID,
+			ToID:       conn.To.NodeID,
+			FromAnchor: conn.From.Anchor,
+			ToAnchor:   conn.To.Anchor,
+			Start:      start,
+			End:        end,
+		})
 	}
 
 	return Layout{
@@ -218,6 +352,8 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 			Width:  boundsWidth,
 			Height: boundsHeight,
 		},
-		Children: children,
+		Children:    children,
+		NodeIndex:   nodeIndex,
+		Connections: connections,
 	}
 }
