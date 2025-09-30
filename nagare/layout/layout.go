@@ -65,10 +65,10 @@ type Arrow struct {
 }
 
 type geometryProps struct {
-	X      *int `prop:"x"`
-	Y      *int `prop:"y"`
-	Width  *int `prop:"w"`
-	Height *int `prop:"h"`
+	X      interface{} `prop:"x"`
+	Y      interface{} `prop:"y"`
+	Width  *int        `prop:"w"`
+	Height *int        `prop:"h"`
 }
 
 type propertyParser interface {
@@ -86,7 +86,7 @@ func parseGeometryProps(def string) (geometryProps, error) {
 	return geom, nil
 }
 
-func applyGeometryProps(shape *components.Shape, geom geometryProps) {
+func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex map[string]components.Shape) {
 	if geom.Width != nil {
 		shape.Width = float64(*geom.Width)
 	}
@@ -94,10 +94,186 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps) {
 		shape.Height = float64(*geom.Height)
 	}
 	if geom.X != nil {
-		shape.X = float64(*geom.X)
+		if intVal, ok := geom.X.(int); ok {
+			shape.X = float64(intVal)
+		} else if strVal, ok := geom.X.(string); ok && strings.HasPrefix(strVal, "&") {
+			// Handle alignment reference - store for later resolution
+			fmt.Printf("Alignment reference detected for X: %s (deferred)\n", strVal)
+			if shape.AlignmentRefs == nil {
+				shape.AlignmentRefs = make(map[string]string)
+			}
+			shape.AlignmentRefs["x"] = strVal
+		} else if strVal, ok := geom.X.(string); ok {
+			// Check if this looks like a broken alignment reference (e.g., "browser  c")
+			if strings.Contains(strVal, "  ") {
+				fmt.Printf("Possible broken alignment reference detected for X: %s (deferred)\n", strVal)
+				if shape.AlignmentRefs == nil {
+					shape.AlignmentRefs = make(map[string]string)
+				}
+				shape.AlignmentRefs["x_string"] = strVal
+			}
+		}
 	}
 	if geom.Y != nil {
-		shape.Y = float64(*geom.Y)
+		if intVal, ok := geom.Y.(int); ok {
+			shape.Y = float64(intVal)
+		} else if strVal, ok := geom.Y.(string); ok && strings.HasPrefix(strVal, "&") {
+			// Handle alignment reference - store for later resolution
+			fmt.Printf("Alignment reference detected for Y: %s (deferred)\n", strVal)
+			if shape.AlignmentRefs == nil {
+				shape.AlignmentRefs = make(map[string]string)
+			}
+			shape.AlignmentRefs["y"] = strVal
+		} else if strVal, ok := geom.Y.(string); ok {
+			// Check if this looks like a broken alignment reference (e.g., "browser  c")
+			if strings.Contains(strVal, "  ") {
+				fmt.Printf("Possible broken alignment reference detected for Y: %s (deferred)\n", strVal)
+				if shape.AlignmentRefs == nil {
+					shape.AlignmentRefs = make(map[string]string)
+				}
+				shape.AlignmentRefs["y_string"] = strVal
+			}
+		}
+	}
+}
+
+func resolveAlignmentReference(ref string, nodeIndex map[string]components.Shape, currentShape *components.Shape) (float64, error) {
+	// Parse &component.alignment syntax
+	if !strings.HasPrefix(ref, "&") {
+		return 0, fmt.Errorf("alignment reference must start with &")
+	}
+
+	// Remove & prefix
+	ref = strings.TrimPrefix(ref, "&")
+
+	// Split by dot
+	parts := strings.Split(ref, ".")
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("invalid alignment reference format: expected &component.alignment")
+	}
+
+	componentName := parts[0]
+	alignment := parts[1]
+
+	// Find the target component
+	targetShape, exists := nodeIndex[componentName]
+	if !exists {
+		return 0, fmt.Errorf("component %s not found", componentName)
+	}
+
+	// Calculate alignment position
+	switch alignment {
+	case "c": // center
+		return targetShape.Y + targetShape.Height/2 - currentShape.Height/2, nil
+	case "t": // top
+		return targetShape.Y, nil
+	case "b": // bottom
+		return targetShape.Y + targetShape.Height - currentShape.Height, nil
+	default:
+		return 0, fmt.Errorf("unsupported alignment: %s", alignment)
+	}
+}
+
+func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
+	// Iterate through all shapes and resolve alignment references
+	for componentName, shape := range nodeIndex {
+		updated := false
+
+		// Check if there are alignment references to resolve
+		if shape.AlignmentRefs != nil {
+			for axis, ref := range shape.AlignmentRefs {
+				resolved, err := resolveAlignmentReference(ref, nodeIndex, &shape)
+				if err != nil {
+					fmt.Printf("Failed to resolve alignment reference %s for %s: %v\n", ref, componentName, err)
+					continue
+				}
+
+				switch axis {
+				case "x":
+					shape.X = resolved
+					updated = true
+					fmt.Printf("Resolved X alignment for %s: %s -> %f\n", componentName, ref, resolved)
+				case "y":
+					shape.Y = resolved
+					updated = true
+					fmt.Printf("Resolved Y alignment for %s: %s -> %f\n", componentName, ref, resolved)
+				}
+			}
+		}
+
+		// Also check for alignment patterns in string values (fallback for current parsing)
+		// This handles the case where tokenizer breaks "&browser.c" into "browser  c"
+		if strY, ok := shape.AlignmentRefs["y_string"]; ok {
+			// Try to reconstruct the alignment reference
+			reconstructed := strings.ReplaceAll(strY, "  ", ".")
+			reconstructed = "&" + reconstructed
+
+			resolved, err := resolveAlignmentReference(reconstructed, nodeIndex, &shape)
+			if err != nil {
+				fmt.Printf("Failed to resolve reconstructed alignment reference %s for %s: %v\n", reconstructed, componentName, err)
+			} else {
+				shape.Y = resolved
+				updated = true
+				fmt.Printf("Resolved Y alignment (reconstructed) for %s: %s -> %f\n", componentName, reconstructed, resolved)
+			}
+		}
+
+		// Update the nodeIndex with the modified shape
+		if updated {
+			nodeIndex[componentName] = shape
+		}
+	}
+}
+
+func syncComponentGeometry(children []components.Component, nodeIndex map[string]components.Shape) {
+	for _, child := range children {
+		switch comp := child.(type) {
+		case *components.Browser:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *components.VM:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+			syncVMChildGeometry(comp, nodeIndex)
+		case *components.Rectangle:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		}
+	}
+}
+
+func applyResolvedShape(target *components.Shape, resolved components.Shape) {
+	if target == nil {
+		return
+	}
+	target.X = resolved.X
+	target.Y = resolved.Y
+	target.Width = resolved.Width
+	target.Height = resolved.Height
+}
+
+func syncVMChildGeometry(vm *components.VM, nodeIndex map[string]components.Shape) {
+	contentOriginX := vm.Shape.X + vm.Shape.Width*components.VMContentAreaXRatio
+	contentOriginY := vm.Shape.Y + vm.Shape.Height*components.VMContentAreaYRatio
+
+	for _, child := range vm.Children {
+		switch comp := child.(type) {
+		case *components.Server:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *components.Rectangle:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		}
 	}
 }
 
@@ -110,6 +286,10 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 	for _, child := range node.Children {
 		children = append(children, buildComponentTree(child, nodeIndex)...)
 	}
+
+	// Resolve alignment references after all components are positioned
+	resolveAlignmentReferences(nodeIndex)
+	syncComponentGeometry(children, nodeIndex)
 
 	arrows := resolveConnections(node.Connections, nodeIndex)
 	if len(arrows) > 0 {
@@ -291,7 +471,8 @@ func applyGeometryDefinition(target string, shape *components.Shape, propsDef st
 		fmt.Printf("failed to parse geometry for %s: %v\n", target, err)
 		return
 	}
-	applyGeometryProps(shape, geometry)
+	// Pass empty nodeIndex for now - alignment resolution will happen later
+	applyGeometryProps(shape, geometry, make(map[string]components.Shape))
 }
 
 func parseComponentProps(target string, parser propertyParser, propsDef string) {

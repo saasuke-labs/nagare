@@ -67,16 +67,16 @@ vps:VM@ubuntu {
     app:Server@app
 }
 
-browser:e --> nginx:w
-nginx:e --> app:w
+browser.e --> nginx.w
+nginx.e --> app.w
 
 @browser(x:50,y:175,w:200,h:150)
 @vps(x:300,y:50,w:600,h:300)
 
 @home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
 @ubuntu(title: "home@ubuntu", bg: "#333", fg: "#ccc", text: "Ubuntu")
-@nginx(x:50,y:125,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
-@app(x:350,y:125,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
+@nginx(x:50,y:&browser.c,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
+@app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
 `
 	html, err := createDiagram(code)
 	if err != nil {

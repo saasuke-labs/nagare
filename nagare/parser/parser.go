@@ -346,12 +346,12 @@ func (p *Parser) tryParseConnection() (*Connection, bool, error) {
 	}
 
 	fromID := strings.TrimSpace(p.tokens[start].Value)
-	if p.tokens[start+1].Type != tokenizer.COLON {
+	if p.tokens[start+1].Type != tokenizer.DOT {
 		return nil, false, nil
 	}
 
 	if p.tokens[start+2].Type != tokenizer.IDENTIFIER {
-		return nil, false, errors.New("expected anchor identifier after colon in connection")
+		return nil, false, errors.New("expected anchor identifier after dot in connection")
 	}
 
 	if p.tokens[start+3].Type != tokenizer.ARROW {
@@ -362,12 +362,12 @@ func (p *Parser) tryParseConnection() (*Connection, bool, error) {
 		return nil, false, errors.New("expected target identifier after connection arrow")
 	}
 
-	if p.tokens[start+5].Type != tokenizer.COLON {
-		return nil, false, errors.New("expected colon before target anchor in connection")
+	if p.tokens[start+5].Type != tokenizer.DOT {
+		return nil, false, errors.New("expected dot before target anchor in connection")
 	}
 
 	if p.tokens[start+6].Type != tokenizer.IDENTIFIER {
-		return nil, false, errors.New("expected anchor identifier after colon in connection")
+		return nil, false, errors.New("expected anchor identifier after dot in connection")
 	}
 
 	toID := strings.TrimSpace(p.tokens[start+4].Value)

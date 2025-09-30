@@ -7,10 +7,11 @@ type Component interface {
 }
 
 type Shape struct {
-	Width  float64
-	Height float64
-	X      float64
-	Y      float64
+	Width         float64
+	Height        float64
+	X             float64
+	Y             float64
+	AlignmentRefs map[string]string // Store alignment references for later resolution
 }
 
 type Rectangle struct {

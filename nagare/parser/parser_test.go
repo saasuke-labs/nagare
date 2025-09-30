@@ -73,11 +73,11 @@ func TestParse(t *testing.T) {
 			name: "connection single-letter anchors",
 			tokens: []tokenizer.Token{
 				{Type: tokenizer.IDENTIFIER, Value: "foo"},
-				{Type: tokenizer.COLON},
+				{Type: tokenizer.DOT},
 				{Type: tokenizer.IDENTIFIER, Value: "w"},
 				{Type: tokenizer.ARROW, Value: "-->"},
 				{Type: tokenizer.IDENTIFIER, Value: "bar"},
-				{Type: tokenizer.COLON},
+				{Type: tokenizer.DOT},
 				{Type: tokenizer.IDENTIFIER, Value: "e"},
 			},
 			expected: Node{
@@ -105,11 +105,11 @@ func TestParse(t *testing.T) {
 			name: "connection compound anchors",
 			tokens: []tokenizer.Token{
 				{Type: tokenizer.IDENTIFIER, Value: "source"},
-				{Type: tokenizer.COLON},
+				{Type: tokenizer.DOT},
 				{Type: tokenizer.IDENTIFIER, Value: "wn"},
 				{Type: tokenizer.ARROW, Value: "-->"},
 				{Type: tokenizer.IDENTIFIER, Value: "sink"},
-				{Type: tokenizer.COLON},
+				{Type: tokenizer.DOT},
 				{Type: tokenizer.IDENTIFIER, Value: "se"},
 			},
 			expected: Node{
