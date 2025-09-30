@@ -27,8 +27,27 @@ type Rect struct {
 
 // Layout represents the computed layout of an element
 type Layout struct {
-	Bounds   Rect
-	Children []components.Component
+	Bounds      Rect
+	Children    []components.Component
+	NodeIndex   map[string]components.Shape
+	Connections []Arrow
+}
+
+// Point represents a 2D coordinate in canvas space.
+type Point struct {
+	X float64
+	Y float64
+}
+
+// Arrow contains the resolved geometry for a parsed connection.
+type Arrow struct {
+	FromID     string
+	ToID       string
+	FromAnchor string
+	ToAnchor   string
+	Start      Point
+	End        Point
+	Style      string
 }
 
 type geometryProps struct {
@@ -68,6 +87,7 @@ func applyGeometry(shape *components.Shape, geom geometryProps) {
 func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 	boundsWidth := canvasWidth
 	boundsHeight := canvasHeight
+	nodeIndex := make(map[string]components.Shape)
 
 	if layoutState, ok := node.Globals["layout"]; ok {
 		if geom, err := parseGeometry(layoutState.PropsDef); err == nil {
@@ -117,6 +137,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 			}
 
 			children = append(children, browser)
+			nodeIndex[child.Text] = browser.Shape
 			fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
 		case "VM":
 			vm := components.NewVM()
@@ -189,6 +210,13 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 						}
 
 						childComponents = append(childComponents, server)
+
+						absServerShape := server.Shape
+						contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+						contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+						absServerShape.X = vm.Shape.X + contentOffsetX + absServerShape.X
+						absServerShape.Y = vm.Shape.Y + contentOffsetY + absServerShape.Y
+						nodeIndex[grandchild.Text] = absServerShape
 					default:
 						fmt.Printf("Unknown child type: %s\n", grandchild.Type)
 					}
@@ -197,9 +225,10 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 			}
 
 			children = append(children, vm)
+			nodeIndex[child.Text] = vm.Shape
 			fmt.Printf("State: %s, Props: %+v\n", vm.State, vm.Props)
 		default:
-			children = append(children, &components.Rectangle{
+			rect := &components.Rectangle{
 				Shape: components.Shape{
 					Width:  defaultServerWidth,
 					Height: defaultServerHeight,
@@ -207,9 +236,13 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 					Y:      0,
 				},
 				Text: child.Text,
-			})
+			}
+			children = append(children, rect)
+			nodeIndex[child.Text] = rect.Shape
 		}
 	}
+
+	arrows := resolveConnections(node.Connections, nodeIndex)
 
 	return Layout{
 		Bounds: Rect{
@@ -218,6 +251,102 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 			Width:  boundsWidth,
 			Height: boundsHeight,
 		},
-		Children: children,
+		Children:    children,
+		NodeIndex:   nodeIndex,
+		Connections: arrows,
 	}
+}
+
+func resolveConnections(connections []parser.Connection, nodeIndex map[string]components.Shape) []Arrow {
+	arrows := make([]Arrow, 0, len(connections))
+	for _, conn := range connections {
+		fromShape, okFrom := nodeIndex[conn.FromID]
+		toShape, okTo := nodeIndex[conn.ToID]
+		if !okFrom || !okTo {
+			fmt.Printf("connection skipped: missing endpoint %s -> %s\n", conn.FromID, conn.ToID)
+			continue
+		}
+
+		fromAnchor := normalizeAnchor(conn.FromAnchor)
+		toAnchor := normalizeAnchor(conn.ToAnchor)
+		start := computeAnchorPoint(fromShape, fromAnchor)
+		end := computeAnchorPoint(toShape, toAnchor)
+
+		arrows = append(arrows, Arrow{
+			FromID:     conn.FromID,
+			ToID:       conn.ToID,
+			FromAnchor: fromAnchor.Raw,
+			ToAnchor:   toAnchor.Raw,
+			Start:      start,
+			End:        end,
+			Style:      conn.Style,
+		})
+	}
+	return arrows
+}
+
+func normalizeAnchor(anchor parser.AnchorDescriptor) parser.AnchorDescriptor {
+	if anchor.Horizontal != 0 || anchor.Vertical != 0 || anchor.Raw == "" {
+		return anchor
+	}
+
+	normalized := parser.AnchorDescriptor{Raw: anchor.Raw}
+	lower := strings.ToLower(anchor.Raw)
+	for _, r := range lower {
+		switch r {
+		case 'w':
+			normalized.Horizontal = -1.0
+		case 'e':
+			normalized.Horizontal = 1.0
+		case 'n':
+			normalized.Vertical = -1.0
+		case 's':
+			normalized.Vertical = 1.0
+		}
+	}
+	return normalized
+}
+
+func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) Point {
+	point := Point{
+		X: shape.X + shape.Width*0.5,
+		Y: shape.Y + shape.Height*0.5,
+	}
+
+	switch {
+	case anchor.Horizontal < 0:
+		point.X = shape.X
+		switch {
+		case anchor.Vertical < 0:
+			point.Y = shape.Y + shape.Height*0.25
+		case anchor.Vertical > 0:
+			point.Y = shape.Y + shape.Height*0.75
+		default:
+			point.Y = shape.Y + shape.Height*0.5
+		}
+	case anchor.Horizontal > 0:
+		point.X = shape.X + shape.Width
+		switch {
+		case anchor.Vertical < 0:
+			point.Y = shape.Y + shape.Height*0.25
+		case anchor.Vertical > 0:
+			point.Y = shape.Y + shape.Height*0.75
+		default:
+			point.Y = shape.Y + shape.Height*0.5
+		}
+	default:
+		switch {
+		case anchor.Vertical < 0:
+			point.Y = shape.Y
+			point.X = shape.X + shape.Width*0.5
+		case anchor.Vertical > 0:
+			point.Y = shape.Y + shape.Height
+			point.X = shape.X + shape.Width*0.5
+		default:
+			point.X = shape.X + shape.Width*0.5
+			point.Y = shape.Y + shape.Height*0.5
+		}
+	}
+
+	return point
 }
