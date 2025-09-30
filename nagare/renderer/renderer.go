@@ -154,6 +154,8 @@ func renderChildren(children []components.Component) string {
 }
 
 func drawGrid(canvasWidth, canvasHeight int) string {
+	return ""
+
 	var lines string = ""
 	columns := 48
 	columnsWidth := float64(canvasWidth) / float64(columns)
