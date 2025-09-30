@@ -16,7 +16,7 @@ vps:VM@ubuntu {
 }
 
 @home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
-@ubuntu(title: "home@ubuntu", bg: "darkorange", fg: "#333", text: "Ubuntu")
+@ubuntu(title: "home@ubuntu", bg: "darkorange", fg: "#333", contentBg: "#ccc")
 ```
 
 Becomes:

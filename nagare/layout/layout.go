@@ -265,7 +265,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 			arrowComponents = append(arrowComponents, arrowComponent)
 		}
 
-		children = append(arrowComponents, children...)
+		children = append(children, arrowComponents...)
 	}
 
 	return Layout{
