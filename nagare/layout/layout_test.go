@@ -7,6 +7,15 @@ import (
 	"nagare/parser"
 )
 
+type stubProps struct {
+	last string
+}
+
+func (s *stubProps) Parse(input string) error {
+	s.last = input
+	return nil
+}
+
 func TestCalculateStoresAbsoluteShapesAndConnections(t *testing.T) {
 	root := parser.Node{
 		Globals: make(map[string]parser.State),
@@ -61,8 +70,8 @@ func TestCalculateStoresAbsoluteShapesAndConnections(t *testing.T) {
 	result := Calculate(root, 1024, 768)
 
 	if len(result.Children) != len(root.Children)+len(root.Connections) {
-		to := len(root.Children) + len(root.Connections)
-		t.Fatalf("expected %d components, got %d", to, len(result.Children))
+		expected := len(root.Children) + len(root.Connections)
+		t.Fatalf("expected %d components, got %d", expected, len(result.Children))
 	}
 
 	arrowStart := len(result.Children) - len(root.Connections)
@@ -75,7 +84,6 @@ func TestCalculateStoresAbsoluteShapesAndConnections(t *testing.T) {
 			t.Fatalf("expected child %d to be a non-arrow component", i)
 		}
 	}
-
 	for i := arrowStart; i < len(result.Children); i++ {
 		if _, ok := result.Children[i].(*components.Arrow); !ok {
 			t.Fatalf("expected child %d to be an arrow component", i)
@@ -135,5 +143,74 @@ func TestCalculateStoresAbsoluteShapesAndConnections(t *testing.T) {
 	}
 	if second.End.Y != vmShape.Y+vmShape.Height*0.25 {
 		t.Fatalf("expected second connection end Y %f, got %f", vmShape.Y+vmShape.Height*0.25, second.End.Y)
+	}
+}
+
+func TestCalculateUsesLayoutGlobalOverrides(t *testing.T) {
+	root := parser.Node{
+		Globals: map[string]parser.State{
+			"layout": {Name: "layout", PropsDef: "w:800,h:600"},
+		},
+	}
+
+	result := Calculate(root, 1024, 768)
+
+	if result.Bounds.Width != 800 {
+		t.Fatalf("expected bounds width 800, got %f", result.Bounds.Width)
+	}
+	if result.Bounds.Height != 600 {
+		t.Fatalf("expected bounds height 600, got %f", result.Bounds.Height)
+	}
+}
+
+func TestRouteArrowPointsRespectsAnchorPriority(t *testing.T) {
+	start := Point{X: 10, Y: 10}
+	end := Point{X: 110, Y: 80}
+	fromAnchor := parser.AnchorDescriptor{Horizontal: 1}
+	toAnchor := parser.AnchorDescriptor{Vertical: 1}
+
+	points := routeArrowPoints(start, end, fromAnchor, toAnchor)
+
+	expected := []Point{
+		start,
+		{X: start.X + arrowElbowPadding, Y: start.Y},
+		{X: start.X + arrowElbowPadding, Y: end.Y},
+		end,
+	}
+
+	if len(points) != len(expected) {
+		t.Fatalf("expected %d points, got %d", len(expected), len(points))
+	}
+
+	for i := range points {
+		if !floatsNearlyEqual(points[i].X, expected[i].X) || !floatsNearlyEqual(points[i].Y, expected[i].Y) {
+			t.Fatalf("point %d mismatch: got %+v, expected %+v", i, points[i], expected[i])
+		}
+	}
+}
+
+func TestApplyNamedStatePropertiesWithGeometry(t *testing.T) {
+	shape := &components.Shape{Width: 50, Height: 40, X: 0, Y: 0}
+	props := &stubProps{}
+	node := parser.Node{
+		State: "custom",
+		States: map[string]parser.State{
+			"custom": {Name: "custom", PropsDef: "x:12,y:24,w:300,h:150"},
+		},
+	}
+
+	stateName := applyNamedStateProperties(node, shape, props, true)
+
+	if stateName != "custom" {
+		t.Fatalf("expected state name 'custom', got %q", stateName)
+	}
+	if !floatsNearlyEqual(shape.X, 12) || !floatsNearlyEqual(shape.Y, 24) {
+		t.Fatalf("expected geometry translation to 12,24 got %f,%f", shape.X, shape.Y)
+	}
+	if !floatsNearlyEqual(shape.Width, 300) || !floatsNearlyEqual(shape.Height, 150) {
+		t.Fatalf("expected geometry size 300x150 got %fx%f", shape.Width, shape.Height)
+	}
+	if props.last == "" {
+		t.Fatalf("expected props parser to be invoked")
 	}
 }
