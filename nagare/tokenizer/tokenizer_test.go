@@ -54,14 +54,14 @@ func TestTokenize(t *testing.T) {
 		},
 		{
 			name:  "connection arrow",
-			input: "foo:w --> bar:e",
+			input: "foo.w --> bar.e",
 			expected: []Token{
 				{Type: IDENTIFIER, Value: "foo"},
-				{Type: COLON},
+				{Type: DOT},
 				{Type: IDENTIFIER, Value: "w"},
 				{Type: ARROW, Value: "-->"},
 				{Type: IDENTIFIER, Value: "bar"},
-				{Type: COLON},
+				{Type: DOT},
 				{Type: IDENTIFIER, Value: "e"},
 			},
 		},

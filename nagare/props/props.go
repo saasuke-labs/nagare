@@ -110,6 +110,13 @@ func ParseProps(input string, target interface{}) error {
 					} else {
 						return fmt.Errorf("failed to parse %q as integer for field %s: %v", value, field.Name, err)
 					}
+				case reflect.Interface:
+					// For interface{} fields, try to parse as int first, then string
+					if intValue, err := strconv.Atoi(value); err == nil {
+						fieldValue.Set(reflect.ValueOf(intValue))
+					} else {
+						fieldValue.Set(reflect.ValueOf(value))
+					}
 				case reflect.Ptr:
 					elemType := fieldValue.Type().Elem()
 					switch elemType.Kind() {

@@ -16,6 +16,8 @@ const (
 	COMMA       // For props lists
 	EQUALS      // For props assignments
 	ARROW       // For straight connection arrows like -->
+	DOT         // For component property access like "browser.e"
+	AMPERSAND   // For component references like "&browser.c"
 )
 
 // Token represents a lexical token
@@ -73,6 +75,12 @@ func Tokenize(input string) []Token {
 		case '=':
 			flushWord()
 			tokens = append(tokens, Token{Type: EQUALS})
+		case '.':
+			flushWord()
+			tokens = append(tokens, Token{Type: DOT})
+		case '&':
+			flushWord()
+			tokens = append(tokens, Token{Type: AMPERSAND})
 		case '-':
 			if i+2 < len(input) && input[i:i+3] == "-->" {
 				flushWord()
