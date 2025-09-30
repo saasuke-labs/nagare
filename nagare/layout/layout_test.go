@@ -53,15 +53,18 @@ func TestCalculateResolvesNestedServerAnchors(t *testing.T) {
 
 	result := Calculate(root, 960, 540)
 
-	serverShape, ok := result.NodeIndex["app"]
+	serverEntry, ok := result.NodeIndex["app"]
 	if !ok {
 		t.Fatalf("expected server shape to be tracked in NodeIndex")
 	}
 
-	vmShape, ok := result.NodeIndex["vm1"]
+	vmEntry, ok := result.NodeIndex["vm1"]
 	if !ok {
 		t.Fatalf("expected vm shape to be tracked in NodeIndex")
 	}
+
+	serverShape := serverEntry.Shape
+	vmShape := vmEntry.Shape
 
 	expectedServerX := vmShape.X + vmShape.Width*components.VMContentAreaXRatio + 25
 	expectedServerY := vmShape.Y + vmShape.Height*components.VMContentAreaYRatio + 40
@@ -77,7 +80,7 @@ func TestCalculateResolvesNestedServerAnchors(t *testing.T) {
 		t.Fatalf("expected 2 resolved connections, got %d", len(result.Connections))
 	}
 
-	browserShape := result.NodeIndex["browser1"]
+	browserShape := result.NodeIndex["browser1"].Shape
 
 	first := result.Connections[0]
 	expectedFirstStart := Point{X: serverShape.X, Y: serverShape.Y + serverShape.Height*0.5}

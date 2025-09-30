@@ -29,8 +29,16 @@ type Rect struct {
 type Layout struct {
 	Bounds      Rect
 	Children    []components.Component
-	NodeIndex   map[string]components.Shape
+	NodeIndex   map[string]NodeEntry
 	Connections []Arrow
+}
+
+// NodeEntry captures the resolved component instance metadata for lookup by ID.
+type NodeEntry struct {
+	ID        string
+	Type      string
+	Shape     components.Shape
+	Component components.Component
 }
 
 // Point represents a coordinate on the canvas
@@ -79,6 +87,18 @@ func applyGeometry(shape *components.Shape, geom geometryProps) {
 	}
 	if geom.Y != nil {
 		shape.Y = float64(*geom.Y)
+	}
+}
+
+func registerNode(index map[string]NodeEntry, id string, typ string, shape components.Shape, comp components.Component) {
+	if id == "" {
+		return
+	}
+	index[id] = NodeEntry{
+		ID:        id,
+		Type:      typ,
+		Shape:     shape,
+		Component: comp,
 	}
 }
 
@@ -171,7 +191,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 	}
 
 	children := make([]components.Component, 0, len(node.Children))
-	nodeIndex := make(map[string]components.Shape)
+	nodeIndex := make(map[string]NodeEntry)
 
 	for _, child := range node.Children {
 		switch child.Type {
@@ -206,9 +226,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 			}
 
 			children = append(children, browser)
-			if child.Text != "" {
-				nodeIndex[child.Text] = browser.Shape
-			}
+			registerNode(nodeIndex, child.Text, string(child.Type), browser.Shape, browser)
 			fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
 		case "VM":
 			vm := components.NewVM()
@@ -240,9 +258,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 				}
 			}
 
-			if child.Text != "" {
-				nodeIndex[child.Text] = vm.Shape
-			}
+			registerNode(nodeIndex, child.Text, string(child.Type), vm.Shape, vm)
 
 			if len(child.Children) > 0 {
 				childComponents := make([]components.Component, 0, len(child.Children))
@@ -286,12 +302,10 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 
 						childComponents = append(childComponents, server)
 
-						if grandchild.Text != "" {
-							absolute := server.Shape
-							absolute.X += vm.Shape.X + vm.Shape.Width*components.VMContentAreaXRatio
-							absolute.Y += vm.Shape.Y + vm.Shape.Height*components.VMContentAreaYRatio
-							nodeIndex[grandchild.Text] = absolute
-						}
+						absolute := server.Shape
+						absolute.X += vm.Shape.X + vm.Shape.Width*components.VMContentAreaXRatio
+						absolute.Y += vm.Shape.Y + vm.Shape.Height*components.VMContentAreaYRatio
+						registerNode(nodeIndex, grandchild.Text, string(grandchild.Type), absolute, server)
 					default:
 						fmt.Printf("Unknown child type: %s\n", grandchild.Type)
 					}
@@ -312,28 +326,26 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 				Text: child.Text,
 			}
 			children = append(children, rect)
-			if child.Text != "" {
-				nodeIndex[child.Text] = rect.Shape
-			}
+			registerNode(nodeIndex, child.Text, string(child.Type), rect.Shape, rect)
 		}
 	}
 
 	connections := make([]Arrow, 0, len(node.Connections))
 	for _, conn := range node.Connections {
-		fromShape, ok := nodeIndex[conn.From.NodeID]
+		fromEntry, ok := nodeIndex[conn.From.NodeID]
 		if !ok {
 			fmt.Printf("unknown connection source: %s\n", conn.From.NodeID)
 			continue
 		}
 
-		toShape, ok := nodeIndex[conn.To.NodeID]
+		toEntry, ok := nodeIndex[conn.To.NodeID]
 		if !ok {
 			fmt.Printf("unknown connection target: %s\n", conn.To.NodeID)
 			continue
 		}
 
-		start := resolveAnchor(fromShape, conn.From.Anchor)
-		end := resolveAnchor(toShape, conn.To.Anchor)
+		start := resolveAnchor(fromEntry.Shape, conn.From.Anchor)
+		end := resolveAnchor(toEntry.Shape, conn.To.Anchor)
 
 		connections = append(connections, Arrow{
 			FromID:     conn.From.NodeID,
