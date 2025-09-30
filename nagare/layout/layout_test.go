@@ -5,6 +5,7 @@ import (
 
 	"nagare/components"
 	"nagare/parser"
+	"nagare/tokenizer"
 )
 
 type stubProps struct {
@@ -185,6 +186,65 @@ func TestRouteArrowPointsRespectsAnchorPriority(t *testing.T) {
 	for i := range points {
 		if !floatsNearlyEqual(points[i].X, expected[i].X) || !floatsNearlyEqual(points[i].Y, expected[i].Y) {
 			t.Fatalf("point %d mismatch: got %+v, expected %+v", i, points[i], expected[i])
+		}
+	}
+}
+
+func TestVMChildGeometryRespectsResolvedAlignment(t *testing.T) {
+	code := `@layout(w:950,h:400)
+
+browser:Browser@home
+vps:VM@ubuntu {
+    nginx:Server@nginx
+    app:Server@app
+}
+
+@browser(x:50,y:175,w:200,h:150)
+@vps(x:300,y:50,w:600,h:300)
+
+@home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
+@ubuntu(title: "home@ubuntu", bg: "#333", fg: "#ccc", text: "Ubuntu")
+@nginx(x:50,y:&browser.c,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
+@app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")`
+
+	tokens := tokenizer.Tokenize(code)
+	ast, err := parser.Parse(tokens)
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+
+	layout := Calculate(ast, 800, 400)
+
+	var vm *components.VM
+	for _, child := range layout.Children {
+		if candidate, ok := child.(*components.VM); ok {
+			vm = candidate
+			break
+		}
+	}
+
+	if vm == nil {
+		t.Fatalf("expected VM component in layout children")
+	}
+
+	expectedRelativeY := map[string]float64{
+		"nginx": 135,
+		"app":   135,
+	}
+
+	for _, child := range vm.Children {
+		server, ok := child.(*components.Server)
+		if !ok {
+			continue
+		}
+
+		expectedY, ok := expectedRelativeY[server.Text]
+		if !ok {
+			continue
+		}
+
+		if !floatsNearlyEqual(server.Y, expectedY) {
+			t.Fatalf("expected %s relative Y to be %.2f, got %.2f", server.Text, expectedY, server.Y)
 		}
 	}
 }
