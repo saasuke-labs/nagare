@@ -52,6 +52,19 @@ func TestTokenize(t *testing.T) {
 				{Type: RIGHT_BRACE},
 			},
 		},
+		{
+			name:  "connection arrow",
+			input: "foo:w --> bar:e",
+			expected: []Token{
+				{Type: IDENTIFIER, Value: "foo"},
+				{Type: COLON},
+				{Type: IDENTIFIER, Value: "w"},
+				{Type: ARROW, Value: "-->"},
+				{Type: IDENTIFIER, Value: "bar"},
+				{Type: COLON},
+				{Type: IDENTIFIER, Value: "e"},
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -23,13 +23,30 @@ type State struct {
 
 // Node represents a node in the AST
 type Node struct {
-	Type     NodeType // Can be a predefined type or a custom type string
-	Text     string   // The name/label of the node
-	Children []Node
-	Depth    int    // Track nesting level
-	State    string // Current state name if specified with @
-	States   map[string]State
-	Globals  map[string]State
+	Type        NodeType // Can be a predefined type or a custom type string
+	Text        string   // The name/label of the node
+	Children    []Node
+	Depth       int    // Track nesting level
+	State       string // Current state name if specified with @
+	States      map[string]State
+	Globals     map[string]State
+	Connections []Connection
+}
+
+// AnchorDescriptor captures anchor metadata for connection endpoints.
+type AnchorDescriptor struct {
+	Raw        string
+	Horizontal float64
+	Vertical   float64
+}
+
+// Connection represents a link between two nodes in the AST.
+type Connection struct {
+	FromID     string
+	FromAnchor AnchorDescriptor
+	ToID       string
+	ToAnchor   AnchorDescriptor
+	Style      string
 }
 
 func (n Node) String() string {
@@ -209,6 +226,13 @@ func (p *Parser) parse(depth int) (Node, error) {
 			}
 			return root, nil
 		case tokenizer.IDENTIFIER:
+			if connection, ok, err := p.tryParseConnection(); err != nil {
+				return Node{}, err
+			} else if ok {
+				root.Connections = append(root.Connections, *connection)
+				continue
+			}
+
 			// Look ahead for type declaration
 			nodeName := strings.TrimSpace(token.Value)
 			nodeType := NODE_ELEMENT // Default type
@@ -309,4 +333,80 @@ func (p *Parser) parse(depth int) (Node, error) {
 		root.Globals = nil
 	}
 	return root, nil
+}
+
+func (p *Parser) tryParseConnection() (*Connection, bool, error) {
+	start := p.current
+	if start >= len(p.tokens) || p.tokens[start].Type != tokenizer.IDENTIFIER {
+		return nil, false, nil
+	}
+
+	if start+6 >= len(p.tokens) {
+		return nil, false, nil
+	}
+
+	fromID := strings.TrimSpace(p.tokens[start].Value)
+	if p.tokens[start+1].Type != tokenizer.COLON {
+		return nil, false, nil
+	}
+
+	if p.tokens[start+2].Type != tokenizer.IDENTIFIER {
+		return nil, false, errors.New("expected anchor identifier after colon in connection")
+	}
+
+	if p.tokens[start+3].Type != tokenizer.ARROW {
+		return nil, false, nil
+	}
+
+	if p.tokens[start+4].Type != tokenizer.IDENTIFIER {
+		return nil, false, errors.New("expected target identifier after connection arrow")
+	}
+
+	if p.tokens[start+5].Type != tokenizer.COLON {
+		return nil, false, errors.New("expected colon before target anchor in connection")
+	}
+
+	if p.tokens[start+6].Type != tokenizer.IDENTIFIER {
+		return nil, false, errors.New("expected anchor identifier after colon in connection")
+	}
+
+	toID := strings.TrimSpace(p.tokens[start+4].Value)
+
+	connection := &Connection{
+		FromID:     fromID,
+		FromAnchor: parseAnchorDescriptor(p.tokens[start+2].Value),
+		ToID:       toID,
+		ToAnchor:   parseAnchorDescriptor(p.tokens[start+6].Value),
+	}
+
+	p.current = start + 7
+	return connection, true, nil
+}
+
+func parseAnchorDescriptor(raw string) AnchorDescriptor {
+	descriptor := AnchorDescriptor{Raw: strings.TrimSpace(raw)}
+	if descriptor.Raw == "" {
+		return descriptor
+	}
+
+	normalized := strings.ToLower(descriptor.Raw)
+	horizontal := 0.0
+	vertical := 0.0
+
+	for _, r := range normalized {
+		switch r {
+		case 'w':
+			horizontal = -1.0
+		case 'e':
+			horizontal = 1.0
+		case 'n':
+			vertical = -1.0
+		case 's':
+			vertical = 1.0
+		}
+	}
+
+	descriptor.Horizontal = horizontal
+	descriptor.Vertical = vertical
+	return descriptor
 }
