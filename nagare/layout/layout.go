@@ -16,6 +16,16 @@ const (
 	defaultVMHeight      = 420.0
 	defaultServerWidth   = 200.0
 	defaultServerHeight  = 140.0
+	defaultComponentX    = 0.0
+	defaultComponentY    = 0.0
+	arrowElbowPadding    = 24.0
+	floatEqualityEpsilon = 0.0001
+)
+
+const (
+	componentTypeBrowser = "Browser"
+	componentTypeVM      = "VM"
+	componentTypeServer  = "Server"
 )
 
 // Rect represents a rectangle in the layout
@@ -61,7 +71,11 @@ type geometryProps struct {
 	Height *int `prop:"h"`
 }
 
-func parseGeometry(def string) (geometryProps, error) {
+type propertyParser interface {
+	Parse(string) error
+}
+
+func parseGeometryProps(def string) (geometryProps, error) {
 	geom := geometryProps{}
 	if strings.TrimSpace(def) == "" {
 		return geom, nil
@@ -72,7 +86,7 @@ func parseGeometry(def string) (geometryProps, error) {
 	return geom, nil
 }
 
-func applyGeometry(shape *components.Shape, geom geometryProps) {
+func applyGeometryProps(shape *components.Shape, geom geometryProps) {
 	if geom.Width != nil {
 		shape.Width = float64(*geom.Width)
 	}
@@ -89,189 +103,23 @@ func applyGeometry(shape *components.Shape, geom geometryProps) {
 
 // Calculate computes the layout for an AST
 func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
-	boundsWidth := canvasWidth
-	boundsHeight := canvasHeight
+	boundsWidth, boundsHeight := calculateCanvasBounds(node, canvasWidth, canvasHeight)
 	nodeIndex := make(map[string]components.Shape)
 
-	if layoutState, ok := node.Globals["layout"]; ok {
-		if geom, err := parseGeometry(layoutState.PropsDef); err == nil {
-			if geom.Width != nil {
-				boundsWidth = float64(*geom.Width)
-			}
-			if geom.Height != nil {
-				boundsHeight = float64(*geom.Height)
-			}
-		} else {
-			fmt.Printf("failed to parse @layout props: %v\n", err)
-		}
-	}
-
 	children := make([]components.Component, 0, len(node.Children))
-
 	for _, child := range node.Children {
-		switch child.Type {
-		case "Browser":
-			browser := components.NewBrowser()
-			browser.Shape = components.Shape{
-				Width:  defaultBrowserWidth,
-				Height: defaultBrowserHeight,
-				X:      0,
-				Y:      0,
-			}
-
-			if idState, ok := child.States[child.Text]; ok {
-				if geom, err := parseGeometry(idState.PropsDef); err == nil {
-					applyGeometry(&browser.Shape, geom)
-				} else {
-					fmt.Printf("failed to parse geometry for %s: %v\n", child.Text, err)
-				}
-
-				if err := browser.Props.Parse(idState.PropsDef); err != nil {
-					fmt.Printf("failed to parse props for %s: %v\n", child.Text, err)
-				}
-			}
-
-			if child.State != "" {
-				if state, ok := child.States[child.State]; ok {
-					browser.State = state.Name
-					if err := browser.Props.Parse(state.PropsDef); err != nil {
-						fmt.Printf("failed to parse props for state %s: %v\n", state.Name, err)
-					}
-				}
-			}
-
-			children = append(children, browser)
-			nodeIndex[child.Text] = browser.Shape
-			fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
-		case "VM":
-			vm := components.NewVM()
-			vm.Shape = components.Shape{
-				Width:  defaultVMWidth,
-				Height: defaultVMHeight,
-				X:      0,
-				Y:      0,
-			}
-
-			if idState, ok := child.States[child.Text]; ok {
-				if geom, err := parseGeometry(idState.PropsDef); err == nil {
-					applyGeometry(&vm.Shape, geom)
-				} else {
-					fmt.Printf("failed to parse geometry for %s: %v\n", child.Text, err)
-				}
-
-				if err := vm.Props.Parse(idState.PropsDef); err != nil {
-					fmt.Printf("failed to parse props for %s: %v\n", child.Text, err)
-				}
-			}
-
-			if child.State != "" {
-				if state, ok := child.States[child.State]; ok {
-					vm.State = state.Name
-					if err := vm.Props.Parse(state.PropsDef); err != nil {
-						fmt.Printf("failed to parse props for state %s: %v\n", state.Name, err)
-					}
-				}
-			}
-
-			if len(child.Children) > 0 {
-				childComponents := make([]components.Component, 0, len(child.Children))
-
-				for _, grandchild := range child.Children {
-					switch grandchild.Type {
-					case "Server":
-						server := components.NewServer(grandchild.Text)
-						server.Shape = components.Shape{
-							Width:  defaultServerWidth,
-							Height: defaultServerHeight,
-							X:      0,
-							Y:      0,
-						}
-
-						if idState, ok := grandchild.States[grandchild.Text]; ok {
-							if geom, err := parseGeometry(idState.PropsDef); err == nil {
-								applyGeometry(&server.Shape, geom)
-							} else {
-								fmt.Printf("failed to parse geometry for %s: %v\n", grandchild.Text, err)
-							}
-
-							if err := server.Props.Parse(idState.PropsDef); err != nil {
-								fmt.Printf("failed to parse props for %s: %v\n", grandchild.Text, err)
-							}
-						}
-
-						if grandchild.State != "" {
-							if state, ok := grandchild.States[grandchild.State]; ok {
-								server.State = state.Name
-								if geom, err := parseGeometry(state.PropsDef); err == nil {
-									applyGeometry(&server.Shape, geom)
-								} else {
-									fmt.Printf("failed to parse geometry for state %s: %v\n", state.Name, err)
-								}
-								if err := server.Props.Parse(state.PropsDef); err != nil {
-									fmt.Printf("failed to parse props for state %s: %v\n", state.Name, err)
-								}
-							}
-						}
-
-						childComponents = append(childComponents, server)
-
-						absServerShape := server.Shape
-						contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
-						contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
-						absServerShape.X = vm.Shape.X + contentOffsetX + absServerShape.X
-						absServerShape.Y = vm.Shape.Y + contentOffsetY + absServerShape.Y
-						nodeIndex[grandchild.Text] = absServerShape
-					default:
-						fmt.Printf("Unknown child type: %s\n", grandchild.Type)
-					}
-				}
-				vm.Children = childComponents
-			}
-
-			children = append(children, vm)
-			nodeIndex[child.Text] = vm.Shape
-			fmt.Printf("State: %s, Props: %+v\n", vm.State, vm.Props)
-		default:
-			rect := &components.Rectangle{
-				Shape: components.Shape{
-					Width:  defaultServerWidth,
-					Height: defaultServerHeight,
-					X:      0,
-					Y:      0,
-				},
-				Text: child.Text,
-			}
-			children = append(children, rect)
-			nodeIndex[child.Text] = rect.Shape
-		}
+		children = append(children, buildComponentTree(child, nodeIndex)...)
 	}
 
 	arrows := resolveConnections(node.Connections, nodeIndex)
-
 	if len(arrows) > 0 {
-		arrowComponents := make([]components.Component, 0, len(arrows))
-		for _, arrow := range arrows {
-			points := make([]components.Point, 0, len(arrow.BendPoints)+2)
-			points = append(points, components.Point{X: arrow.Start.X, Y: arrow.Start.Y})
-			for _, bend := range arrow.BendPoints {
-				points = append(points, components.Point{X: bend.X, Y: bend.Y})
-			}
-			points = append(points, components.Point{X: arrow.End.X, Y: arrow.End.Y})
-
-			arrowComponent := components.NewArrow(points)
-			arrowComponent.Style = arrow.Style
-			arrowComponent.MarkerStart = arrow.MarkerStart
-			arrowComponent.MarkerEnd = arrow.MarkerEnd
-			arrowComponents = append(arrowComponents, arrowComponent)
-		}
-
-		children = append(children, arrowComponents...)
+		children = append(children, buildArrowComponents(arrows)...)
 	}
 
 	return Layout{
 		Bounds: Rect{
-			X:      0,
-			Y:      0,
+			X:      defaultComponentX,
+			Y:      defaultComponentY,
 			Width:  boundsWidth,
 			Height: boundsHeight,
 		},
@@ -279,6 +127,199 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 		NodeIndex:   nodeIndex,
 		Connections: arrows,
 	}
+}
+
+func calculateCanvasBounds(node parser.Node, defaultWidth, defaultHeight float64) (float64, float64) {
+	boundsWidth := defaultWidth
+	boundsHeight := defaultHeight
+
+	layoutState, ok := node.Globals["layout"]
+	if !ok {
+		return boundsWidth, boundsHeight
+	}
+
+	geometry, err := parseGeometryProps(layoutState.PropsDef)
+	if err != nil {
+		fmt.Printf("failed to parse @layout props: %v\n", err)
+		return boundsWidth, boundsHeight
+	}
+
+	if geometry.Width != nil {
+		boundsWidth = float64(*geometry.Width)
+	}
+	if geometry.Height != nil {
+		boundsHeight = float64(*geometry.Height)
+	}
+
+	return boundsWidth, boundsHeight
+}
+
+func buildComponentTree(node parser.Node, nodeIndex map[string]components.Shape) []components.Component {
+	switch node.Type {
+	case componentTypeBrowser:
+		return []components.Component{buildBrowser(node, nodeIndex)}
+	case componentTypeVM:
+		return []components.Component{buildVM(node, nodeIndex)}
+	default:
+		return []components.Component{buildFallbackRectangle(node, nodeIndex)}
+	}
+}
+
+func buildBrowser(node parser.Node, nodeIndex map[string]components.Shape) components.Component {
+	browser := components.NewBrowser()
+	browser.Text = node.Text
+	browser.Shape = components.Shape{
+		Width:  defaultBrowserWidth,
+		Height: defaultBrowserHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &browser.Shape, &browser.Props, node.Text)
+	browser.State = applyNamedStateProperties(node, &browser.Shape, &browser.Props, false)
+
+	nodeIndex[node.Text] = browser.Shape
+	fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
+	return browser
+}
+
+func buildVM(node parser.Node, nodeIndex map[string]components.Shape) components.Component {
+	vm := components.NewVM()
+	vm.Text = node.Text
+	vm.Shape = components.Shape{
+		Width:  defaultVMWidth,
+		Height: defaultVMHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &vm.Shape, &vm.Props, node.Text)
+	vm.State = applyNamedStateProperties(node, &vm.Shape, &vm.Props, false)
+
+	layoutVMChildren(node, vm, nodeIndex)
+	nodeIndex[node.Text] = vm.Shape
+	fmt.Printf("State: %s, Props: %+v\n", vm.State, vm.Props)
+	return vm
+}
+
+func layoutVMChildren(parent parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) {
+	if len(parent.Children) == 0 {
+		return
+	}
+
+	for _, child := range parent.Children {
+		switch child.Type {
+		case componentTypeServer:
+			server := buildServer(child, vm, nodeIndex)
+			vm.AddChild(server)
+		default:
+			fmt.Printf("Unknown child type: %s\n", child.Type)
+		}
+	}
+}
+
+func buildServer(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.Server {
+	server := components.NewServer(node.Text)
+	server.Shape = components.Shape{
+		Width:  defaultServerWidth,
+		Height: defaultServerHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &server.Shape, &server.Props, node.Text)
+	server.State = applyNamedStateProperties(node, &server.Shape, &server.Props, true)
+
+	absServerShape := server.Shape
+	contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+	contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+	absServerShape.X = vm.Shape.X + contentOffsetX + absServerShape.X
+	absServerShape.Y = vm.Shape.Y + contentOffsetY + absServerShape.Y
+	nodeIndex[node.Text] = absServerShape
+
+	return server
+}
+
+func buildFallbackRectangle(node parser.Node, nodeIndex map[string]components.Shape) components.Component {
+	rect := &components.Rectangle{
+		Shape: components.Shape{
+			Width:  defaultServerWidth,
+			Height: defaultServerHeight,
+			X:      defaultComponentX,
+			Y:      defaultComponentY,
+		},
+		Text: node.Text,
+	}
+	nodeIndex[node.Text] = rect.Shape
+	return rect
+}
+
+func applyIDStateProperties(node parser.Node, shape *components.Shape, props propertyParser, componentID string) {
+	idState, ok := node.States[node.Text]
+	if !ok {
+		return
+	}
+
+	applyGeometryDefinition(componentID, shape, idState.PropsDef)
+	parseComponentProps(componentID, props, idState.PropsDef)
+}
+
+func applyNamedStateProperties(node parser.Node, shape *components.Shape, props propertyParser, includeGeometry bool) string {
+	if node.State == "" {
+		return ""
+	}
+
+	state, ok := node.States[node.State]
+	if !ok {
+		return ""
+	}
+
+	if includeGeometry {
+		applyGeometryDefinition(fmt.Sprintf("state %s", state.Name), shape, state.PropsDef)
+	}
+	parseComponentProps(fmt.Sprintf("state %s", state.Name), props, state.PropsDef)
+	return state.Name
+}
+
+func applyGeometryDefinition(target string, shape *components.Shape, propsDef string) {
+	if shape == nil {
+		return
+	}
+
+	geometry, err := parseGeometryProps(propsDef)
+	if err != nil {
+		fmt.Printf("failed to parse geometry for %s: %v\n", target, err)
+		return
+	}
+	applyGeometryProps(shape, geometry)
+}
+
+func parseComponentProps(target string, parser propertyParser, propsDef string) {
+	if parser == nil {
+		return
+	}
+	if err := parser.Parse(propsDef); err != nil {
+		fmt.Printf("failed to parse props for %s: %v\n", target, err)
+	}
+}
+
+func buildArrowComponents(arrows []Arrow) []components.Component {
+	arrowComponents := make([]components.Component, 0, len(arrows))
+	for _, arrow := range arrows {
+		points := make([]components.Point, 0, len(arrow.BendPoints)+2)
+		points = append(points, components.Point{X: arrow.Start.X, Y: arrow.Start.Y})
+		for _, bend := range arrow.BendPoints {
+			points = append(points, components.Point{X: bend.X, Y: bend.Y})
+		}
+		points = append(points, components.Point{X: arrow.End.X, Y: arrow.End.Y})
+
+		arrowComponent := components.NewArrow(points)
+		arrowComponent.Style = arrow.Style
+		arrowComponent.MarkerStart = arrow.MarkerStart
+		arrowComponent.MarkerEnd = arrow.MarkerEnd
+		arrowComponents = append(arrowComponents, arrowComponent)
+	}
+	return arrowComponents
 }
 
 func resolveConnections(connections []parser.Connection, nodeIndex map[string]components.Shape) []Arrow {
@@ -296,7 +337,7 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 		start := computeAnchorPoint(fromShape, fromAnchor)
 		end := computeAnchorPoint(toShape, toAnchor)
 
-		points := buildArrowPoints(start, end, fromAnchor, toAnchor)
+		points := routeArrowPoints(start, end, fromAnchor, toAnchor)
 		bendPoints := make([]Point, 0)
 		if len(points) > 2 {
 			bendPoints = append(bendPoints, points[1:len(points)-1]...)
@@ -384,26 +425,24 @@ func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) 
 	return point
 }
 
-func buildArrowPoints(start, end Point, fromAnchor, toAnchor parser.AnchorDescriptor) []Point {
+func routeArrowPoints(start, end Point, fromAnchor, toAnchor parser.AnchorDescriptor) []Point {
 	points := []Point{start}
 
-	if almostEqual(start.X, end.X) || almostEqual(start.Y, end.Y) {
+	if floatsNearlyEqual(start.X, end.X) || floatsNearlyEqual(start.Y, end.Y) {
 		points = append(points, end)
 		return points
 	}
 
-	const elbowPadding = 24.0
-
-	horizontalFirst := determineFirstAxis(fromAnchor, toAnchor)
+	horizontalFirst := shouldRouteHorizontallyFirst(fromAnchor, toAnchor)
 
 	if horizontalFirst {
-		direction := axisDirection(fromAnchor.Horizontal, toAnchor.Horizontal)
-		elbowX := start.X + direction*elbowPadding
+		direction := resolveAxisDirection(fromAnchor.Horizontal, toAnchor.Horizontal)
+		elbowX := start.X + direction*arrowElbowPadding
 		points = append(points, Point{X: elbowX, Y: start.Y})
 		points = append(points, Point{X: elbowX, Y: end.Y})
 	} else {
-		direction := axisDirection(fromAnchor.Vertical, toAnchor.Vertical)
-		elbowY := start.Y + direction*elbowPadding
+		direction := resolveAxisDirection(fromAnchor.Vertical, toAnchor.Vertical)
+		elbowY := start.Y + direction*arrowElbowPadding
 		points = append(points, Point{X: start.X, Y: elbowY})
 		points = append(points, Point{X: end.X, Y: elbowY})
 	}
@@ -412,7 +451,7 @@ func buildArrowPoints(start, end Point, fromAnchor, toAnchor parser.AnchorDescri
 	return points
 }
 
-func determineFirstAxis(fromAnchor, toAnchor parser.AnchorDescriptor) bool {
+func shouldRouteHorizontallyFirst(fromAnchor, toAnchor parser.AnchorDescriptor) bool {
 	if fromAnchor.Horizontal != 0 {
 		return true
 	}
@@ -425,7 +464,7 @@ func determineFirstAxis(fromAnchor, toAnchor parser.AnchorDescriptor) bool {
 	return false
 }
 
-func axisDirection(primary, secondary float64) float64 {
+func resolveAxisDirection(primary, secondary float64) float64 {
 	if primary < 0 {
 		return -1
 	}
@@ -441,6 +480,6 @@ func axisDirection(primary, secondary float64) float64 {
 	return 1
 }
 
-func almostEqual(a, b float64) bool {
-	return math.Abs(a-b) < 0.0001
+func floatsNearlyEqual(a, b float64) bool {
+	return math.Abs(a-b) < floatEqualityEpsilon
 }

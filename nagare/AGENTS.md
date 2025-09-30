@@ -18,6 +18,7 @@
 - Go code must be formatted with `gofmt` before committing.
 - Organize new logic by extending the existing pipeline stages (tokenizer → parser → layout → renderer) rather than skipping around them.
 - Reuse prop parsing helpers in `props/`; avoid duplicating parsing logic inside components.
+- In the `layout/` package, leverage helpers like `applyIDStateProperties`, `applyNamedStateProperties`, and `routeArrowPoints` when adding new component types or connection rules so geometry/state handling remains consistent.
 
 ## Useful Commands
 - `go test ./...` — run the unit test suite (currently sparse, but keeps the module compiling).
