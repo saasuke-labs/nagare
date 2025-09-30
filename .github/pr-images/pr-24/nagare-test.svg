@@ -22,9 +22,9 @@
                 </g>
         </g><g transform="translate(300.000000,50.000000)">
                 <g class="ns" filter="url(#softShadow)">
-                        <rect x="0" y="0" width="600.000000" height="300.000000" rx="9.375000" fill="darkorange" stroke="#333"/>
-                        <rect x="0" y="0" width="600.000000" height="31.428570" rx="9.375000" ry="9.375000" fill="darkorange" stroke="#333"/>
-                        <rect x="11.250000" y="39.999990" width="577.500000" height="251.428560" rx="5.625000" fill="#333333" stroke="#333" opacity="0.9"/>
+                        <rect x="0" y="0" width="600.000000" height="300.000000" rx="9.375000" fill="#333" stroke="#ccc"/>
+                        <rect x="0" y="0" width="600.000000" height="31.428570" rx="9.375000" ry="9.375000" fill="#333" stroke="#ccc"/>
+                        <rect x="11.250000" y="39.999990" width="577.500000" height="251.428560" rx="5.625000" fill="#333333" stroke="#ccc" opacity="0.9"/>
                 </g>
                 <g transform="translate(13.125000,9.999990)">
                         <circle r="5.625000" cx="0" cy="7.481250" fill="#ff5f57"/>
@@ -37,7 +37,7 @@
                               dominant-baseline="middle"
                               font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
                               font-size="30" 
-                              fill="#333">home@ubuntu</text>
+                              fill="#ccc">home@ubuntu</text>
                 </g>
         </g><g transform="translate(311.250000,89.999990)">
 <g transform="translate(50.000000,125.000000)">
