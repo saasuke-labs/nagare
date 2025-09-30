@@ -69,6 +69,89 @@ func TestParse(t *testing.T) {
 			tokens:   []tokenizer.Token{},
 			expected: Node{Type: NODE_ELEMENT, Depth: 0},
 		},
+		{
+			name: "connection single-letter anchors",
+			tokens: []tokenizer.Token{
+				{Type: tokenizer.IDENTIFIER, Value: "foo"},
+				{Type: tokenizer.COLON},
+				{Type: tokenizer.IDENTIFIER, Value: "w"},
+				{Type: tokenizer.ARROW, Value: "-->"},
+				{Type: tokenizer.IDENTIFIER, Value: "bar"},
+				{Type: tokenizer.COLON},
+				{Type: tokenizer.IDENTIFIER, Value: "e"},
+			},
+			expected: Node{
+				Type:  NODE_ELEMENT,
+				Depth: 0,
+				Connections: []Connection{
+					{
+						FromID: "foo",
+						FromAnchor: AnchorDescriptor{
+							Raw:        "w",
+							Horizontal: -1,
+							Vertical:   0,
+						},
+						ToID: "bar",
+						ToAnchor: AnchorDescriptor{
+							Raw:        "e",
+							Horizontal: 1,
+							Vertical:   0,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "connection compound anchors",
+			tokens: []tokenizer.Token{
+				{Type: tokenizer.IDENTIFIER, Value: "source"},
+				{Type: tokenizer.COLON},
+				{Type: tokenizer.IDENTIFIER, Value: "wn"},
+				{Type: tokenizer.ARROW, Value: "-->"},
+				{Type: tokenizer.IDENTIFIER, Value: "sink"},
+				{Type: tokenizer.COLON},
+				{Type: tokenizer.IDENTIFIER, Value: "se"},
+			},
+			expected: Node{
+				Type:  NODE_ELEMENT,
+				Depth: 0,
+				Connections: []Connection{
+					{
+						FromID: "source",
+						FromAnchor: AnchorDescriptor{
+							Raw:        "wn",
+							Horizontal: -1,
+							Vertical:   -1,
+						},
+						ToID: "sink",
+						ToAnchor: AnchorDescriptor{
+							Raw:        "se",
+							Horizontal: 1,
+							Vertical:   1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "type declaration remains",
+			tokens: []tokenizer.Token{
+				{Type: tokenizer.IDENTIFIER, Value: "App"},
+				{Type: tokenizer.COLON},
+				{Type: tokenizer.IDENTIFIER, Value: "Service"},
+			},
+			expected: Node{
+				Type:  NODE_ELEMENT,
+				Depth: 0,
+				Children: []Node{
+					{
+						Type:  NodeType("Service"),
+						Text:  "App",
+						Depth: 0,
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

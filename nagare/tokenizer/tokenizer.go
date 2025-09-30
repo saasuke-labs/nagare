@@ -15,6 +15,7 @@ const (
 	RIGHT_PAREN // For props lists
 	COMMA       // For props lists
 	EQUALS      // For props assignments
+	ARROW       // For straight connection arrows like -->
 )
 
 // Token represents a lexical token
@@ -72,6 +73,14 @@ func Tokenize(input string) []Token {
 		case '=':
 			flushWord()
 			tokens = append(tokens, Token{Type: EQUALS})
+		case '-':
+			if i+2 < len(input) && input[i:i+3] == "-->" {
+				flushWord()
+				tokens = append(tokens, Token{Type: ARROW, Value: "-->"})
+				i += 2
+				continue
+			}
+			currentWord.WriteByte(char)
 		case '\n':
 			flushWord() // Force a word break on newline
 		case ' ', '\t':
