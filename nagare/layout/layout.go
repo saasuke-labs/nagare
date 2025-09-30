@@ -225,6 +225,60 @@ func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
 	}
 }
 
+func syncComponentGeometry(children []components.Component, nodeIndex map[string]components.Shape) {
+	for _, child := range children {
+		switch comp := child.(type) {
+		case *components.Browser:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *components.VM:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+			syncVMChildGeometry(comp, nodeIndex)
+		case *components.Rectangle:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		}
+	}
+}
+
+func applyResolvedShape(target *components.Shape, resolved components.Shape) {
+	if target == nil {
+		return
+	}
+	target.X = resolved.X
+	target.Y = resolved.Y
+	target.Width = resolved.Width
+	target.Height = resolved.Height
+}
+
+func syncVMChildGeometry(vm *components.VM, nodeIndex map[string]components.Shape) {
+	contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+	contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+
+	for _, child := range vm.Children {
+		switch comp := child.(type) {
+		case *components.Server:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				comp.Width = shape.Width
+				comp.Height = shape.Height
+				comp.X = shape.X - (vm.Shape.X + contentOffsetX)
+				comp.Y = shape.Y - (vm.Shape.Y + contentOffsetY)
+			}
+		case *components.Rectangle:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				comp.Width = shape.Width
+				comp.Height = shape.Height
+				comp.X = shape.X - (vm.Shape.X + contentOffsetX)
+				comp.Y = shape.Y - (vm.Shape.Y + contentOffsetY)
+			}
+		}
+	}
+}
+
 // Calculate computes the layout for an AST
 func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 	boundsWidth, boundsHeight := calculateCanvasBounds(node, canvasWidth, canvasHeight)
@@ -237,6 +291,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 
 	// Resolve alignment references after all components are positioned
 	resolveAlignmentReferences(nodeIndex)
+	syncComponentGeometry(children, nodeIndex)
 
 	arrows := resolveConnections(node.Connections, nodeIndex)
 	if len(arrows) > 0 {
