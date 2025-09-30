@@ -67,6 +67,9 @@ vps:VM@ubuntu {
     app:Server@app
 }
 
+browser:e --> nginx:w
+nginx:e --> app:w
+
 @browser(x:50,y:175,w:200,h:150)
 @vps(x:300,y:50,w:600,h:300)
 
