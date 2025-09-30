@@ -65,7 +65,18 @@ func TestCalculateStoresAbsoluteShapesAndConnections(t *testing.T) {
 		t.Fatalf("expected %d components, got %d", to, len(result.Children))
 	}
 
-	for i := 0; i < len(root.Connections); i++ {
+	arrowStart := len(result.Children) - len(root.Connections)
+	if arrowStart < 0 {
+		t.Fatalf("unexpected arrow start index %d", arrowStart)
+	}
+
+	for i := 0; i < arrowStart; i++ {
+		if _, ok := result.Children[i].(*components.Arrow); ok {
+			t.Fatalf("expected child %d to be a non-arrow component", i)
+		}
+	}
+
+	for i := arrowStart; i < len(result.Children); i++ {
 		if _, ok := result.Children[i].(*components.Arrow); !ok {
 			t.Fatalf("expected child %d to be an arrow component", i)
 		}

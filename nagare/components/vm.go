@@ -33,7 +33,7 @@ func DefaultVMProps() VMProps {
 		Title:                  "",
 		BackgroundColor:        "#e6f3ff",
 		ForegroundColor:        "#333333",
-		ContentBackgroundColor: "#333333", // Dark content area by default
+		ContentBackgroundColor: "#ccc", // Light content area to keep connections visible
 	}
 }
 
