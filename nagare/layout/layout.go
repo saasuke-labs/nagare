@@ -2,6 +2,7 @@ package layout
 
 import (
 	"fmt"
+	"math"
 	"nagare/components"
 	"nagare/parser"
 	"nagare/props"
@@ -41,13 +42,16 @@ type Point struct {
 
 // Arrow contains the resolved geometry for a parsed connection.
 type Arrow struct {
-	FromID     string
-	ToID       string
-	FromAnchor string
-	ToAnchor   string
-	Start      Point
-	End        Point
-	Style      string
+	FromID      string
+	ToID        string
+	FromAnchor  string
+	ToAnchor    string
+	Start       Point
+	End         Point
+	BendPoints  []Point
+	Style       string
+	MarkerStart bool
+	MarkerEnd   bool
 }
 
 type geometryProps struct {
@@ -244,6 +248,26 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 
 	arrows := resolveConnections(node.Connections, nodeIndex)
 
+	if len(arrows) > 0 {
+		arrowComponents := make([]components.Component, 0, len(arrows))
+		for _, arrow := range arrows {
+			points := make([]components.Point, 0, len(arrow.BendPoints)+2)
+			points = append(points, components.Point{X: arrow.Start.X, Y: arrow.Start.Y})
+			for _, bend := range arrow.BendPoints {
+				points = append(points, components.Point{X: bend.X, Y: bend.Y})
+			}
+			points = append(points, components.Point{X: arrow.End.X, Y: arrow.End.Y})
+
+			arrowComponent := components.NewArrow(points)
+			arrowComponent.Style = arrow.Style
+			arrowComponent.MarkerStart = arrow.MarkerStart
+			arrowComponent.MarkerEnd = arrow.MarkerEnd
+			arrowComponents = append(arrowComponents, arrowComponent)
+		}
+
+		children = append(arrowComponents, children...)
+	}
+
 	return Layout{
 		Bounds: Rect{
 			X:      0,
@@ -272,14 +296,23 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 		start := computeAnchorPoint(fromShape, fromAnchor)
 		end := computeAnchorPoint(toShape, toAnchor)
 
+		points := buildArrowPoints(start, end, fromAnchor, toAnchor)
+		bendPoints := make([]Point, 0)
+		if len(points) > 2 {
+			bendPoints = append(bendPoints, points[1:len(points)-1]...)
+		}
+
 		arrows = append(arrows, Arrow{
-			FromID:     conn.FromID,
-			ToID:       conn.ToID,
-			FromAnchor: fromAnchor.Raw,
-			ToAnchor:   toAnchor.Raw,
-			Start:      start,
-			End:        end,
-			Style:      conn.Style,
+			FromID:      conn.FromID,
+			ToID:        conn.ToID,
+			FromAnchor:  fromAnchor.Raw,
+			ToAnchor:    toAnchor.Raw,
+			Start:       points[0],
+			End:         points[len(points)-1],
+			BendPoints:  bendPoints,
+			Style:       conn.Style,
+			MarkerStart: false,
+			MarkerEnd:   true,
 		})
 	}
 	return arrows
@@ -349,4 +382,65 @@ func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) 
 	}
 
 	return point
+}
+
+func buildArrowPoints(start, end Point, fromAnchor, toAnchor parser.AnchorDescriptor) []Point {
+	points := []Point{start}
+
+	if almostEqual(start.X, end.X) || almostEqual(start.Y, end.Y) {
+		points = append(points, end)
+		return points
+	}
+
+	const elbowPadding = 24.0
+
+	horizontalFirst := determineFirstAxis(fromAnchor, toAnchor)
+
+	if horizontalFirst {
+		direction := axisDirection(fromAnchor.Horizontal, toAnchor.Horizontal)
+		elbowX := start.X + direction*elbowPadding
+		points = append(points, Point{X: elbowX, Y: start.Y})
+		points = append(points, Point{X: elbowX, Y: end.Y})
+	} else {
+		direction := axisDirection(fromAnchor.Vertical, toAnchor.Vertical)
+		elbowY := start.Y + direction*elbowPadding
+		points = append(points, Point{X: start.X, Y: elbowY})
+		points = append(points, Point{X: end.X, Y: elbowY})
+	}
+
+	points = append(points, end)
+	return points
+}
+
+func determineFirstAxis(fromAnchor, toAnchor parser.AnchorDescriptor) bool {
+	if fromAnchor.Horizontal != 0 {
+		return true
+	}
+	if fromAnchor.Vertical != 0 {
+		return false
+	}
+	if toAnchor.Horizontal != 0 {
+		return true
+	}
+	return false
+}
+
+func axisDirection(primary, secondary float64) float64 {
+	if primary < 0 {
+		return -1
+	}
+	if primary > 0 {
+		return 1
+	}
+	if secondary < 0 {
+		return -1
+	}
+	if secondary > 0 {
+		return 1
+	}
+	return 1
+}
+
+func almostEqual(a, b float64) bool {
+	return math.Abs(a-b) < 0.0001
 }

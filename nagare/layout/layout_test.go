@@ -60,6 +60,17 @@ func TestCalculateStoresAbsoluteShapesAndConnections(t *testing.T) {
 
 	result := Calculate(root, 1024, 768)
 
+	if len(result.Children) != len(root.Children)+len(root.Connections) {
+		to := len(root.Children) + len(root.Connections)
+		t.Fatalf("expected %d components, got %d", to, len(result.Children))
+	}
+
+	for i := 0; i < len(root.Connections); i++ {
+		if _, ok := result.Children[i].(*components.Arrow); !ok {
+			t.Fatalf("expected child %d to be an arrow component", i)
+		}
+	}
+
 	serverShape, ok := result.NodeIndex["srv1"]
 	if !ok {
 		t.Fatalf("expected srv1 shape in node index")
