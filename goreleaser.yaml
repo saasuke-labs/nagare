@@ -4,11 +4,11 @@ builds:
     main: ./cmd/main.go
     goos:
       - linux
-      #- darwin
-      #- windows
+      - darwin
+      - windows
     goarch:
       - amd64
-      #- arm64
+      - arm64
     ldflags:
       - "-X github.com/saasuke-labs/nagare/pkg/version.Version={{.Version}} -X github.com/saasuke-labs/nagare/pkg/version.Commit={{.ShortCommit}} -X github.com/saasuke-labs/nagare/pkg/version.Date={{.Date}}"
 
