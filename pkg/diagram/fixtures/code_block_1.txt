@@ -1,0 +1,23 @@
+@layout(w:800,h:300)
+
+browser:Browser@home
+vps:VM@ubuntu {
+    nginx:Server@nginx
+    blue:Server@app
+    green:Server@app
+}
+
+browser.e --> nginx.w
+nginx.e --> blue.w
+
+@browser(x:50,y:10,w:250,h:200)
+@home(url: "http://multipass/home", bg: "#e6f3ff", fg: "rgb(0, 119, 194)", text: "Blue")
+
+@vps(x:350,y:&browser.c,w:400,h:200)
+@ubuntu(title: "ubuntu@multipass", bg: "#666", fg: "#eee", text: "Ubuntu", contentBg: "#f0f8ff")
+
+@nginx(x:20,y:&browser.c,w:150,h:40, title: "nginx", icon: "nginx", port: 80, bg: "#f0f8ff", fg: "#333")
+@app(x:200,w:150,h:40,icon: "golang")
+
+@blue(y:&nginx.c,title: "blue",  port: 8081, bg: "rgb(0, 119, 194)", fg: "#fff")
+@green(y:120,title: "green", port: 8082, bg: "rgb(0, 118, 108)", fg: "#fff")

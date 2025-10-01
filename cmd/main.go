@@ -1,15 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 
-	"github.com/saasuke-labs/nagare/pkg/layout"
-	"github.com/saasuke-labs/nagare/pkg/parser"
-	"github.com/saasuke-labs/nagare/pkg/renderer"
-	"github.com/saasuke-labs/nagare/pkg/tokenizer"
+	"github.com/saasuke-labs/nagare/pkg/diagram"
 )
 
 func main() {
@@ -17,43 +13,6 @@ func main() {
 	http.HandleFunc("GET /test", handleTest)
 	log.Printf("Server starting on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func createDiagram(code string) (string, error) {
-	fmt.Printf("Input code:\n%s\n", string(code))
-
-	// Pipeline:
-	// 1. Tokenize
-	tokens := tokenizer.Tokenize(string(code))
-	fmt.Printf("Tokens: %+v\n", tokens)
-
-	// 2. Parse
-	ast, err := parser.Parse(tokens)
-	if err != nil {
-		return "", fmt.Errorf("parse error: %w", err)
-	}
-
-	fmt.Printf("AST: \n%+v\n", ast)
-
-	// 3. Layout
-	const defaultCanvasWidth, defaultCanvasHeight = 800.0, 400.0
-	l := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
-
-	fmt.Printf("Layout: \n%+v\n", l)
-
-	// 4. Render using the computed layout dimensions
-	canvasWidth := int(l.Bounds.Width)
-	canvasHeight := int(l.Bounds.Height)
-	if canvasWidth == 0 {
-		canvasWidth = int(defaultCanvasWidth)
-	}
-	if canvasHeight == 0 {
-		canvasHeight = int(defaultCanvasHeight)
-	}
-
-	html := renderer.Render(l, canvasWidth, canvasHeight)
-	fmt.Println(html)
-	return html, nil
 }
 
 func handleTest(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +38,7 @@ nginx.e --> app.w
 @nginx(x:50,y:&browser.c,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
 @app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
 `
-	html, err := createDiagram(code)
+	html, err := diagram.CreateDiagram(code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -98,7 +57,7 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	html, err := createDiagram(string(code))
+	html, err := diagram.CreateDiagram(string(code))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

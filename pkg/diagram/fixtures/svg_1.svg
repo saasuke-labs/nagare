@@ -1,0 +1,148 @@
+<svg width="800" height="300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background -->
+        <rect width="800" height="300" fill="#ffffff"/>
+        
+        <g transform="translate(50.000000,10.000000)">
+                <g class="ns" filter="url(#softShadow)">
+                        <rect x="0" y="0" width="250.000000" height="200.000000" rx="3.906250" fill="#e6f3ff" stroke="rgb(0, 119, 194)"/>
+                        <rect x="0" y="0" width="250.000000" height="20.952380" rx="3.906250" ry="3.906250" fill="#e6f3ff" stroke="rgb(0, 119, 194)"/>
+                        <rect x="39.062500" y="4.761900" width="187.500000" height="11.428560" rx="2.343750" fill="#fff" stroke="rgb(0, 119, 194)" opacity="0.85"/>
+                        <rect x="4.687500" y="26.666660" width="240.625000" height="167.619040" rx="2.343750" fill="#ffffff" stroke="rgb(0, 119, 194)" opacity="0.9"/>
+                </g>
+                <text x="132.812500" y="10.476180" text-anchor="middle" dominant-baseline="middle"
+                        font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+                        font-size="10.000000" fill="rgb(0, 119, 194)">http://multipass/home</text>
+                <text x="125.000000" y="110.476180" text-anchor="middle" dominant-baseline="middle"
+                        font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+                        font-size="25" fill="rgb(0, 119, 194)">Blue</text>
+                <g transform="translate(5.468750,6.666660)">
+                        <circle r="2.343750" cx="0" cy="3.117188" fill="#ff5f57"/>
+                        <circle r="2.343750" cx="7.031250" cy="3.117188" fill="#febc2e"/>
+                        <circle r="2.343750" cx="14.062500" cy="3.117188" fill="#28c840"/>
+                </g>
+        </g><g transform="translate(350.000000,10.000000)">
+                <g class="ns" filter="url(#softShadow)">
+                        <rect x="0" y="0" width="400.000000" height="200.000000" rx="6.250000" fill="#666" stroke="#eee"/>
+                        <rect x="0" y="0" width="400.000000" height="20.952380" rx="6.250000" ry="6.250000" fill="#666" stroke="#eee"/>
+                        <rect x="7.500000" y="26.666660" width="385.000000" height="167.619040" rx="3.750000" fill="#f0f8ff" stroke="#eee" opacity="0.9"/>
+                </g>
+                <g transform="translate(8.750000,6.666660)">
+                        <circle r="3.750000" cx="0" cy="4.987500" fill="#ff5f57"/>
+                        <circle r="3.750000" cx="11.250000" cy="4.987500" fill="#febc2e"/>
+                        <circle r="3.750000" cx="22.500000" cy="4.987500" fill="#28c840"/>
+                        <!-- Title text positioned after controls -->
+                        <text x="41.250000" 
+                              y="4.987500" 
+                              text-anchor="start" 
+                              dominant-baseline="middle"
+                              font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+                              font-size="20" 
+                              fill="#eee">ubuntu@multipass</text>
+                </g>
+        </g><g transform="translate(357.500000,36.666660)">
+<g transform="translate(20.000000,53.333340)">
+    <!-- Main server box -->
+    <rect x="0" y="0" width="150.000000" height="40.000000" 
+          rx="4.000000" ry="4.000000" 
+          fill="#f0f8ff" stroke="#333" stroke-width="2"/>
+    
+    <!-- Icon -->
+    
+    
+    <g transform="translate(6.000000,6.000000)">
+        
+        <!-- Nginx icon -->
+        <rect x="0" y="0" width="28.000000" height="28.000000" fill="#009639"/>
+        <text x="14.000000" y="19.600000" 
+              fill="#ffffff" font-family="Arial" font-size="16.800000" 
+              text-anchor="middle">N</text>
+        
+    </g>
+    
+    <!-- Title -->
+    <text x="46.000000" 
+          y="24.000000" 
+          fill="#333" 
+          font-family="Arial" 
+          font-size="16.000000"
+          >nginx</text>
+    
+    <!-- Port display -->
+    <text x="144.000000" 
+          y="24.000000" 
+          fill="#333" 
+          font-family="Arial" 
+          font-size="14.000000"
+          text-anchor="end">:80</text>
+</g>
+<g transform="translate(200.000000,53.333340)">
+    <!-- Main server box -->
+    <rect x="0" y="0" width="150.000000" height="40.000000" 
+          rx="4.000000" ry="4.000000" 
+          fill="rgb(0, 119, 194)" stroke="#fff" stroke-width="2"/>
+    
+    <!-- Icon -->
+    
+    
+    <g transform="translate(6.000000,6.000000)">
+        
+        <!-- Golang icon -->
+        <rect x="0" y="0" width="28.000000" height="28.000000" fill="#00ADD8"/>
+        <text x="14.000000" y="19.600000" 
+              fill="#ffffff" font-family="Arial" font-size="16.800000" 
+              text-anchor="middle">Go</text>
+        
+    </g>
+    
+    <!-- Title -->
+    <text x="46.000000" 
+          y="24.000000" 
+          fill="#fff" 
+          font-family="Arial" 
+          font-size="16.000000"
+          >blue</text>
+    
+    <!-- Port display -->
+    <text x="144.000000" 
+          y="24.000000" 
+          fill="#fff" 
+          font-family="Arial" 
+          font-size="14.000000"
+          text-anchor="end">:8081</text>
+</g>
+<g transform="translate(200.000000,110.000000)">
+    <!-- Main server box -->
+    <rect x="0" y="0" width="150.000000" height="40.000000" 
+          rx="4.000000" ry="4.000000" 
+          fill="rgb(0, 118, 108)" stroke="#fff" stroke-width="2"/>
+    
+    <!-- Icon -->
+    
+    
+    <g transform="translate(6.000000,6.000000)">
+        
+        <!-- Golang icon -->
+        <rect x="0" y="0" width="28.000000" height="28.000000" fill="#00ADD8"/>
+        <text x="14.000000" y="19.600000" 
+              fill="#ffffff" font-family="Arial" font-size="16.800000" 
+              text-anchor="middle">Go</text>
+        
+    </g>
+    
+    <!-- Title -->
+    <text x="46.000000" 
+          y="24.000000" 
+          fill="#fff" 
+          font-family="Arial" 
+          font-size="16.000000"
+          >green</text>
+    
+    <!-- Port display -->
+    <text x="144.000000" 
+          y="24.000000" 
+          fill="#fff" 
+          font-family="Arial" 
+          font-size="14.000000"
+          text-anchor="end">:8082</text>
+</g></g><g class="connector"><defs><marker id="arrowhead-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2937"/></marker></defs><polyline points="300.00,110.00 377.50,110.00" stroke="#1f2937" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-1)"/></g><g class="connector"><defs><marker id="arrowhead-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2937"/></marker></defs><polyline points="527.50,110.00 557.50,110.00" stroke="#1f2937" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-2)"/></g>
+</svg>
