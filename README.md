@@ -1,5 +1,17 @@
 # Nagare
 
+Nagare is a Go-based diagram rendering engine that converts a simple domain-specific language (DSL) into SVG diagrams.
+
+## Quick Start
+
+```bash
+# Install
+go install github.com/saasuke-labs/nagare@latest
+
+# Run the server
+nagare
+```
+
 ## Examples
 
 Pull requests automatically run a preview workflow that boots the Nagare server, renders the `/test` diagram, and attaches the resulting SVG to the PR discussion for quick review.
@@ -20,9 +32,7 @@ vps:VM@ubuntu {
 
 The `layout` stage resolves these geometry overrides before components are instantiated, so every downstream step (child placement, connection routing, SVG rendering) respects the requested dimensions.
 
-### Browser and VM
-
-This is still in progress
+### Browser and VM Example
 
 ```text
 @layout(w:950,h:400)
@@ -46,8 +56,40 @@ nginx.e --> app.w
 @app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
 ```
 
-Becomes:
+## Project Structure
 
+```
+cmd/
+    main.go          # HTTP server and main entry point
+pkg/
+    components/      # SVG component definitions
+    layout/         # Layout engine and geometry calculations
+    parser/         # DSL parser and AST builder
+    props/          # Property parsing helpers
+    renderer/       # SVG rendering engine
+    tokenizer/      # DSL tokenizer
+    version/        # Version information
+```
+
+## Development
+
+```bash
+# Clone the repository
+git clone https://github.com/saasuke-labs/nagare.git
+
+# Build
+go build ./cmd/main.go
+
+# Test
+go test ./...
+
+# Run locally
+go run ./cmd/main.go
+```
+
+## License
+
+MIT
 ![Browser and VM](static/examples/example2.svg)
 
 (grid is there to help me why developing)
