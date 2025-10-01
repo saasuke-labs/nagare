@@ -1,7 +1,7 @@
 project_name: nagare
 builds:
-  - id: gengo
-    main: ./nagare/cmd/nagare/main.go
+  - id: nagare
+    main: ./cmd/main.go
     goos:
       - linux
       #- darwin
@@ -10,7 +10,7 @@ builds:
       - amd64
       #- arm64
     ldflags:
-      - "-X github.com/saasuke-labs/gengo/pkg/version.Version={{.Version}} -X github.com/saasuke-labs/gengo/pkg/version.Commit={{.ShortCommit}} -X github.com/saasuke-labs/gengo/pkg/version.Date={{.Date}}"
+      - "-X github.com/saasuke-labs/nagare/pkg/version.Version={{.Version}} -X github.com/saasuke-labs/nagare/pkg/version.Commit={{.ShortCommit}} -X github.com/saasuke-labs/nagare/pkg/version.Date={{.Date}}"
 
 archives:
   - id: archive
