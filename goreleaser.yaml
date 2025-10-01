@@ -1,0 +1,35 @@
+project_name: nagare
+builds:
+  - id: gengo
+    main: ./nagare/cmd/nagare/main.go
+    goos:
+      - linux
+      #- darwin
+      #- windows
+    goarch:
+      - amd64
+      #- arm64
+    ldflags:
+      - "-X github.com/saasuke-labs/gengo/pkg/version.Version={{.Version}} -X github.com/saasuke-labs/gengo/pkg/version.Commit={{.ShortCommit}} -X github.com/saasuke-labs/gengo/pkg/version.Date={{.Date}}"
+
+archives:
+  - id: archive
+    format: tar.gz
+    files:
+      #- LICENSE
+      - README.md
+      #- COMMERCIAL.md
+
+checksum:
+  name_template: "checksums.txt"
+
+# signs:
+#   - artifacts: checksum
+#     args: ["--detach-sign"]
+
+release:
+  draft: false
+  prerelease: auto
+  github:
+    owner: saasuke-labs
+    name: nagare
