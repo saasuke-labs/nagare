@@ -572,10 +572,16 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 
 func normalizeAnchor(anchor parser.AnchorDescriptor) parser.AnchorDescriptor {
 	if anchor.Horizontal != 0 || anchor.Vertical != 0 || anchor.Raw == "" {
+		if len(anchor.Directions) == 0 && anchor.Raw != "" {
+			anchor.Directions = anchorDirections(anchor)
+		}
 		return anchor
 	}
 
-	normalized := parser.AnchorDescriptor{Raw: anchor.Raw}
+	normalized := parser.AnchorDescriptor{
+		Raw:        anchor.Raw,
+		Directions: anchorDirections(anchor),
+	}
 	lower := strings.ToLower(anchor.Raw)
 	for _, r := range lower {
 		switch r {
@@ -593,43 +599,53 @@ func normalizeAnchor(anchor parser.AnchorDescriptor) parser.AnchorDescriptor {
 }
 
 func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) Point {
-	point := Point{
-		X: shape.X + shape.Width*0.5,
-		Y: shape.Y + shape.Height*0.5,
-	}
+	centerX := shape.X + shape.Width*0.5
+	centerY := shape.Y + shape.Height*0.5
+	point := Point{X: centerX, Y: centerY}
 
-	switch {
-	case anchor.Horizontal < 0:
-		point.X = shape.X
+	directions := anchorDirections(anchor)
+	if len(directions) == 0 {
 		switch {
-		case anchor.Vertical < 0:
-			point.Y = shape.Y + shape.Height*0.25
-		case anchor.Vertical > 0:
-			point.Y = shape.Y + shape.Height*0.75
-		default:
-			point.Y = shape.Y + shape.Height*0.5
-		}
-	case anchor.Horizontal > 0:
-		point.X = shape.X + shape.Width
-		switch {
-		case anchor.Vertical < 0:
-			point.Y = shape.Y + shape.Height*0.25
-		case anchor.Vertical > 0:
-			point.Y = shape.Y + shape.Height*0.75
-		default:
-			point.Y = shape.Y + shape.Height*0.5
-		}
-	default:
-		switch {
+		case anchor.Horizontal < 0:
+			point.X = shape.X
+			point.Y = verticalEdgeOffset(shape, verticalDirectionFromSign(anchor.Vertical))
+		case anchor.Horizontal > 0:
+			point.X = shape.X + shape.Width
+			point.Y = verticalEdgeOffset(shape, verticalDirectionFromSign(anchor.Vertical))
 		case anchor.Vertical < 0:
 			point.Y = shape.Y
-			point.X = shape.X + shape.Width*0.5
+			point.X = horizontalEdgeOffset(shape, horizontalDirectionFromSign(anchor.Horizontal))
 		case anchor.Vertical > 0:
 			point.Y = shape.Y + shape.Height
-			point.X = shape.X + shape.Width*0.5
-		default:
-			point.X = shape.X + shape.Width*0.5
-			point.Y = shape.Y + shape.Height*0.5
+			point.X = horizontalEdgeOffset(shape, horizontalDirectionFromSign(anchor.Horizontal))
+		}
+		return point
+	}
+
+	primary := directions[0]
+	secondary := resolveSecondaryDirection(primary, directions[1:])
+
+	switch {
+	case isVerticalDirection(primary):
+		point.Y = verticalEdgePosition(shape, primary)
+		point.X = horizontalEdgeOffset(shape, secondary)
+	case isHorizontalDirection(primary):
+		point.X = horizontalEdgePosition(shape, primary)
+		point.Y = verticalEdgeOffset(shape, secondary)
+	default:
+		switch {
+		case anchor.Horizontal < 0:
+			point.X = shape.X
+			point.Y = verticalEdgeOffset(shape, verticalDirectionFromSign(anchor.Vertical))
+		case anchor.Horizontal > 0:
+			point.X = shape.X + shape.Width
+			point.Y = verticalEdgeOffset(shape, verticalDirectionFromSign(anchor.Vertical))
+		case anchor.Vertical < 0:
+			point.Y = shape.Y
+			point.X = horizontalEdgeOffset(shape, horizontalDirectionFromSign(anchor.Horizontal))
+		case anchor.Vertical > 0:
+			point.Y = shape.Y + shape.Height
+			point.X = horizontalEdgeOffset(shape, horizontalDirectionFromSign(anchor.Horizontal))
 		}
 	}
 
@@ -660,6 +676,117 @@ func routeArrowPoints(start, end Point, fromAnchor, toAnchor parser.AnchorDescri
 
 	points = append(points, end)
 	return points
+}
+
+func anchorDirections(anchor parser.AnchorDescriptor) []rune {
+	if len(anchor.Directions) > 0 {
+		return anchor.Directions
+	}
+
+	if anchor.Raw != "" {
+		lower := strings.ToLower(anchor.Raw)
+		directions := make([]rune, 0, len(lower))
+		for _, r := range lower {
+			switch r {
+			case 'n', 's', 'e', 'w':
+				directions = append(directions, r)
+			}
+		}
+		if len(directions) > 0 {
+			return directions
+		}
+	}
+
+	directions := make([]rune, 0, 2)
+	if anchor.Horizontal < 0 {
+		directions = append(directions, 'w')
+	} else if anchor.Horizontal > 0 {
+		directions = append(directions, 'e')
+	}
+	if anchor.Vertical < 0 {
+		directions = append(directions, 'n')
+	} else if anchor.Vertical > 0 {
+		directions = append(directions, 's')
+	}
+	return directions
+}
+
+func resolveSecondaryDirection(primary rune, remaining []rune) rune {
+	for _, r := range remaining {
+		if isVerticalDirection(primary) && isHorizontalDirection(r) {
+			return r
+		}
+		if isHorizontalDirection(primary) && isVerticalDirection(r) {
+			return r
+		}
+	}
+	return 0
+}
+
+func isVerticalDirection(r rune) bool {
+	return r == 'n' || r == 's'
+}
+
+func isHorizontalDirection(r rune) bool {
+	return r == 'e' || r == 'w'
+}
+
+func verticalEdgePosition(shape components.Shape, direction rune) float64 {
+	if direction == 'n' {
+		return shape.Y
+	}
+	return shape.Y + shape.Height
+}
+
+func horizontalEdgePosition(shape components.Shape, direction rune) float64 {
+	if direction == 'w' {
+		return shape.X
+	}
+	return shape.X + shape.Width
+}
+
+func horizontalEdgeOffset(shape components.Shape, direction rune) float64 {
+	switch direction {
+	case 'w':
+		return shape.X + shape.Width*0.25
+	case 'e':
+		return shape.X + shape.Width*0.75
+	default:
+		return shape.X + shape.Width*0.5
+	}
+}
+
+func verticalEdgeOffset(shape components.Shape, direction rune) float64 {
+	switch direction {
+	case 'n':
+		return shape.Y + shape.Height*0.25
+	case 's':
+		return shape.Y + shape.Height*0.75
+	default:
+		return shape.Y + shape.Height*0.5
+	}
+}
+
+func horizontalDirectionFromSign(value float64) rune {
+	switch {
+	case value < 0:
+		return 'w'
+	case value > 0:
+		return 'e'
+	default:
+		return 0
+	}
+}
+
+func verticalDirectionFromSign(value float64) rune {
+	switch {
+	case value < 0:
+		return 'n'
+	case value > 0:
+		return 's'
+	default:
+		return 0
+	}
 }
 
 func shouldRouteHorizontallyFirst(fromAnchor, toAnchor parser.AnchorDescriptor) bool {

@@ -147,6 +147,26 @@ func TestCalculateStoresAbsoluteShapesAndConnections(t *testing.T) {
 	}
 }
 
+func TestComputeAnchorPointRespectsAnchorOrder(t *testing.T) {
+	shape := components.Shape{X: 10, Y: 20, Width: 200, Height: 160}
+
+	sw := computeAnchorPoint(shape, normalizeAnchor(parser.AnchorDescriptor{Raw: "sw"}))
+	if !floatsNearlyEqual(sw.X, shape.X+shape.Width*0.25) {
+		t.Fatalf("expected sw anchor X to be %f, got %f", shape.X+shape.Width*0.25, sw.X)
+	}
+	if !floatsNearlyEqual(sw.Y, shape.Y+shape.Height) {
+		t.Fatalf("expected sw anchor Y to be %f, got %f", shape.Y+shape.Height, sw.Y)
+	}
+
+	ws := computeAnchorPoint(shape, normalizeAnchor(parser.AnchorDescriptor{Raw: "ws"}))
+	if !floatsNearlyEqual(ws.X, shape.X) {
+		t.Fatalf("expected ws anchor X to be %f, got %f", shape.X, ws.X)
+	}
+	if !floatsNearlyEqual(ws.Y, shape.Y+shape.Height*0.75) {
+		t.Fatalf("expected ws anchor Y to be %f, got %f", shape.Y+shape.Height*0.75, ws.Y)
+	}
+}
+
 func TestCalculateUsesLayoutGlobalOverrides(t *testing.T) {
 	root := parser.Node{
 		Globals: map[string]parser.State{
