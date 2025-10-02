@@ -22,8 +22,8 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 
 browser:Browser@home
 vps:VM@ubuntu {
-    nginx:Server@nginx
-    app:Server@app
+nginx:Server@nginx
+app:Server@app
 }
 
 browser.e --> nginx.w
