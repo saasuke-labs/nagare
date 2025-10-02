@@ -12,7 +12,6 @@ go install github.com/saasuke-labs/nagare@latest
 nagare
 ```
 
-
 ## Layout Overrides
 
 You can control the overall canvas dimensions with a global `@layout` directive. This is useful when you need extra room for connections or when you want diagrams to render inside a specific viewport.
@@ -100,4 +99,5 @@ cd nagare
 go test ./...
 ```
 
-The layout unit tests describe how connection routing, geometry inheritance, and canvas bounds interact. They are a good starting point for understanding how new components should integrate with the existing pipeline.
+The layout unit tests describe how connection routing, geometry inheritance, and canvas bounds interact.
+They are a good starting point for understanding how new components should integrate with the existing pipeline.
