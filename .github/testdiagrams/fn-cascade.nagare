@@ -15,7 +15,7 @@ logRegistration@fn
 @sendConfirmationEmail(x:300,y:150)
 @logRegistration(x:400,y:200)
 
-registerUser.s --> validateUser.w
-validateUser.s --> createUser.w
-createUser.s --> sendConfirmationEmail.w
-sendConfirmationEmail.s --> logRegistration.w
+registerUser.sw --> validateUser.w
+validateUser.sw --> createUser.w
+createUser.sw --> sendConfirmationEmail.w
+sendConfirmationEmail.sw --> logRegistration.w
