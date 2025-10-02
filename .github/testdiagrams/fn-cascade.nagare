@@ -1,10 +1,10 @@
 @layout(h:300,w:800)
 
-registerUser:Server@fn
-validateUser:Server@fn
-createUser:Server@fn
-sendConfirmationEmail:Server@fn
-logRegistration:Server@fn
+registerUser@fn
+validateUser@fn
+createUser@fn
+sendConfirmationEmail@fn
+logRegistration@fn
 
 
 @fn(h:30,w:100)
