@@ -26,8 +26,8 @@ func (s *ServerProps) Parse(input string) error {
 func DefaultServerProps() ServerProps {
 	return ServerProps{
 		Title:           "",
-		Icon:            "default",
-		Port:            80,
+		Icon:            "",
+		Port:            0,
 		BackgroundColor: "#e6f3ff",
 		ForegroundColor: "#333333",
 	}
@@ -115,48 +115,53 @@ func (s *Server) Draw() string {
 const ServerTemplate = `
 <g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
     <!-- Main server box -->
-    <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" 
-          rx="{{printf "%.6f" (mul .Height 0.1)}}" ry="{{printf "%.6f" (mul .Height 0.1)}}" 
+    <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}"
+          rx="{{printf "%.6f" (mul .Height 0.1)}}" ry="{{printf "%.6f" (mul .Height 0.1)}}"
           fill="{{.Props.BackgroundColor}}" stroke="{{.Props.ForegroundColor}}" stroke-width="2"/>
-    
-    <!-- Icon -->
-    {{$iconSize := mul .Height 0.7}}
+
     {{$iconMargin := mul .Height 0.15}}
+    {{$titleX := mul .Height 0.2}}
+    {{if ne .Props.Icon ""}}
+    {{$iconSize := mul .Height 0.7}}
+    {{$titleX = add (mul .Height 1.0) $iconMargin}}
     <g transform="translate({{printf "%.6f" $iconMargin}},{{printf "%.6f" $iconMargin}})">
         {{if eq .Props.Icon "nginx"}}
         <!-- Nginx icon -->
         <rect x="0" y="0" width="{{printf "%.6f" $iconSize}}" height="{{printf "%.6f" $iconSize}}" fill="#009639"/>
-        <text x="{{printf "%.6f" (mul $iconSize 0.5)}}" y="{{printf "%.6f" (mul $iconSize 0.7)}}" 
-              fill="#ffffff" font-family="Arial" font-size="{{printf "%.6f" (mul $iconSize 0.6)}}" 
+        <text x="{{printf "%.6f" (mul $iconSize 0.5)}}" y="{{printf "%.6f" (mul $iconSize 0.7)}}"
+              fill="#ffffff" font-family="Arial" font-size="{{printf "%.6f" (mul $iconSize 0.6)}}"
               text-anchor="middle">N</text>
         {{else if eq .Props.Icon "golang"}}
         <!-- Golang icon -->
         <rect x="0" y="0" width="{{printf "%.6f" $iconSize}}" height="{{printf "%.6f" $iconSize}}" fill="#00ADD8"/>
-        <text x="{{printf "%.6f" (mul $iconSize 0.5)}}" y="{{printf "%.6f" (mul $iconSize 0.7)}}" 
-              fill="#ffffff" font-family="Arial" font-size="{{printf "%.6f" (mul $iconSize 0.6)}}" 
+        <text x="{{printf "%.6f" (mul $iconSize 0.5)}}" y="{{printf "%.6f" (mul $iconSize 0.7)}}"
+              fill="#ffffff" font-family="Arial" font-size="{{printf "%.6f" (mul $iconSize 0.6)}}"
               text-anchor="middle">Go</text>
         {{else}}
         <!-- Default server icon -->
         <rect x="0" y="0" width="{{printf "%.6f" $iconSize}}" height="{{printf "%.6f" $iconSize}}" fill="#666666"/>
-        <text x="{{printf "%.6f" (mul $iconSize 0.5)}}" y="{{printf "%.6f" (mul $iconSize 0.7)}}" 
-              fill="#ffffff" font-family="Arial" font-size="{{printf "%.6f" (mul $iconSize 0.6)}}" 
+        <text x="{{printf "%.6f" (mul $iconSize 0.5)}}" y="{{printf "%.6f" (mul $iconSize 0.7)}}"
+              fill="#ffffff" font-family="Arial" font-size="{{printf "%.6f" (mul $iconSize 0.6)}}"
               text-anchor="middle">S</text>
         {{end}}
     </g>
-    
+    {{end}}
+
     <!-- Title -->
-    <text x="{{printf "%.6f" (add (mul .Height 1.0) $iconMargin)}}" 
-          y="{{printf "%.6f" (mul .Height 0.6)}}" 
-          fill="{{.Props.ForegroundColor}}" 
-          font-family="Arial" 
+    <text x="{{printf "%.6f" $titleX}}"
+          y="{{printf "%.6f" (mul .Height 0.6)}}"
+          fill="{{.Props.ForegroundColor}}"
+          font-family="Arial"
           font-size="{{printf "%.6f" (mul .Height 0.4)}}"
           >{{.Props.Title}}</text>
-    
+
     <!-- Port display -->
-    <text x="{{printf "%.6f" (sub .Width (mul .Height 0.15))}}" 
-          y="{{printf "%.6f" (mul .Height 0.6)}}" 
-          fill="{{.Props.ForegroundColor}}" 
-          font-family="Arial" 
+    {{if gt .Props.Port 0}}
+    <text x="{{printf "%.6f" (sub .Width (mul .Height 0.15))}}"
+          y="{{printf "%.6f" (mul .Height 0.6)}}"
+          fill="{{.Props.ForegroundColor}}"
+          font-family="Arial"
           font-size="{{printf "%.6f" (mul .Height 0.35)}}"
           text-anchor="end">:{{.Props.Port}}</text>
+    {{end}}
 </g>`

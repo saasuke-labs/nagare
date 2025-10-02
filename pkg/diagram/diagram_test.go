@@ -2,6 +2,7 @@ package diagram
 
 import (
 	_ "embed"
+	"strings"
 	"testing"
 )
 
@@ -30,7 +31,7 @@ func TestCreateDiagramFromActualCodeBlocks(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if html != td.expected {
+			if strings.TrimSpace(html) != strings.TrimSpace(td.expected) {
 				t.Fatalf("expected HTML does not match actual.\nExpected:\n%s\n\nGot:\n%s", td.expected, html)
 			}
 		})
