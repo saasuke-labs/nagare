@@ -39,6 +39,7 @@ type AnchorDescriptor struct {
 	Raw        string
 	Horizontal float64
 	Vertical   float64
+	Directions []rune
 }
 
 // Connection represents a link between two nodes in the AST.
@@ -393,21 +394,27 @@ func parseAnchorDescriptor(raw string) AnchorDescriptor {
 	normalized := strings.ToLower(descriptor.Raw)
 	horizontal := 0.0
 	vertical := 0.0
+	directions := make([]rune, 0, len(normalized))
 
 	for _, r := range normalized {
 		switch r {
 		case 'w':
 			horizontal = -1.0
+			directions = append(directions, r)
 		case 'e':
 			horizontal = 1.0
+			directions = append(directions, r)
 		case 'n':
 			vertical = -1.0
+			directions = append(directions, r)
 		case 's':
 			vertical = 1.0
+			directions = append(directions, r)
 		}
 	}
 
 	descriptor.Horizontal = horizontal
 	descriptor.Vertical = vertical
+	descriptor.Directions = directions
 	return descriptor
 }
