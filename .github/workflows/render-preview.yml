@@ -33,7 +33,7 @@ jobs:
           ./nagare-server > server.log 2>&1 &
           echo $! > server.pid
 
-       - name: Render regression diagrams via /render
+      - name: Render regression diagrams via /render
         run: |
           set -euo pipefail
 
