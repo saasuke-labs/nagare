@@ -1,21 +1,21 @@
 @layout(h:300,w:800)
 
-registerUser:Server@fn
-validateUser:Server@fn
-createUser:Server@fn
-sendConfirmationEmail:Server@fn
-logRegistration:Server@fn
+registerUser@fn
+validateUser@fn
+createUser@fn
+sendConfirmationEmail@fn
+logRegistration@fn
 
 
-@fn(h:30,w:100)
+@fn(h:30,w:300)
 
 @registerUser(x:0,y:0)
-@validateUser(x:75,y:50)
-@createUser(x:150,y:100)
-@sendConfirmationEmail(x:225,y:150)
-@logRegistration(x:300,y:200)
+@validateUser(x:100,y:50)
+@createUser(x:200,y:100)
+@sendConfirmationEmail(x:300,y:150)
+@logRegistration(x:400,y:200)
 
-registerUser.s --> validateUser.w
-validateUser.s --> createUser.w
-createUser.s --> sendConfirmationEmail.w
-sendConfirmationEmail.s --> logRegistration.w
+registerUser.sw --> validateUser.w
+validateUser.sw --> createUser.w
+createUser.sw --> sendConfirmationEmail.w
+sendConfirmationEmail.sw --> logRegistration.w
