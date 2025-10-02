@@ -33,20 +33,38 @@ jobs:
           ./nagare-server > server.log 2>&1 &
           echo $! > server.pid
 
-      - name: Render regression diagram via /render
+      - name: Render regression diagrams via /render
         run: |
+          set -euo pipefail
+
+          shopt -s nullglob
+          diagrams=(.github/testdiagrams/*.nagare)
+          if [ ${#diagrams[@]} -eq 0 ]; then
+            echo "No .nagare files found in .github/testdiagrams" >&2
+            exit 1
+          fi
+
+          # Wait for the server to be ready.
           for attempt in {1..60}; do
-            if curl -fsS -X POST \
-              -H 'Content-Type: text/plain' \
-              --data-binary @pkg/testdiagram/test-diagram.nagare \
-              http://localhost:8080/render \
-              -o nagare-test.svg; then
-              exit 0
+            if curl -fsS http://localhost:8080/test >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo "Server failed to respond" >&2
+              exit 1
             fi
             sleep 1
           done
-          echo "Server failed to respond" >&2
-          exit 1
+
+          for nagare_file in "${diagrams[@]}"; do
+            base_name=$(basename "$nagare_file" .nagare)
+            echo "Rendering $nagare_file"
+            curl -fsS -X POST \
+              -H 'Content-Type: text/plain' \
+              --data-binary @"$nagare_file" \
+              http://localhost:8080/render \
+              -o "${base_name}.svg"
+          done
 
       - name: Stop Nagare server
         if: always()
@@ -114,21 +132,32 @@ jobs:
 
           COMMENT_BODY="## 🎨 Generated SVG Examples\n\n"
 
-          counter=1
-          for svg_file in .github/pr-images/pr-$PR_NUMBER/*.svg; do
-            if [ -f "$svg_file" ]; then
-              filename=$(basename "$svg_file")
-              display_name="${filename%.svg}"
-              raw_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/pr-images/pr-$PR_NUMBER/$filename?raw=1"
+          shopt -s nullglob
+          diagrams=(.github/testdiagrams/*.nagare)
+          if [ ${#diagrams[@]} -eq 0 ]; then
+            echo "No diagrams found to document" >&2
+            exit 0
+          fi
 
-              COMMENT_BODY+="### Example $counter: $display_name\n"
-              COMMENT_BODY+="![${display_name}](${raw_url})\n\n"
-              COMMENT_BODY+="<details><summary>View SVG source</summary>\n\n"
-              COMMENT_BODY+=$(printf '[`%s`](%s)\n\n' "$filename" "$raw_url")
-              COMMENT_BODY+="</details>\n\n"
+          for nagare_file in "${diagrams[@]}"; do
+            nagare_name=$(basename "$nagare_file")
+            base_name=${nagare_name%.nagare}
+            filename="${base_name}.svg"
+            svg_file=.github/pr-images/pr-$PR_NUMBER/$filename
 
-              counter=$((counter + 1))
+            if [ ! -f "$svg_file" ]; then
+              echo "Skipping $nagare_name because $svg_file is missing" >&2
+              continue
             fi
+
+            raw_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/pr-images/pr-$PR_NUMBER/$filename?raw=1"
+            nagare_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/testdiagrams/$nagare_name"
+
+            COMMENT_BODY+="### ${nagare_name}\n"
+            COMMENT_BODY+="![${nagare_name}](${raw_url})\n\n"
+            COMMENT_BODY+="<details><summary>View sources</summary>\n\n"
+            COMMENT_BODY+=$(printf '[`%s`](%s) · [`%s`](%s)\n\n' "$filename" "$raw_url" "$nagare_name" "$nagare_url")
+            COMMENT_BODY+="</details>\n\n"
           done
 
           COMMENT_BODY+="---\n"
