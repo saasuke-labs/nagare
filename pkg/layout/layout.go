@@ -24,9 +24,10 @@ const (
 )
 
 const (
-	componentTypeBrowser = "Browser"
-	componentTypeVM      = "VM"
-	componentTypeServer  = "Server"
+	componentTypeBrowser   = "Browser"
+	componentTypeVM        = "VM"
+	componentTypeServer    = "Server"
+	componentTypeRectangle = "Rectangle"
 )
 
 // Rect represents a rectangle in the layout
@@ -233,6 +234,10 @@ func syncComponentGeometry(children []components.Component, nodeIndex map[string
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
+		case *components.Server:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
 		case *components.VM:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
@@ -336,13 +341,17 @@ func calculateCanvasBounds(node parser.Node, defaultWidth, defaultHeight float64
 }
 
 func buildComponentTree(node parser.Node, nodeIndex map[string]components.Shape) []components.Component {
-	switch node.Type {
+	switch string(node.Type) {
 	case componentTypeBrowser:
 		return []components.Component{buildBrowser(node, nodeIndex)}
 	case componentTypeVM:
 		return []components.Component{buildVM(node, nodeIndex)}
+	case componentTypeServer:
+		return []components.Component{buildServer(node, nil, nodeIndex)}
+	case componentTypeRectangle:
+		return []components.Component{buildRectangle(node, nil, nodeIndex)}
 	default:
-		return []components.Component{buildFallbackRectangle(node, nodeIndex)}
+		return []components.Component{buildRectangle(node, nil, nodeIndex)}
 	}
 }
 
@@ -389,11 +398,19 @@ func layoutVMChildren(parent parser.Node, vm *components.VM, nodeIndex map[strin
 	}
 
 	for _, child := range parent.Children {
-		switch child.Type {
+		switch string(child.Type) {
 		case componentTypeServer:
 			server := buildServer(child, vm, nodeIndex)
 			vm.AddChild(server)
+		case componentTypeRectangle:
+			rect := buildRectangle(child, vm, nodeIndex)
+			vm.AddChild(rect)
 		default:
+			if child.Type == parser.NODE_ELEMENT {
+				rect := buildRectangle(child, vm, nodeIndex)
+				vm.AddChild(rect)
+				continue
+			}
 			fmt.Printf("Unknown child type: %s\n", child.Type)
 		}
 	}
@@ -412,26 +429,38 @@ func buildServer(node parser.Node, vm *components.VM, nodeIndex map[string]compo
 	server.State = applyNamedStateProperties(node, &server.Shape, &server.Props, true)
 
 	absServerShape := server.Shape
-	contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
-	contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
-	absServerShape.X = vm.Shape.X + contentOffsetX + absServerShape.X
-	absServerShape.Y = vm.Shape.Y + contentOffsetY + absServerShape.Y
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absServerShape.X = vm.Shape.X + contentOffsetX + absServerShape.X
+		absServerShape.Y = vm.Shape.Y + contentOffsetY + absServerShape.Y
+	}
 	nodeIndex[node.Text] = absServerShape
 
 	return server
 }
 
-func buildFallbackRectangle(node parser.Node, nodeIndex map[string]components.Shape) components.Component {
-	rect := &components.Rectangle{
-		Shape: components.Shape{
-			Width:  defaultServerWidth,
-			Height: defaultServerHeight,
-			X:      defaultComponentX,
-			Y:      defaultComponentY,
-		},
-		Text: node.Text,
+func buildRectangle(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.Rectangle {
+	rect := components.NewRectangle(node.Text)
+	rect.Shape = components.Shape{
+		Width:  defaultServerWidth,
+		Height: defaultServerHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
 	}
-	nodeIndex[node.Text] = rect.Shape
+
+	applyIDStateProperties(node, &rect.Shape, &rect.Props, node.Text)
+	rect.State = applyNamedStateProperties(node, &rect.Shape, &rect.Props, true)
+
+	absRectShape := rect.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absRectShape.X = vm.Shape.X + contentOffsetX + absRectShape.X
+		absRectShape.Y = vm.Shape.Y + contentOffsetY + absRectShape.Y
+	}
+	nodeIndex[node.Text] = absRectShape
+
 	return rect
 }
 
