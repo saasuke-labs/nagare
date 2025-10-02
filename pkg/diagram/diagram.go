@@ -9,7 +9,14 @@ import (
 	"github.com/saasuke-labs/nagare/pkg/tokenizer"
 )
 
+// CreateDiagram generates an SVG diagram from the provided code and returns it as a string.
 func CreateDiagram(code string) (string, error) {
+	svg, _, _, err := CreateDiagramWithSize(code)
+	return svg, err
+}
+
+// CreateDiagramWithSize generates an SVG diagram and returns the SVG along with the computed canvas size.
+func CreateDiagramWithSize(code string) (string, int, int, error) {
 	fmt.Printf("Input code:\n%s\n", string(code))
 
 	// Pipeline:
@@ -20,7 +27,7 @@ func CreateDiagram(code string) (string, error) {
 	// 2. Parse
 	ast, err := parser.Parse(tokens)
 	if err != nil {
-		return "", fmt.Errorf("parse error: %w", err)
+		return "", 0, 0, fmt.Errorf("parse error: %w", err)
 	}
 
 	fmt.Printf("AST: \n%+v\n", ast)
@@ -43,5 +50,5 @@ func CreateDiagram(code string) (string, error) {
 
 	html := renderer.Render(l, canvasWidth, canvasHeight)
 	fmt.Println(html)
-	return html, nil
+	return html, canvasWidth, canvasHeight, nil
 }
