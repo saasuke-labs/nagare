@@ -14,7 +14,7 @@ nagare
 
 ## Examples
 
-Pull requests automatically run a preview workflow that boots the Nagare server, renders the `/test` diagram, and attaches the resulting SVG to the PR discussion for quick review.
+Pull requests automatically run a preview workflow that boots the Nagare server, posts the contents of [`pkg/testdiagram/test-diagram.nagare`](pkg/testdiagram/test-diagram.nagare) to the `/render` endpoint, and attaches the resulting SVG to the PR discussion for quick review.
 
 ## Layout Overrides
 

@@ -33,10 +33,14 @@ jobs:
           ./nagare-server > server.log 2>&1 &
           echo $! > server.pid
 
-      - name: Fetch /test SVG output
+      - name: Render regression diagram via /render
         run: |
           for attempt in {1..60}; do
-            if curl -fsS http://localhost:8080/test -o nagare-test.svg; then
+            if curl -fsS -X POST \
+              -H 'Content-Type: text/plain' \
+              --data-binary @pkg/testdiagram/test-diagram.nagare \
+              http://localhost:8080/render \
+              -o nagare-test.svg; then
               exit 0
             fi
             sleep 1
