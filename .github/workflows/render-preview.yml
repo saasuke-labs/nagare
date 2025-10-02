@@ -19,20 +19,17 @@ jobs:
           go-version: '1.24.x'
           cache: true
           cache-dependency-path: |
-            nagare/go.mod
-            nagare/go.sum
+            go.mod
+            go.sum
 
       - name: Download dependencies
-        working-directory: nagare
         run: go mod download
 
       - name: Build Nagare server
-        working-directory: nagare
-        run: go build -o nagare-server ./cmd/nagare
+        run: go build -o nagare-server ./cmd
 
       - name: Start Nagare server
         run: |
-          cd nagare
           ./nagare-server > server.log 2>&1 &
           echo $! > server.pid
 
@@ -50,15 +47,15 @@ jobs:
       - name: Stop Nagare server
         if: always()
         run: |
-          if [ -f nagare/server.pid ]; then
-            kill $(cat nagare/server.pid) 2>/dev/null || true
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) 2>/dev/null || true
             sleep 1
-            if kill -0 $(cat nagare/server.pid) 2>/dev/null; then
-              kill -9 $(cat nagare/server.pid) 2>/dev/null || true
+            if kill -0 $(cat server.pid) 2>/dev/null; then
+              kill -9 $(cat server.pid) 2>/dev/null || true
             fi
           fi
           echo '--- Nagare server log ---'
-          cat nagare/server.log || true
+          cat server.log || true
 
       - name: Upload SVGs to repository and create PR comment
         env:
