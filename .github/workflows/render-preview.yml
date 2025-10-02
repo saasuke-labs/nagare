@@ -33,7 +33,7 @@ jobs:
           ./nagare-server > server.log 2>&1 &
           echo $! > server.pid
 
-      - name: Render regression diagrams via /render
+      - name: Render regression diagrams via /render and /render-webp
         run: |
           set -euo pipefail
 
@@ -64,6 +64,12 @@ jobs:
               --data-binary @"$nagare_file" \
               http://localhost:8080/render \
               -o "${base_name}.svg"
+
+            curl -fsS -X POST \
+              -H 'Content-Type: text/plain' \
+              --data-binary @"$nagare_file" \
+              http://localhost:8080/render-webp \
+              -o "${base_name}.webp"
           done
 
       - name: Stop Nagare server
@@ -79,7 +85,7 @@ jobs:
           echo '--- Nagare server log ---'
           cat server.log || true
 
-      - name: Upload SVGs to repository and create PR comment
+      - name: Upload rendered diagrams to repository and create PR comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,16 +100,22 @@ jobs:
           set -euo pipefail
 
           if [ "$PR_REPO" != "$REPO" ]; then
-            echo "Skipping SVG upload because PR comes from a fork"
+            echo "Skipping render upload because PR comes from a fork"
             exit 0
           fi
 
           mkdir -p .github/pr-images/pr-$PR_NUMBER
 
-          if ! cp ./*.svg .github/pr-images/pr-$PR_NUMBER/ 2>/dev/null; then
-            echo "No SVG files found to upload"
+          shopt -s nullglob
+          files=(./*.svg ./*.webp)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No rendered files found to upload"
             exit 0
           fi
+
+          for rendered in "${files[@]}"; do
+            cp "$rendered" .github/pr-images/pr-$PR_NUMBER/
+          done
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -114,11 +126,11 @@ jobs:
 
           git add .github/pr-images/pr-$PR_NUMBER/
           if git diff --cached --quiet; then
-            echo "No SVG updates to commit"
+            echo "No render updates to commit"
             exit 0
           fi
 
-          git commit -m "Add generated SVG examples for PR #$PR_NUMBER [skip ci]"
+          git commit -m "Add generated diagram renders for PR #$PR_NUMBER [skip ci]"
 
           if ! git push origin "$BRANCH_NAME"; then
             echo "Push failed; attempting to rebase onto latest remote" >&2
@@ -130,7 +142,7 @@ jobs:
           CURRENT_SHA=$(git rev-parse HEAD)
           HEAD_HTML="$SERVER_URL/$REPO/commit/$CURRENT_SHA"
 
-          COMMENT_BODY="## 🎨 Generated SVG Examples\n\n"
+          COMMENT_BODY="## 🎨 Generated Diagram Renders\n\n"
 
           shopt -s nullglob
           diagrams=(.github/testdiagrams/*.nagare)
@@ -142,21 +154,42 @@ jobs:
           for nagare_file in "${diagrams[@]}"; do
             nagare_name=$(basename "$nagare_file")
             base_name=${nagare_name%.nagare}
-            filename="${base_name}.svg"
-            svg_file=.github/pr-images/pr-$PR_NUMBER/$filename
+            svg_file=.github/pr-images/pr-$PR_NUMBER/${base_name}.svg
+            webp_file=.github/pr-images/pr-$PR_NUMBER/${base_name}.webp
 
-            if [ ! -f "$svg_file" ]; then
-              echo "Skipping $nagare_name because $svg_file is missing" >&2
+            if [ ! -f "$svg_file" ] && [ ! -f "$webp_file" ]; then
+              echo "Skipping $nagare_name because neither SVG nor WebP outputs are available" >&2
               continue
             fi
 
-            raw_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/pr-images/pr-$PR_NUMBER/$filename?raw=1"
+            svg_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/pr-images/pr-$PR_NUMBER/${base_name}.svg?raw=1"
+            webp_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/pr-images/pr-$PR_NUMBER/${base_name}.webp?raw=1"
             nagare_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/testdiagrams/$nagare_name"
 
             COMMENT_BODY+="### ${nagare_name}\n"
-            COMMENT_BODY+="![${nagare_name}](${raw_url})\n\n"
+            if [ -f "$svg_file" ]; then
+              COMMENT_BODY+=$(printf '![%s - SVG](%s)\n\n' "$nagare_name" "$svg_url")
+            fi
+            if [ -f "$webp_file" ]; then
+              COMMENT_BODY+=$(printf '![%s - WebP](%s)\n\n' "$nagare_name" "$webp_url")
+            fi
+
             COMMENT_BODY+="<details><summary>View sources</summary>\n\n"
-            COMMENT_BODY+=$(printf '[`%s`](%s) · [`%s`](%s)\n\n' "$filename" "$raw_url" "$nagare_name" "$nagare_url")
+            sources=""
+            if [ -f "$svg_file" ]; then
+              sources+=$(printf '[`%s`](%s)' "${base_name}.svg" "$svg_url")
+            fi
+            if [ -f "$webp_file" ]; then
+              if [ -n "$sources" ]; then
+                sources+=" · "
+              fi
+              sources+=$(printf '[`%s`](%s)' "${base_name}.webp" "$webp_url")
+            fi
+            if [ -n "$sources" ]; then
+              sources+=" · "
+            fi
+            sources+=$(printf '[`%s`](%s)' "$nagare_name" "$nagare_url")
+            COMMENT_BODY+="$sources\n\n"
             COMMENT_BODY+="</details>\n\n"
           done
 
@@ -169,7 +202,7 @@ jobs:
 
           gh pr comment "$PR_NUMBER" --body-file comment.md
 
-          echo "✅ SVG files uploaded and PR comment created successfully"
+          echo "✅ Diagram renders uploaded and PR comment created successfully"
 
       - name: Clean up old PR image directories (optional)
         env:

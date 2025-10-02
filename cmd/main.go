@@ -10,6 +10,7 @@ import (
 
 func main() {
 	http.HandleFunc("POST /render", handleRender)
+	http.HandleFunc("POST /render-webp", handleRenderWebP)
 	http.HandleFunc("GET /test", handleTest)
 	log.Printf("Server starting on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -66,4 +67,21 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 	// Send response
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(html))
+}
+
+func handleRenderWebP(w http.ResponseWriter, r *http.Request) {
+	code, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	data, err := diagram.CreateDiagramWebP(string(code))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/webp")
+	w.Write(data)
 }
