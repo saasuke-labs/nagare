@@ -16,3 +16,6 @@ logRegistration:Server@fn
 @logRegistration(x:200,y:200)
 
 registerUser.s --> validateUser.w
+validateUser.s --> createUser.w
+createUser.s --> sendConfirmationEmail.w
+sendConfirmationEmail.s --> logRegistration.w
