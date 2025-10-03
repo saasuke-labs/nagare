@@ -91,9 +91,52 @@ type textElement struct {
 	Text             string
 }
 
+type affineTransform struct {
+	a, b, c, d, e, f float64
+}
+
+func identityTransform() affineTransform {
+	return affineTransform{a: 1, d: 1}
+}
+
+func (t affineTransform) Multiply(o affineTransform) affineTransform {
+	return affineTransform{
+		a: t.a*o.a + t.c*o.b,
+		b: t.b*o.a + t.d*o.b,
+		c: t.a*o.c + t.c*o.d,
+		d: t.b*o.c + t.d*o.d,
+		e: t.a*o.e + t.c*o.f + t.e,
+		f: t.b*o.e + t.d*o.f + t.f,
+	}
+}
+
+func (t affineTransform) Apply(x, y float64) (float64, float64) {
+	return t.a*x + t.c*y + t.e, t.b*x + t.d*y + t.f
+}
+
+func (t affineTransform) ScaleFactor() float64 {
+	sx := math.Hypot(t.a, t.b)
+	sy := math.Hypot(t.c, t.d)
+	if sx == 0 && sy == 0 {
+		return 1
+	}
+	if sx == 0 {
+		return sy
+	}
+	if sy == 0 {
+		return sx
+	}
+	return (sx + sy) / 2
+}
+
 func extractTextElements(svg string) ([]textElement, error) {
 	decoder := xml.NewDecoder(strings.NewReader(svg))
 	var elements []textElement
+
+	transformStack := []affineTransform{identityTransform()}
+	var current *textElement
+	var content strings.Builder
+	textDepth := 0
 
 	for {
 		tok, err := decoder.Token()
@@ -104,62 +147,165 @@ func extractTextElements(svg string) ([]textElement, error) {
 			return nil, err
 		}
 
-		start, ok := tok.(xml.StartElement)
-		if !ok || start.Name.Local != "text" {
-			continue
-		}
+		switch t := tok.(type) {
+		case xml.StartElement:
+			parent := transformStack[len(transformStack)-1]
+			combined := parent
+			if tr := getAttr(t.Attr, "transform"); tr != "" {
+				combined = parent.Multiply(parseTransformAttribute(tr))
+			}
+			transformStack = append(transformStack, combined)
 
-		element := textElement{
-			FontSize: 16,
-			Fill:     color.Black,
-		}
+			if current != nil {
+				textDepth++
+				continue
+			}
 
-		for _, attr := range start.Attr {
-			switch attr.Name.Local {
-			case "x":
-				element.X = parseSVGFloat(attr.Value, 0)
-			case "y":
-				element.Y = parseSVGFloat(attr.Value, 0)
-			case "font-size":
-				element.FontSize = parseSVGFloat(attr.Value, element.FontSize)
-			case "text-anchor":
-				element.Anchor = attr.Value
-			case "dominant-baseline":
-				element.DominantBaseline = attr.Value
-			case "fill":
-				if col, err := parseSVGColor(attr.Value); err == nil {
-					element.Fill = col
+			if t.Name.Local != "text" {
+				continue
+			}
+
+			element := textElement{
+				FontSize: 16,
+				Fill:     color.Black,
+			}
+			var x, y float64
+			for _, attr := range t.Attr {
+				switch attr.Name.Local {
+				case "x":
+					x = parseSVGFloat(splitFirstValue(attr.Value), 0)
+				case "y":
+					y = parseSVGFloat(splitFirstValue(attr.Value), 0)
+				case "font-size":
+					element.FontSize = parseSVGFloat(attr.Value, element.FontSize)
+				case "text-anchor":
+					element.Anchor = attr.Value
+				case "dominant-baseline":
+					element.DominantBaseline = attr.Value
+				case "fill":
+					if col, err := parseSVGColor(attr.Value); err == nil {
+						element.Fill = col
+					}
 				}
 			}
-		}
 
-		var content strings.Builder
-		depth := 1
-		for depth > 0 {
-			tok, err := decoder.Token()
-			if err != nil {
-				return nil, err
+			element.FontSize *= combined.ScaleFactor()
+			element.X, element.Y = combined.Apply(x, y)
+
+			current = &element
+			content.Reset()
+			textDepth = 0
+		case xml.CharData:
+			if current != nil {
+				content.WriteString(string(t))
 			}
-
-			switch v := tok.(type) {
-			case xml.CharData:
-				content.WriteString(string(v))
-			case xml.StartElement:
-				depth++
-			case xml.EndElement:
-				depth--
+		case xml.EndElement:
+			if current != nil {
+				if textDepth > 0 {
+					textDepth--
+				} else if t.Name.Local == "text" {
+					current.Text = strings.TrimSpace(html.UnescapeString(content.String()))
+					if current.Text != "" {
+						elements = append(elements, *current)
+					}
+					current = nil
+				}
+			}
+			if len(transformStack) > 1 {
+				transformStack = transformStack[:len(transformStack)-1]
 			}
 		}
-
-		element.Text = strings.TrimSpace(html.UnescapeString(content.String()))
-		if element.Text == "" {
-			continue
-		}
-
-		elements = append(elements, element)
 	}
 
 	return elements, nil
+}
+
+func getAttr(attrs []xml.Attr, name string) string {
+	for _, attr := range attrs {
+		if attr.Name.Local == name {
+			return attr.Value
+		}
+	}
+	return ""
+}
+
+func splitFirstValue(v string) string {
+	fields := strings.FieldsFunc(v, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\n' || r == '\t' || r == '\r'
+	})
+	if len(fields) == 0 {
+		return v
+	}
+	return fields[0]
+}
+
+func parseTransformAttribute(value string) affineTransform {
+	result := identityTransform()
+	s := strings.TrimSpace(value)
+	for len(s) > 0 {
+		open := strings.IndexByte(s, '(')
+		if open == -1 {
+			break
+		}
+		name := strings.TrimSpace(s[:open])
+		s = s[open+1:]
+		close := strings.IndexByte(s, ')')
+		if close == -1 {
+			break
+		}
+		args := s[:close]
+		s = strings.TrimSpace(s[close+1:])
+
+		params := parseNumberList(args)
+		switch name {
+		case "translate":
+			dx, dy := 0.0, 0.0
+			if len(params) > 0 {
+				dx = params[0]
+			}
+			if len(params) > 1 {
+				dy = params[1]
+			}
+			result = result.Multiply(affineTransform{a: 1, d: 1, e: dx, f: dy})
+		case "scale":
+			sx, sy := 1.0, 1.0
+			if len(params) > 0 {
+				sx = params[0]
+			}
+			if len(params) > 1 {
+				sy = params[1]
+			} else {
+				sy = sx
+			}
+			result = result.Multiply(affineTransform{a: sx, d: sy})
+		case "matrix":
+			if len(params) >= 6 {
+				result = result.Multiply(affineTransform{
+					a: params[0],
+					b: params[1],
+					c: params[2],
+					d: params[3],
+					e: params[4],
+					f: params[5],
+				})
+			}
+		}
+	}
+	return result
+}
+
+func parseNumberList(value string) []float64 {
+	parts := strings.FieldsFunc(value, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\n' || r == '\t' || r == '\r'
+	})
+	nums := make([]float64, 0, len(parts))
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		nums = append(nums, parseSVGFloat(part, 0))
+	}
+	return nums
 }
 
 var (
