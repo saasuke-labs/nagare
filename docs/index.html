@@ -1,0 +1,268 @@
+---
+title: Nagare
+sidebar_position: 1
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nagare · Saasuke Labs</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --color-bg: #0b1220;
+        --color-bg-soft: rgba(11, 18, 32, 0.72);
+        --color-text: #f4f6fb;
+        --color-text-muted: rgba(244, 246, 251, 0.72);
+        --color-accent: #6cc4ff;
+        --color-accent-soft: rgba(108, 196, 255, 0.16);
+        font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--color-bg);
+        color: var(--color-text);
+        line-height: 1.6;
+      }
+
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #0b1220 0%, #111d33 100%);
+      }
+
+      a {
+        color: var(--color-accent);
+        text-decoration: none;
+      }
+
+      header {
+        padding: 6rem 1.5rem 4rem;
+        text-align: center;
+      }
+
+      header h1 {
+        margin: 0 auto 1.5rem;
+        max-width: 720px;
+        font-size: clamp(2.5rem, 5vw, 3.5rem);
+      }
+
+      header p {
+        margin: 0 auto;
+        max-width: 680px;
+        font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+        color: var(--color-text-muted);
+      }
+
+      main {
+        padding: 0 1.5rem 5rem;
+        max-width: 960px;
+        margin: 0 auto;
+        display: grid;
+        gap: 3rem;
+      }
+
+      section {
+        background: var(--color-bg-soft);
+        border-radius: 18px;
+        padding: 2.5rem;
+        box-shadow: 0 24px 64px rgba(6, 12, 24, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      h2 {
+        font-size: clamp(1.6rem, 3.6vw, 2.1rem);
+        margin-top: 0;
+      }
+
+      p,
+      li {
+        color: var(--color-text-muted);
+        font-size: 1rem;
+      }
+
+      ul,
+      ol {
+        margin: 1rem 0 0;
+        padding-left: 1.25rem;
+      }
+
+      code,
+      pre {
+        font-family: "Fira Code", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 0.95rem;
+        background: rgba(11, 18, 32, 0.65);
+        border-radius: 12px;
+        color: #d7e3ff;
+      }
+
+      pre {
+        padding: 1.25rem 1.5rem;
+        overflow-x: auto;
+        border: 1px solid rgba(108, 196, 255, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.9rem;
+        border-radius: 999px;
+        background: var(--color-accent-soft);
+        color: var(--color-accent);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.78rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 1.75rem;
+      }
+
+      @media (min-width: 768px) {
+        .grid.two-column {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .card {
+        padding: 1.75rem;
+        background: rgba(11, 18, 32, 0.78);
+        border-radius: 16px;
+        border: 1px solid rgba(108, 196, 255, 0.16);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      }
+
+      .card h3 {
+        margin-top: 0;
+        font-size: 1.25rem;
+      }
+
+      footer {
+        text-align: center;
+        padding: 2rem 1.5rem 4rem;
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="pill">Diagram Automation Engine</span>
+      <h1>Tell the story of your architecture with Nagare.</h1>
+      <p>
+        Nagare is Saasuke Labs' declarative diagramming engine for event-driven architectures, distributed systems, and runtime
+        workflows. Transform a concise DSL into polished SVG diagrams that stay in sync with the systems they explain.
+      </p>
+    </header>
+
+    <main>
+      <section>
+        <h2>Why teams choose Nagare</h2>
+        <div class="grid two-column">
+          <div class="card">
+            <h3>Purpose-built for architecture</h3>
+            <p>
+              Capture services, queues, functions, and lifelines with the same vocabulary your engineers use. Say goodbye to
+              dragging shapes around generic design tools.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Readable, expressive DSL</h3>
+            <p>
+              Describe flows using a Markdown-like syntax that is optimized for humans and machines, enabling code reviews and
+              documentation diffs.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Consistent visuals</h3>
+            <p>
+              Every render uses a shared component library and layout rules, producing diagrams that look great and stay consistent
+              across teams and repos.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Automation ready</h3>
+            <p>
+              Integrate rendering into CI, docs pipelines, and design reviews through the lightweight Go service or Docker image.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>How Nagare works</h2>
+        <ol>
+          <li><strong>Write the flow</strong> in a <code>.mmd</code>-style document describing components, states, and relationships.</li>
+          <li><strong>Send it to Nagare</strong> via the HTTP <code>/render</code> endpoint or Go API.</li>
+          <li><strong>Receive polished SVG</strong> diagrams ready to embed in READMEs, docs portals, and design reviews.</li>
+        </ol>
+        <pre><code>@state(client)
+  Browser "User"
+  -&gt; API "Gateway"
+
+@state(processing)
+  Function "Order Processor"
+  -&gt; Queue "Orders"
+  Queue -&gt; Service "Inventory"</code></pre>
+        <p>
+          Nagare parses the DSL, builds a component layout, and renders an SVG that mirrors the logical flow of your architecture.
+        </p>
+      </section>
+
+      <section>
+        <h2>Sample rendering pipeline</h2>
+        <pre><code>POST /render
+{
+  "dsl": "@state(client)..."
+}</code></pre>
+        <p>
+          The <code>/render</code> endpoint accepts DSL input and returns SVG output. Embed the SVG in Saasuke Labs, Confluence, or any
+          static site generator.
+        </p>
+      </section>
+
+      <section>
+        <h2>Common use cases</h2>
+        <ul class="grid">
+          <li>Onboarding diagrams for new services and platform capabilities.</li>
+          <li>Visualizing message-driven microservice interactions.</li>
+          <li>Architecture decision records and ADR appendices.</li>
+          <li>Runbooks for operational procedures and failover paths.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Get started</h2>
+        <div class="grid two-column">
+          <div class="card">
+            <h3>Explore sample flows</h3>
+            <p>Review <code>example.json</code>, <code>example2.json</code>, and <code>scene.json</code> in the repository for ready-made DSL.</p>
+          </div>
+          <div class="card">
+            <h3>Run the renderer</h3>
+            <p>
+              Launch the service with <code>go run ./cmd/main.go</code> and POST DSL content to
+              <code>http://localhost:8080/render</code>.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Embed the SVG</h3>
+            <p>Drop the generated SVG into READMEs, documentation sites, or Saasuke Labs knowledge bases.</p>
+          </div>
+          <div class="card">
+            <h3>Automate updates</h3>
+            <p>Wire Nagare into CI to regenerate diagrams whenever your DSL changes, keeping visuals aligned with code.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Ready to turn system flows into shareable diagrams? Nagare makes it effortless to keep architecture visuals accurate and
+      aligned with production reality.
+    </footer>
+  </body>
+</html>
