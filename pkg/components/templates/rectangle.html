@@ -1,0 +1,10 @@
+{{define "rectangle"}}
+<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+    <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}"
+          rx="{{printf "%.6f" .BorderRadiusX}}" ry="{{printf "%.6f" .BorderRadiusY}}"
+          fill="{{.Background}}" stroke="{{.Foreground}}" stroke-width="2"/>
+    <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (mul .Height 0.5)}}"
+          font-family="Arial" font-size="14" fill="{{.Foreground}}"
+          text-anchor="middle" dominant-baseline="middle">{{.DisplayText}}</text>
+</g>
+{{end}}

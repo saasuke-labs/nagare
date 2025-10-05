@@ -9,6 +9,7 @@ import (
 var funcMap = template.FuncMap{
 	"add": func(a, b float64) float64 { return a + b },
 	"mul": func(a, b float64) float64 { return a * b },
+	"sub": func(a, b float64) float64 { return a - b },
 }
 
 //go:embed templates/*.html
