@@ -2,9 +2,8 @@ package components
 
 import (
 	"bytes"
+	"embed"
 	"html/template"
-	"path/filepath"
-	"runtime"
 )
 
 var funcMap = template.FuncMap{
@@ -12,16 +11,17 @@ var funcMap = template.FuncMap{
 	"mul": func(a, b float64) float64 { return a * b },
 }
 
+//go:embed templates/*.html
+var templateFiles embed.FS
+
 var templates *template.Template
 
 func init() {
 	var err error
-	_, filename, _, _ := runtime.Caller(0)
-	dir := filepath.Join(filepath.Dir(filename), "templates", "*.html")
 
-	// Create a new template and parse the files
+	// Create a new template and parse the embedded files
 	templates = template.New("").Funcs(funcMap)
-	templates, err = templates.ParseGlob(dir)
+	templates, err = templates.ParseFS(templateFiles, "templates/*.html")
 
 	if err != nil {
 		panic(err)
