@@ -1,0 +1,18 @@
+{{ define "browser" }}
+<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+    <g class="ns" filter="url(#softShadow)">
+            <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
+            <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .TopBarHeight}}" rx="{{printf "%.6f" .CornerRadius}}" ry="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
+            <rect x="{{printf "%.6f" .UrlBarX}}" y="{{printf "%.6f" .UrlBarY}}" width="{{printf "%.6f" .UrlBarWidth}}" height="{{printf "%.6f" .UrlBarHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="#fff" stroke="{{.ForegroundColor}}" opacity="0.85"/>
+            <rect x="{{printf "%.6f" .ContentAreaX}}" y="{{printf "%.6f" .ContentAreaY}}" width="{{printf "%.6f" .ContentAreaWidth}}" height="{{printf "%.6f" .ContentAreaHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="{{.ContentBackgroundColor}}" stroke="{{.ForegroundColor}}" opacity="0.9"/>
+    </g>
+    <text x="{{printf "%.6f" (add .UrlBarX (mul .UrlBarWidth 0.5))}}" y="{{printf "%.6f" (add .UrlBarY (mul .UrlBarHeight 0.5))}}" text-anchor="middle" dominant-baseline="middle"
+            font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+            font-size="{{printf "%.6f" (mul .FontSize 0.8)}}" fill="{{.ForegroundColor}}">{{.URL}}</text>
+    <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (add .ContentAreaY (mul .ContentAreaHeight 0.5))}}" text-anchor="middle" dominant-baseline="middle"
+            font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+            font-size="{{mul .FontSize 2}}" fill="{{.ForegroundColor}}">{{.Text}}</text>
+    {{template "header-controls" .HeaderControlProps }}
+
+</g>
+{{ end }}
