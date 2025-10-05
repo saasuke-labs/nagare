@@ -1,0 +1,62 @@
+@layout(w:1900,h:1400)
+
+desktop:Browser
+mobile:Browser
+infra:VM
+jobs:VM
+api:Server
+auth:Server
+termDeploy:Terminal
+termDebug:Terminal
+dbPrimary:Database
+dbReplica:Database
+eventsQueue:MessageQueue
+tasksQueue:MessageQueue
+edgeGlobal:CDN
+edgeRegional:CDN
+gatewayPublic:APIGateway
+gatewayInternal:APIGateway
+workerReports:BackgroundWorker
+workerCleanup:BackgroundWorker
+pkgCLI:Package
+pkgLib:Package
+artifactBuild:Artifact
+artifactRelease:Artifact
+noteDesign:Rectangle
+noteMetrics:Rectangle
+
+@desktop(x:40,y:40,w:320,h:220,url: "https://app.example.com", bg: "#f1f5f9", fg: "#111827", contentBg: "#ffffff", text: "Dashboard")
+@mobile(x:400,y:40,w:280,h:220,url: "https://m.example.com", bg: "#ecfeff", fg: "#0f172a", contentBg: "#ffffff", text: "Mobile")
+
+@infra(x:40,y:300,w:620,h:360,title: "prod-app-01", bg: "#1e293b", fg: "#f8fafc", contentBg: "#0f172a")
+@jobs(x:720,y:300,w:620,h:360,title: "async-workers", bg: "#0f172a", fg: "#e2e8f0", contentBg: "#1e293b")
+
+@api(x:80,y:360,w:220,h:140,title: "api", icon: "golang", port: 8080, bg: "#dbeafe", fg: "#1e3a8a")
+@auth(x:360,y:360,w:220,h:140,title: "auth", icon: "nginx", port: 443, bg: "#fee2e2", fg: "#991b1b")
+
+@termDeploy(x:40,y:700,w:360,h:220,title: "deploy", cwd: "/srv/app", command: "kubectl apply -f deploy.yaml", prompt: "$", bg: "#111827", fg: "#f9fafb", accent: "#f97316")
+@termDebug(x:440,y:700,w:360,h:220,title: "debug", cwd: "~/workspace", command: "go test ./...", prompt: "#", bg: "#0f172a", fg: "#f8fafc", accent: "#38bdf8")
+
+@dbPrimary(x:840,y:700,w:220,h:200,title: "primary", engine: "PostgreSQL 15", bg: "#064e3b", fg: "#ecfdf5", accent: "#10b981")
+@dbReplica(x:1120,y:700,w:220,h:200,title: "replica", engine: "PostgreSQL 15", bg: "#0f172a", fg: "#e0f2fe", accent: "#38bdf8")
+
+@eventsQueue(x:1400,y:700,w:220,h:180,title: "events", kind: "Kafka", bg: "#4c1d95", fg: "#ede9fe", accent: "#c084fc")
+@tasksQueue(x:1640,y:700,w:220,h:180,title: "tasks", kind: "RabbitMQ", bg: "#6b21a8", fg: "#f5f3ff", accent: "#f472b6")
+
+@edgeGlobal(x:40,y:960,w:200,h:160,title: "global edge", provider: "Cloudflare", region: "Global", bg: "#1d4ed8", fg: "#eff6ff", accent: "#60a5fa")
+@edgeRegional(x:280,y:960,w:200,h:160,title: "asia edge", provider: "AWS CloudFront", region: "ap-southeast-1", bg: "#1e3a8a", fg: "#dbeafe", accent: "#facc15")
+
+@gatewayPublic(x:520,y:960,w:220,h:180,title: "public api", route: "/v1", method: "ANY", bg: "#312e81", fg: "#eef2ff", accent: "#6366f1")
+@gatewayInternal(x:780,y:960,w:220,h:180,title: "internal", route: "/internal", method: "POST", bg: "#1e1b4b", fg: "#e0e7ff", accent: "#a855f7")
+
+@workerReports(x:1040,y:960,w:220,h:180,title: "reports", job: "generate-monthly", schedule: "0 2 * * *", bg: "#14532d", fg: "#dcfce7", accent: "#22c55e")
+@workerCleanup(x:1300,y:960,w:220,h:180,title: "cleanup", job: "trim-cache", schedule: "@every 5m", bg: "#166534", fg: "#bbf7d0", accent: "#4ade80")
+
+@pkgCLI(x:40,y:1180,w:200,h:180,title: "cli", version: "2.1.0", lang: "Go", bg: "#78350f", fg: "#fef3c7", accent: "#f97316")
+@pkgLib(x:280,y:1180,w:200,h:180,title: "lib", version: "0.9.3", lang: "Python", bg: "#92400e", fg: "#ffedd5", accent: "#fb923c")
+
+@artifactBuild(x:520,y:1180,w:200,h:180,title: "build", filename: "build_2024_05.tar.gz", size: "32 MB", bg: "#111827", fg: "#e5e7eb", accent: "#9ca3af")
+@artifactRelease(x:760,y:1180,w:200,h:180,title: "release", filename: "release-2024-05.zip", size: "28 MB", bg: "#1f2937", fg: "#f9fafb", accent: "#f59e0b")
+
+@noteDesign(x:1000,y:1180,w:220,h:160,title: "Design Notes", bg: "#fef3c7", fg: "#92400e")
+@noteMetrics(x:1260,y:1180,w:220,h:160,title: "Metrics", bg: "#e0f2fe", fg: "#1d4ed8")

@@ -11,23 +11,50 @@ import (
 )
 
 const (
-	defaultBrowserWidth  = 640.0
-	defaultBrowserHeight = 420.0
-	defaultVMWidth       = 640.0
-	defaultVMHeight      = 420.0
-	defaultServerWidth   = 200.0
-	defaultServerHeight  = 140.0
-	defaultComponentX    = 0.0
-	defaultComponentY    = 0.0
-	arrowElbowPadding    = 24.0
-	floatEqualityEpsilon = 0.0001
+	defaultBrowserWidth      = 640.0
+	defaultBrowserHeight     = 420.0
+	defaultVMWidth           = 640.0
+	defaultVMHeight          = 420.0
+	defaultServerWidth       = 200.0
+	defaultServerHeight      = 140.0
+	defaultTerminalWidth     = 360.0
+	defaultTerminalHeight    = 220.0
+	defaultDatabaseWidth     = 200.0
+	defaultDatabaseHeight    = 200.0
+	defaultQueueWidth        = 220.0
+	defaultQueueHeight       = 180.0
+	defaultCDNWidth          = 200.0
+	defaultCDNHeight         = 160.0
+	defaultAPIGatewayWidth   = 220.0
+	defaultAPIGatewayHeight  = 180.0
+	defaultBackgroundWorkerW = 220.0
+	defaultBackgroundWorkerH = 180.0
+	defaultPackageWidth      = 200.0
+	defaultPackageHeight     = 180.0
+	defaultArtifactWidth     = 200.0
+	defaultArtifactHeight    = 180.0
+	defaultComponentX        = 0.0
+	defaultComponentY        = 0.0
+	arrowElbowPadding        = 24.0
+	floatEqualityEpsilon     = 0.0001
 )
 
 const (
-	componentTypeBrowser   = "Browser"
-	componentTypeVM        = "VM"
-	componentTypeServer    = "Server"
-	componentTypeRectangle = "Rectangle"
+	componentTypeBrowser          = "Browser"
+	componentTypeVM               = "VM"
+	componentTypeServer           = "Server"
+	componentTypeRectangle        = "Rectangle"
+	componentTypeTerminal         = "Terminal"
+	componentTypeDatabase         = "Database"
+	componentTypeMessageQueue     = "MessageQueue"
+	componentTypeQueue            = "Queue"
+	componentTypeCDN              = "CDN"
+	componentTypeEdge             = "Edge"
+	componentTypeAPIGateway       = "APIGateway"
+	componentTypeBackgroundWorker = "BackgroundWorker"
+	componentTypePackage          = "Package"
+	componentTypeArtifact         = "Artifact"
+	componentTypeFile             = "File"
 )
 
 // Rect represents a rectangle in the layout
@@ -238,6 +265,38 @@ func syncComponentGeometry(children []components.Component, nodeIndex map[string
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
+		case *components.Terminal:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *components.Database:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *components.MessageQueue:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *components.CDN:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *components.APIGateway:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *components.BackgroundWorker:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *components.Package:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *components.Artifact:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
 		case *components.VM:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
@@ -268,6 +327,54 @@ func syncVMChildGeometry(vm *components.VM, nodeIndex map[string]components.Shap
 	for _, child := range vm.Children {
 		switch comp := child.(type) {
 		case *components.Server:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *components.Terminal:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *components.Database:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *components.MessageQueue:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *components.CDN:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *components.APIGateway:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *components.BackgroundWorker:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *components.Package:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *components.Artifact:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
@@ -348,6 +455,22 @@ func buildComponentTree(node parser.Node, nodeIndex map[string]components.Shape)
 		return []components.Component{buildVM(node, nodeIndex)}
 	case componentTypeServer:
 		return []components.Component{buildServer(node, nil, nodeIndex)}
+	case componentTypeTerminal:
+		return []components.Component{buildTerminal(node, nil, nodeIndex)}
+	case componentTypeDatabase:
+		return []components.Component{buildDatabase(node, nil, nodeIndex)}
+	case componentTypeMessageQueue, componentTypeQueue:
+		return []components.Component{buildMessageQueue(node, nil, nodeIndex)}
+	case componentTypeCDN, componentTypeEdge:
+		return []components.Component{buildCDN(node, nil, nodeIndex)}
+	case componentTypeAPIGateway:
+		return []components.Component{buildAPIGateway(node, nil, nodeIndex)}
+	case componentTypeBackgroundWorker:
+		return []components.Component{buildBackgroundWorker(node, nil, nodeIndex)}
+	case componentTypePackage:
+		return []components.Component{buildPackage(node, nil, nodeIndex)}
+	case componentTypeArtifact, componentTypeFile:
+		return []components.Component{buildArtifact(node, nil, nodeIndex)}
 	case componentTypeRectangle:
 		return []components.Component{buildRectangle(node, nil, nodeIndex)}
 	default:
@@ -402,6 +525,30 @@ func layoutVMChildren(parent parser.Node, vm *components.VM, nodeIndex map[strin
 		case componentTypeServer:
 			server := buildServer(child, vm, nodeIndex)
 			vm.AddChild(server)
+		case componentTypeTerminal:
+			terminal := buildTerminal(child, vm, nodeIndex)
+			vm.AddChild(terminal)
+		case componentTypeDatabase:
+			database := buildDatabase(child, vm, nodeIndex)
+			vm.AddChild(database)
+		case componentTypeMessageQueue, componentTypeQueue:
+			queue := buildMessageQueue(child, vm, nodeIndex)
+			vm.AddChild(queue)
+		case componentTypeCDN, componentTypeEdge:
+			cdn := buildCDN(child, vm, nodeIndex)
+			vm.AddChild(cdn)
+		case componentTypeAPIGateway:
+			gateway := buildAPIGateway(child, vm, nodeIndex)
+			vm.AddChild(gateway)
+		case componentTypeBackgroundWorker:
+			worker := buildBackgroundWorker(child, vm, nodeIndex)
+			vm.AddChild(worker)
+		case componentTypePackage:
+			pkg := buildPackage(child, vm, nodeIndex)
+			vm.AddChild(pkg)
+		case componentTypeArtifact, componentTypeFile:
+			artifact := buildArtifact(child, vm, nodeIndex)
+			vm.AddChild(artifact)
 		case componentTypeRectangle:
 			rect := buildRectangle(child, vm, nodeIndex)
 			vm.AddChild(rect)
@@ -438,6 +585,198 @@ func buildServer(node parser.Node, vm *components.VM, nodeIndex map[string]compo
 	nodeIndex[node.Text] = absServerShape
 
 	return server
+}
+
+func buildTerminal(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.Terminal {
+	terminal := components.NewTerminal(node.Text)
+	terminal.Shape = components.Shape{
+		Width:  defaultTerminalWidth,
+		Height: defaultTerminalHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &terminal.Shape, &terminal.Props, node.Text)
+	terminal.State = applyNamedStateProperties(node, &terminal.Shape, &terminal.Props, true)
+
+	absShape := terminal.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return terminal
+}
+
+func buildDatabase(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.Database {
+	database := components.NewDatabase(node.Text)
+	database.Shape = components.Shape{
+		Width:  defaultDatabaseWidth,
+		Height: defaultDatabaseHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &database.Shape, &database.Props, node.Text)
+	database.State = applyNamedStateProperties(node, &database.Shape, &database.Props, true)
+
+	absShape := database.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return database
+}
+
+func buildMessageQueue(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.MessageQueue {
+	queue := components.NewMessageQueue(node.Text)
+	queue.Shape = components.Shape{
+		Width:  defaultQueueWidth,
+		Height: defaultQueueHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &queue.Shape, &queue.Props, node.Text)
+	queue.State = applyNamedStateProperties(node, &queue.Shape, &queue.Props, true)
+
+	absShape := queue.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return queue
+}
+
+func buildCDN(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.CDN {
+	cdn := components.NewCDN(node.Text)
+	cdn.Shape = components.Shape{
+		Width:  defaultCDNWidth,
+		Height: defaultCDNHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &cdn.Shape, &cdn.Props, node.Text)
+	cdn.State = applyNamedStateProperties(node, &cdn.Shape, &cdn.Props, true)
+
+	absShape := cdn.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return cdn
+}
+
+func buildAPIGateway(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.APIGateway {
+	gateway := components.NewAPIGateway(node.Text)
+	gateway.Shape = components.Shape{
+		Width:  defaultAPIGatewayWidth,
+		Height: defaultAPIGatewayHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &gateway.Shape, &gateway.Props, node.Text)
+	gateway.State = applyNamedStateProperties(node, &gateway.Shape, &gateway.Props, true)
+
+	absShape := gateway.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return gateway
+}
+
+func buildBackgroundWorker(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.BackgroundWorker {
+	worker := components.NewBackgroundWorker(node.Text)
+	worker.Shape = components.Shape{
+		Width:  defaultBackgroundWorkerW,
+		Height: defaultBackgroundWorkerH,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &worker.Shape, &worker.Props, node.Text)
+	worker.State = applyNamedStateProperties(node, &worker.Shape, &worker.Props, true)
+
+	absShape := worker.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return worker
+}
+
+func buildPackage(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.Package {
+	pkg := components.NewPackage(node.Text)
+	pkg.Shape = components.Shape{
+		Width:  defaultPackageWidth,
+		Height: defaultPackageHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &pkg.Shape, &pkg.Props, node.Text)
+	pkg.State = applyNamedStateProperties(node, &pkg.Shape, &pkg.Props, true)
+
+	absShape := pkg.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return pkg
+}
+
+func buildArtifact(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.Artifact {
+	artifact := components.NewArtifact(node.Text)
+	artifact.Shape = components.Shape{
+		Width:  defaultArtifactWidth,
+		Height: defaultArtifactHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &artifact.Shape, &artifact.Props, node.Text)
+	artifact.State = applyNamedStateProperties(node, &artifact.Shape, &artifact.Props, true)
+
+	absShape := artifact.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * components.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * components.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return artifact
 }
 
 func buildRectangle(node parser.Node, vm *components.VM, nodeIndex map[string]components.Shape) *components.Rectangle {
