@@ -1,0 +1,11 @@
+@layout(w:400,h:220)
+
+top:Rectangle@node
+bottom:Rectangle@node
+
+top.n25 --> bottom.s75
+
+@node(bg: "#f0f8ff", fg: "#333333")
+
+@top(x:40,y:40,w:120,h:60,title: "Top")
+@bottom(x:220,y:140,w:120,h:60,title: "Bottom")
