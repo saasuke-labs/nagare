@@ -3,6 +3,7 @@ package parser
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/saasuke-labs/nagare/pkg/tokenizer"
@@ -40,6 +41,13 @@ type AnchorDescriptor struct {
 	Horizontal float64
 	Vertical   float64
 	Directions []rune
+	// Fractions represent normalized positions along the opposing axis of the
+	// anchor's primary direction (e.g. HorizontalFraction is used for north/south
+	// anchors to determine the X offset along the top/bottom edge).
+	HorizontalFraction    float64
+	VerticalFraction      float64
+	HasHorizontalFraction bool
+	HasVerticalFraction   bool
 }
 
 // Connection represents a link between two nodes in the AST.
@@ -392,29 +400,79 @@ func parseAnchorDescriptor(raw string) AnchorDescriptor {
 	}
 
 	normalized := strings.ToLower(descriptor.Raw)
-	horizontal := 0.0
-	vertical := 0.0
 	directions := make([]rune, 0, len(normalized))
+	digits := strings.Builder{}
+	lastDirection := rune(0)
+
+	applyDigits := func(direction rune, digits string) {
+		if direction == 0 || digits == "" {
+			return
+		}
+
+		if len(digits) > 6 {
+			digits = digits[:6]
+		}
+
+		value, err := strconv.Atoi(digits)
+		if err != nil {
+			return
+		}
+
+		divisor := 1.0
+		for range digits {
+			divisor *= 10
+		}
+
+		fraction := float64(value) / divisor
+		switch direction {
+		case 'n', 's':
+			descriptor.HorizontalFraction = fraction
+			descriptor.HasHorizontalFraction = true
+		case 'e', 'w':
+			descriptor.VerticalFraction = fraction
+			descriptor.HasVerticalFraction = true
+		}
+	}
 
 	for _, r := range normalized {
 		switch r {
 		case 'w':
-			horizontal = -1.0
+			applyDigits(lastDirection, digits.String())
+			digits.Reset()
+			descriptor.Horizontal = -1.0
 			directions = append(directions, r)
+			lastDirection = r
 		case 'e':
-			horizontal = 1.0
+			applyDigits(lastDirection, digits.String())
+			digits.Reset()
+			descriptor.Horizontal = 1.0
 			directions = append(directions, r)
+			lastDirection = r
 		case 'n':
-			vertical = -1.0
+			applyDigits(lastDirection, digits.String())
+			digits.Reset()
+			descriptor.Vertical = -1.0
 			directions = append(directions, r)
+			lastDirection = r
 		case 's':
-			vertical = 1.0
+			applyDigits(lastDirection, digits.String())
+			digits.Reset()
+			descriptor.Vertical = 1.0
 			directions = append(directions, r)
+			lastDirection = r
+		default:
+			if r >= '0' && r <= '9' {
+				digits.WriteRune(r)
+			} else {
+				applyDigits(lastDirection, digits.String())
+				digits.Reset()
+				lastDirection = 0
+			}
 		}
 	}
 
-	descriptor.Horizontal = horizontal
-	descriptor.Vertical = vertical
+	applyDigits(lastDirection, digits.String())
+
 	descriptor.Directions = directions
 	return descriptor
 }

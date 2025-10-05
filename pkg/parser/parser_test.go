@@ -139,6 +139,42 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name: "connection numeric anchors",
+			tokens: []tokenizer.Token{
+				{Type: tokenizer.IDENTIFIER, Value: "foo"},
+				{Type: tokenizer.DOT},
+				{Type: tokenizer.IDENTIFIER, Value: "n25"},
+				{Type: tokenizer.ARROW, Value: "-->"},
+				{Type: tokenizer.IDENTIFIER, Value: "bar"},
+				{Type: tokenizer.DOT},
+				{Type: tokenizer.IDENTIFIER, Value: "s5"},
+			},
+			expected: Node{
+				Type:  NODE_ELEMENT,
+				Depth: 0,
+				Connections: []Connection{
+					{
+						FromID: "foo",
+						FromAnchor: AnchorDescriptor{
+							Raw:                   "n25",
+							Vertical:              -1,
+							Directions:            []rune{'n'},
+							HorizontalFraction:    0.25,
+							HasHorizontalFraction: true,
+						},
+						ToID: "bar",
+						ToAnchor: AnchorDescriptor{
+							Raw:                   "s5",
+							Vertical:              1,
+							Directions:            []rune{'s'},
+							HorizontalFraction:    0.5,
+							HasHorizontalFraction: true,
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "type declaration remains",
 			tokens: []tokenizer.Token{
 				{Type: tokenizer.IDENTIFIER, Value: "App"},

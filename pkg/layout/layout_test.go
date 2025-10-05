@@ -167,6 +167,36 @@ func TestComputeAnchorPointRespectsAnchorOrder(t *testing.T) {
 	}
 }
 
+func TestComputeAnchorPointSupportsFractionalAnchors(t *testing.T) {
+	shape := components.Shape{X: 10, Y: 20, Width: 200, Height: 100}
+
+	topQuarter := parser.AnchorDescriptor{
+		Raw:                   "n25",
+		HorizontalFraction:    0.25,
+		HasHorizontalFraction: true,
+	}
+	topPoint := computeAnchorPoint(shape, normalizeAnchor(topQuarter))
+	if !floatsNearlyEqual(topPoint.X, shape.X+shape.Width*0.25) {
+		t.Fatalf("expected fractional north anchor X to be %f, got %f", shape.X+shape.Width*0.25, topPoint.X)
+	}
+	if !floatsNearlyEqual(topPoint.Y, shape.Y) {
+		t.Fatalf("expected fractional north anchor Y to be %f, got %f", shape.Y, topPoint.Y)
+	}
+
+	rightThird := parser.AnchorDescriptor{
+		Raw:                 "e333333",
+		VerticalFraction:    0.333333,
+		HasVerticalFraction: true,
+	}
+	rightPoint := computeAnchorPoint(shape, normalizeAnchor(rightThird))
+	if !floatsNearlyEqual(rightPoint.X, shape.X+shape.Width) {
+		t.Fatalf("expected fractional east anchor X to be %f, got %f", shape.X+shape.Width, rightPoint.X)
+	}
+	if !floatsNearlyEqual(rightPoint.Y, shape.Y+shape.Height*0.333333) {
+		t.Fatalf("expected fractional east anchor Y to be %f, got %f", shape.Y+shape.Height*0.333333, rightPoint.Y)
+	}
+}
+
 func TestCalculateUsesLayoutGlobalOverrides(t *testing.T) {
 	root := parser.Node{
 		Globals: map[string]parser.State{

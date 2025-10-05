@@ -579,8 +579,12 @@ func normalizeAnchor(anchor parser.AnchorDescriptor) parser.AnchorDescriptor {
 	}
 
 	normalized := parser.AnchorDescriptor{
-		Raw:        anchor.Raw,
-		Directions: anchorDirections(anchor),
+		Raw:                   anchor.Raw,
+		Directions:            anchorDirections(anchor),
+		HorizontalFraction:    anchor.HorizontalFraction,
+		VerticalFraction:      anchor.VerticalFraction,
+		HasHorizontalFraction: anchor.HasHorizontalFraction,
+		HasVerticalFraction:   anchor.HasVerticalFraction,
 	}
 	lower := strings.ToLower(anchor.Raw)
 	for _, r := range lower {
@@ -608,16 +612,16 @@ func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) 
 		switch {
 		case anchor.Horizontal < 0:
 			point.X = shape.X
-			point.Y = verticalEdgeOffset(shape, verticalDirectionFromSign(anchor.Vertical))
+			point.Y = verticalEdgeOffsetForAnchor(shape, verticalDirectionFromSign(anchor.Vertical), anchor)
 		case anchor.Horizontal > 0:
 			point.X = shape.X + shape.Width
-			point.Y = verticalEdgeOffset(shape, verticalDirectionFromSign(anchor.Vertical))
+			point.Y = verticalEdgeOffsetForAnchor(shape, verticalDirectionFromSign(anchor.Vertical), anchor)
 		case anchor.Vertical < 0:
 			point.Y = shape.Y
-			point.X = horizontalEdgeOffset(shape, horizontalDirectionFromSign(anchor.Horizontal))
+			point.X = horizontalEdgeOffsetForAnchor(shape, horizontalDirectionFromSign(anchor.Horizontal), anchor)
 		case anchor.Vertical > 0:
 			point.Y = shape.Y + shape.Height
-			point.X = horizontalEdgeOffset(shape, horizontalDirectionFromSign(anchor.Horizontal))
+			point.X = horizontalEdgeOffsetForAnchor(shape, horizontalDirectionFromSign(anchor.Horizontal), anchor)
 		}
 		return point
 	}
@@ -628,24 +632,24 @@ func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) 
 	switch {
 	case isVerticalDirection(primary):
 		point.Y = verticalEdgePosition(shape, primary)
-		point.X = horizontalEdgeOffset(shape, secondary)
+		point.X = horizontalEdgeOffsetForAnchor(shape, secondary, anchor)
 	case isHorizontalDirection(primary):
 		point.X = horizontalEdgePosition(shape, primary)
-		point.Y = verticalEdgeOffset(shape, secondary)
+		point.Y = verticalEdgeOffsetForAnchor(shape, secondary, anchor)
 	default:
 		switch {
 		case anchor.Horizontal < 0:
 			point.X = shape.X
-			point.Y = verticalEdgeOffset(shape, verticalDirectionFromSign(anchor.Vertical))
+			point.Y = verticalEdgeOffsetForAnchor(shape, verticalDirectionFromSign(anchor.Vertical), anchor)
 		case anchor.Horizontal > 0:
 			point.X = shape.X + shape.Width
-			point.Y = verticalEdgeOffset(shape, verticalDirectionFromSign(anchor.Vertical))
+			point.Y = verticalEdgeOffsetForAnchor(shape, verticalDirectionFromSign(anchor.Vertical), anchor)
 		case anchor.Vertical < 0:
 			point.Y = shape.Y
-			point.X = horizontalEdgeOffset(shape, horizontalDirectionFromSign(anchor.Horizontal))
+			point.X = horizontalEdgeOffsetForAnchor(shape, horizontalDirectionFromSign(anchor.Horizontal), anchor)
 		case anchor.Vertical > 0:
 			point.Y = shape.Y + shape.Height
-			point.X = horizontalEdgeOffset(shape, horizontalDirectionFromSign(anchor.Horizontal))
+			point.X = horizontalEdgeOffsetForAnchor(shape, horizontalDirectionFromSign(anchor.Horizontal), anchor)
 		}
 	}
 
@@ -745,7 +749,11 @@ func horizontalEdgePosition(shape components.Shape, direction rune) float64 {
 	return shape.X + shape.Width
 }
 
-func horizontalEdgeOffset(shape components.Shape, direction rune) float64 {
+func horizontalEdgeOffsetForAnchor(shape components.Shape, direction rune, anchor parser.AnchorDescriptor) float64 {
+	if anchor.HasHorizontalFraction {
+		return shape.X + shape.Width*anchor.HorizontalFraction
+	}
+
 	switch direction {
 	case 'w':
 		return shape.X + shape.Width*0.25
@@ -756,7 +764,11 @@ func horizontalEdgeOffset(shape components.Shape, direction rune) float64 {
 	}
 }
 
-func verticalEdgeOffset(shape components.Shape, direction rune) float64 {
+func verticalEdgeOffsetForAnchor(shape components.Shape, direction rune, anchor parser.AnchorDescriptor) float64 {
+	if anchor.HasVerticalFraction {
+		return shape.Y + shape.Height*anchor.VerticalFraction
+	}
+
 	switch direction {
 	case 'n':
 		return shape.Y + shape.Height*0.25
