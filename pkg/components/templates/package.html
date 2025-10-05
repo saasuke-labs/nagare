@@ -1,0 +1,11 @@
+{{define "package"}}
+<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+    <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" (mul .Height 0.12)}}" ry="{{printf "%.6f" (mul .Height 0.12)}}" fill="{{.Props.BackgroundColor}}"/>
+    {{$halfWidth := mul .Width 0.5}}
+    {{$flapHeight := mul .Height 0.35}}
+    <path d="M0 {{printf "%.6f" $flapHeight}} L{{printf "%.6f" $halfWidth}} {{printf "%.6f" (mul $flapHeight 0.2)}} L{{printf "%.6f" .Width}} {{printf "%.6f" $flapHeight}} Z" fill="{{.Props.AccentColor}}" opacity="0.8"/>
+    <rect x="{{printf "%.6f" (mul .Width 0.42)}}" y="{{printf "%.6f" (mul .Height 0.45)}}" width="{{printf "%.6f" (mul .Width 0.16)}}" height="{{printf "%.6f" (mul .Height 0.4)}}" fill="{{.Props.AccentColor}}" opacity="0.9"/>
+    <text x="{{printf "%.6f" $halfWidth}}" y="{{printf "%.6f" (mul .Height 0.7)}}" text-anchor="middle" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.18)}}" fill="{{.Props.ForegroundColor}}">{{.Props.Title}}</text>
+    <text x="{{printf "%.6f" $halfWidth}}" y="{{printf "%.6f" (mul .Height 0.88)}}" text-anchor="middle" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.12)}}" fill="{{.Props.ForegroundColor}}" opacity="0.8">{{.Props.Language}} • v{{.Props.Version}}</text>
+</g>
+{{end}}

@@ -1,0 +1,13 @@
+{{define "terminal"}}
+<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+    <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" (mul .Height 0.08)}}" ry="{{printf "%.6f" (mul .Height 0.08)}}" fill="{{.Props.BackgroundColor}}"/>
+    <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" (mul .Height 0.18)}}" rx="{{printf "%.6f" (mul .Height 0.08)}}" ry="{{printf "%.6f" (mul .Height 0.08)}}" fill="{{.Props.AccentColor}}" opacity="0.35"/>
+    {{template "header-controls" .HeaderControls}}
+    <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (mul .Height 0.12)}}" text-anchor="middle" font-family="Menlo, monospace" font-size="{{printf "%.6f" (mul .Height 0.12)}}" fill="{{.Props.ForegroundColor}}" opacity="0.9">{{.Props.Title}}</text>
+    <text x="{{printf "%.6f" (mul .Width 0.08)}}" y="{{printf "%.6f" (mul .Height 0.45)}}" font-family="Menlo, monospace" font-size="{{printf "%.6f" (mul .Height 0.18)}}" fill="{{.Props.ForegroundColor}}">
+        <tspan fill="{{.Props.AccentColor}}">{{.Props.WorkingDir}}</tspan>
+        <tspan> {{.Props.PromptSymbol}} </tspan>
+        <tspan>{{.Props.Command}}</tspan>
+    </text>
+</g>
+{{end}}

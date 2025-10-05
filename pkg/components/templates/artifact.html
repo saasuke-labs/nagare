@@ -1,0 +1,10 @@
+{{define "artifact"}}
+<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+    <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" (mul .Height 0.18)}}" ry="{{printf "%.6f" (mul .Height 0.18)}}" fill="{{.Props.BackgroundColor}}"/>
+    {{$foldSize := mul .Height 0.3}}
+    <path d="M{{printf "%.6f" (sub .Width $foldSize)}} 0 L{{printf "%.6f" .Width}} {{printf "%.6f" $foldSize}} L{{printf "%.6f" .Width}} 0 Z" fill="{{.Props.AccentColor}}" opacity="0.8"/>
+    <text x="{{printf "%.6f" (mul .Width 0.1)}}" y="{{printf "%.6f" (mul .Height 0.35)}}" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.2)}}" fill="{{.Props.ForegroundColor}}">{{.Props.Title}}</text>
+    <text x="{{printf "%.6f" (mul .Width 0.1)}}" y="{{printf "%.6f" (mul .Height 0.6)}}" font-family="Menlo, monospace" font-size="{{printf "%.6f" (mul .Height 0.16)}}" fill="{{.Props.ForegroundColor}}" opacity="0.85">{{.Props.Filename}}</text>
+    <text x="{{printf "%.6f" (mul .Width 0.1)}}" y="{{printf "%.6f" (mul .Height 0.82)}}" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.14)}}" fill="{{.Props.ForegroundColor}}" opacity="0.7">{{.Props.Size}}</text>
+</g>
+{{end}}

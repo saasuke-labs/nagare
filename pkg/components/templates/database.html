@@ -1,0 +1,10 @@
+{{define "database"}}
+<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+    {{$radius := mul .Height 0.2}}
+    <ellipse cx="{{printf "%.6f" (mul .Width 0.5)}}" cy="{{printf "%.6f" $radius}}" rx="{{printf "%.6f" (mul .Width 0.5)}}" ry="{{printf "%.6f" (mul $radius 0.6)}}" fill="{{.Props.AccentColor}}" opacity="0.8"/>
+    <rect x="0" y="{{printf "%.6f" (mul $radius 0.4)}}" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" (sub .Height (mul $radius 0.8))}}" fill="{{.Props.BackgroundColor}}"/>
+    <ellipse cx="{{printf "%.6f" (mul .Width 0.5)}}" cy="{{printf "%.6f" (sub .Height (mul $radius 0.4))}}" rx="{{printf "%.6f" (mul .Width 0.5)}}" ry="{{printf "%.6f" (mul $radius 0.6)}}" fill="{{.Props.AccentColor}}" opacity="0.9"/>
+    <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (mul .Height 0.45)}}" text-anchor="middle" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.22)}}" fill="{{.Props.ForegroundColor}}">{{.Props.Title}}</text>
+    <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (mul .Height 0.7)}}" text-anchor="middle" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.16)}}" fill="{{.Props.ForegroundColor}}" opacity="0.8">{{.Props.Engine}}</text>
+</g>
+{{end}}
