@@ -1,9 +1,7 @@
 package components
 
 import (
-	"bytes"
 	"fmt"
-	"text/template"
 
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
@@ -80,28 +78,10 @@ func (r *Rectangle) Draw() string {
 		BorderRadiusY: r.Height * 0.1,
 	}
 
-	const rectangleTemplate = `<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
-    <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}"
-          rx="{{printf "%.6f" .BorderRadiusX}}" ry="{{printf "%.6f" .BorderRadiusY}}"
-          fill="{{.Background}}" stroke="{{.Foreground}}" stroke-width="2"/>
-    <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (mul .Height 0.5)}}"
-          font-family="Arial" font-size="14" fill="{{.Foreground}}"
-          text-anchor="middle" dominant-baseline="middle">{{.DisplayText}}</text>
-</g>`
-
-	funcMap := template.FuncMap{
-		"mul": func(a, b float64) float64 { return a * b },
-	}
-
-	tmpl, err := template.New("rectangle").Funcs(funcMap).Parse(rectangleTemplate)
+	result, err := RenderTemplate("rectangle", data)
 	if err != nil {
-		return fmt.Sprintf("<!-- Error parsing rectangle template: %v -->", err)
+		return fmt.Sprintf("<!-- Error rendering rectangle template: %v -->", err)
 	}
 
-	var svg bytes.Buffer
-	if err := tmpl.Execute(&svg, data); err != nil {
-		return fmt.Sprintf("<!-- Error executing rectangle template: %v -->", err)
-	}
-
-	return svg.String()
+	return result
 }
