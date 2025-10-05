@@ -1,0 +1,41 @@
+<svg width="800" height="300" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background -->
+        <rect width="800" height="300" fill="#ffffff"/>
+        
+        <g transform="translate(0.000000,0.000000)">
+    <rect x="0" y="0" width="300.000000" height="30.000000"
+          rx="3.000000" ry="3.000000"
+          fill="#e6f3ff" stroke="#333333" stroke-width="2"/>
+    <text x="150.000000" y="15.000000"
+          font-family="Arial" font-size="14" fill="#333333"
+          text-anchor="middle" dominant-baseline="middle">registerUser</text>
+</g><g transform="translate(100.000000,50.000000)">
+    <rect x="0" y="0" width="300.000000" height="30.000000"
+          rx="3.000000" ry="3.000000"
+          fill="#e6f3ff" stroke="#333333" stroke-width="2"/>
+    <text x="150.000000" y="15.000000"
+          font-family="Arial" font-size="14" fill="#333333"
+          text-anchor="middle" dominant-baseline="middle">validateUser</text>
+</g><g transform="translate(200.000000,100.000000)">
+    <rect x="0" y="0" width="300.000000" height="30.000000"
+          rx="3.000000" ry="3.000000"
+          fill="#e6f3ff" stroke="#333333" stroke-width="2"/>
+    <text x="150.000000" y="15.000000"
+          font-family="Arial" font-size="14" fill="#333333"
+          text-anchor="middle" dominant-baseline="middle">createUser</text>
+</g><g transform="translate(300.000000,150.000000)">
+    <rect x="0" y="0" width="300.000000" height="30.000000"
+          rx="3.000000" ry="3.000000"
+          fill="#e6f3ff" stroke="#333333" stroke-width="2"/>
+    <text x="150.000000" y="15.000000"
+          font-family="Arial" font-size="14" fill="#333333"
+          text-anchor="middle" dominant-baseline="middle">sendConfirmationEmail</text>
+</g><g transform="translate(400.000000,200.000000)">
+    <rect x="0" y="0" width="300.000000" height="30.000000"
+          rx="3.000000" ry="3.000000"
+          fill="#e6f3ff" stroke="#333333" stroke-width="2"/>
+    <text x="150.000000" y="15.000000"
+          font-family="Arial" font-size="14" fill="#333333"
+          text-anchor="middle" dominant-baseline="middle">logRegistration</text>
+</g><g class="connector"><defs><marker id="arrowhead-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2937"/></marker></defs><polyline points="75.00,30.00 51.00,30.00 51.00,65.00 100.00,65.00" stroke="#1f2937" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-3)"/></g><g class="connector"><defs><marker id="arrowhead-4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2937"/></marker></defs><polyline points="175.00,80.00 151.00,80.00 151.00,115.00 200.00,115.00" stroke="#1f2937" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-4)"/></g><g class="connector"><defs><marker id="arrowhead-5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2937"/></marker></defs><polyline points="275.00,130.00 251.00,130.00 251.00,165.00 300.00,165.00" stroke="#1f2937" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-5)"/></g><g class="connector"><defs><marker id="arrowhead-6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2937"/></marker></defs><polyline points="375.00,180.00 351.00,180.00 351.00,215.00 400.00,215.00" stroke="#1f2937" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-6)"/></g>
+</svg>
