@@ -55,6 +55,9 @@ go run ./cmd/main.go
 
 # Build release binary
 goreleaser build --snapshot --clean
+
+# Add CI/pr diagrams
+# Create `.nagare` files under `.github/testdiagrams/`
 ```
 
 ## Known Limitations
