@@ -2,14 +2,86 @@
 
 Nagare is a Go-based diagram rendering engine that converts a simple domain-specific language (DSL) into SVG diagrams.
 
-## Quick Start
+## Installation
 
 ```bash
-# Install
-go install github.com/saasuke-labs/nagare@latest
+go install github.com/saasuke-labs/nagare/cmd/main@latest
+```
 
-# Run the server
+## Usage
+
+Nagare can be used in three ways:
+
+### 1. HTTP Server Mode
+
+Start the server on port 8080 (or specify a custom port):
+
+```bash
+# Default port 8080
 nagare
+
+# Custom port
+nagare -port 3000
+```
+
+Send POST requests to render diagrams:
+
+```bash
+curl -X POST http://localhost:8080/render \
+  -H "Content-Type: text/plain" \
+  -d '@diagram.nagare'
+```
+
+### 2. CLI Mode
+
+Render a diagram file directly to SVG:
+
+```bash
+nagare -input diagram.nagare -output diagram.svg
+```
+
+### 3. Library Mode
+
+Import nagare as a Go library in your own projects:
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/saasuke-labs/nagare/pkg/nagare"
+)
+
+func main() {
+    diagramCode := `
+@layout(w:500,h:300)
+
+client:Browser@webapp
+server:Server@backend
+
+client.e --> server.w
+
+@client(x:50,y:100,w:180,h:120)
+@webapp(url: "https://example.com", bg: "#e6f3ff", fg: "#333", text: "Web App")
+
+@server(x:300,y:100,w:150,h:50, title: "API Server", icon: "server", port: 8080, bg: "#f0f8ff", fg: "#333")
+`
+
+    svg, err := nagare.RenderToSVG(diagramCode)
+    if err != nil {
+        log.Fatalf("Error: %v", err)
+    }
+
+    fmt.Println(svg)
+}
+```
+
+Install the library in your project:
+
+```bash
+go get github.com/saasuke-labs/nagare
 ```
 
 ## Layout Overrides

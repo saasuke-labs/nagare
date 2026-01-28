@@ -1,21 +1,51 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/saasuke-labs/nagare/pkg/chart"
 	"github.com/saasuke-labs/nagare/pkg/diagram"
+	"github.com/saasuke-labs/nagare/pkg/nagare"
 )
 
 func main() {
-	http.HandleFunc("POST /render", handleRender)
-	http.HandleFunc("POST /render-webp", handleRenderWebP)
-	http.HandleFunc("GET /test", handleTest)
-	log.Printf("Server starting on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// Define CLI flags
+	inputFile := flag.String("input", "", "Input .nagare file path")
+	outputFile := flag.String("output", "", "Output .svg file path")
+	port := flag.String("port", "8080", "HTTP server port")
+	flag.Parse()
+
+	// CLI mode: if input and output are provided, render file and exit
+	if *inputFile != "" && *outputFile != "" {
+		if err := nagare.RenderFileToFile(*inputFile, *outputFile); err != nil {
+			log.Fatalf("Error rendering diagram: %v", err)
+		}
+		fmt.Printf("Successfully rendered %s to %s\n", *inputFile, *outputFile)
+		return
+	}
+
+	// HTTP server mode: if no CLI args provided, start the server
+	if *inputFile == "" && *outputFile == "" {
+		http.HandleFunc("POST /render", handleRender)
+		http.HandleFunc("POST /render-webp", handleRenderWebP)
+		http.HandleFunc("GET /test", handleTest)
+		log.Printf("Server starting on http://localhost:%s", *port)
+		log.Fatal(http.ListenAndServe(":"+*port, nil))
+		return
+	}
+
+	// Invalid usage
+	fmt.Fprintln(os.Stderr, "Error: Both -input and -output flags must be provided together for CLI mode")
+	fmt.Fprintln(os.Stderr, "\nUsage:")
+	fmt.Fprintln(os.Stderr, "  CLI mode:    nagare -input diagram.nagare -output diagram.svg")
+	fmt.Fprintln(os.Stderr, "  Server mode: nagare [-port 8080]")
+	os.Exit(1)
 }
 
 func handleTest(w http.ResponseWriter, r *http.Request) {

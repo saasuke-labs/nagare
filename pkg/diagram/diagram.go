@@ -1,44 +1,37 @@
 package diagram
 
 import (
-	"fmt"
-
 	"github.com/saasuke-labs/nagare/pkg/layout"
+	"github.com/saasuke-labs/nagare/pkg/nagare"
 	"github.com/saasuke-labs/nagare/pkg/parser"
-	"github.com/saasuke-labs/nagare/pkg/renderer"
 	"github.com/saasuke-labs/nagare/pkg/tokenizer"
 )
 
 // CreateDiagram generates an SVG diagram from the provided code and returns it as a string.
+// Uses the debug version internally for backward compatibility with HTTP server logging.
 func CreateDiagram(code string) (string, error) {
-	svg, _, _, err := CreateDiagramWithSize(code)
-	return svg, err
+	return nagare.RenderToSVGWithDebug(code)
 }
 
 // CreateDiagramWithSize generates an SVG diagram and returns the SVG along with the computed canvas size.
 func CreateDiagramWithSize(code string) (string, int, int, error) {
-	fmt.Printf("Input code:\n%s\n", string(code))
-
-	// Pipeline:
-	// 1. Tokenize
-	tokens := tokenizer.Tokenize(string(code))
-	fmt.Printf("Tokens: %+v\n", tokens)
-
-	// 2. Parse
-	ast, err := parser.Parse(tokens)
+	// Use the debug version to maintain existing logging behavior
+	svg, err := nagare.RenderToSVGWithDebug(code)
 	if err != nil {
-		return "", 0, 0, fmt.Errorf("parse error: %w", err)
+		return "", 0, 0, err
 	}
 
-	fmt.Printf("AST: \n%+v\n", ast)
+	// Calculate layout to get dimensions (reusing logic)
+	tokens := tokenizer.Tokenize(code)
+	ast, parseErr := parser.Parse(tokens)
+	if parseErr != nil {
+		// Should not happen since nagare.RenderToSVGWithDebug succeeded
+		return svg, 800, 400, nil
+	}
 
-	// 3. Layout
 	const defaultCanvasWidth, defaultCanvasHeight = 800.0, 400.0
 	l := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
 
-	fmt.Printf("Layout: \n%+v\n", l)
-
-	// 4. Render using the computed layout dimensions
 	canvasWidth := int(l.Bounds.Width)
 	canvasHeight := int(l.Bounds.Height)
 	if canvasWidth == 0 {
@@ -48,7 +41,5 @@ func CreateDiagramWithSize(code string) (string, int, int, error) {
 		canvasHeight = int(defaultCanvasHeight)
 	}
 
-	html := renderer.Render(l, canvasWidth, canvasHeight)
-	fmt.Println(html)
-	return html, canvasWidth, canvasHeight, nil
+	return svg, canvasWidth, canvasHeight, nil
 }
