@@ -11,8 +11,9 @@ Implemented a completely separate chart system for nagare with its own parser, i
 - **Separate `chart` identifier** at the start - diagrams and charts are completely independent
 - **Multiline data support** - much more readable for large datasets
 - **Clean key-value structure** - no complex nesting or parentheses
+- **Dual-format support** - both classic multi-block and compact pipe-delimited formats
 
-### Example Format
+### Format 1: Classic Multi-Block (One Series Per Block)
 
 ```
 chart
@@ -41,6 +42,26 @@ data:
   2025-01-02: 6.3
   2025-01-03: 6.1
 ```
+
+### Format 2: Compact Pipe-Delimited (Multiple Series in One Block)
+
+For charts with multiple series, use pipe delimiters to save space:
+
+```
+chart
+title: Training Metrics (Compact)
+xaxis: date
+
+series: distance | pace
+color: #3b82f6 | #ef4444
+style: line | dashed
+data:
+  2025-01-01: 3.01 | 6.5
+  2025-01-02: 3.5 | 6.3
+  2025-01-03: 4.2 | 6.1
+```
+
+Both formats are fully supported and can be mixed in the same document.
 
 ## Architecture
 

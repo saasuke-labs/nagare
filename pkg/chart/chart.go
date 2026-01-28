@@ -37,34 +37,33 @@ type Chart struct {
 }
 
 // Parse parses chart definition into a Chart struct
-// Format:
-// chart
-// title: My Chart
-// width: 900
-// height: 600
-// xaxis: date
-// xlabel: Date
-// ylabel: Value
-// legend: top-right
-// grid: true
+// Supports two formats:
 //
+// Format 1: Single series per block (classic)
+// chart
 // series: distance
 // color: #3b82f6
-// style: line
 // data:
 //
 //	2025-01-01: 3.01
 //	2025-01-02: 3.5
-//	2025-01-03: 4.2
 //
 // series: pace
 // color: #ef4444
-// style: dashed
 // data:
 //
 //	2025-01-01: 6.5
 //	2025-01-02: 6.3
-//	2025-01-03: 6.1
+//
+// Format 2: Multiple series in one block (compact)
+// chart
+// series: distance | pace
+// color: #3b82f6 | #ef4444
+// style: line | dashed
+// data:
+//
+//	2025-01-01: 3.01 | 6.5
+//	2025-01-02: 3.5 | 6.3
 func Parse(input string) (*Chart, error) {
 	lines := strings.Split(strings.TrimSpace(input), "\n")
 	if len(lines) < 1 {
@@ -85,7 +84,9 @@ func Parse(input string) (*Chart, error) {
 		Series:    []Series{},
 	}
 
-	var currentSeries *Series
+	var seriesNames []string
+	var seriesColors []string
+	var seriesStyles []string
 	var inDataBlock bool
 	var dataLines []string
 
@@ -96,17 +97,18 @@ func Parse(input string) (*Chart, error) {
 		if trimmed == "" {
 			// Empty line - end data block if we're in one
 			if inDataBlock && len(dataLines) > 0 {
-				if currentSeries != nil {
-					currentSeries.Data = parseDataBlock(dataLines, chart.XAxisType)
-					dataLines = nil
-				}
-				inDataBlock = false
+				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, dataLines, chart.XAxisType)
+				dataLines = nil
+				seriesNames = nil
+				seriesColors = nil
+				seriesStyles = nil
 			}
+			inDataBlock = false
 			continue
 		}
 
 		// Check if line starts with spaces (multiline data)
-		if len(line) > 0 && line[0] == ' ' || line[0] == '\t' {
+		if len(line) > 0 && (line[0] == ' ' || line[0] == '\t') {
 			if !inDataBlock {
 				continue // Skip indented lines outside data block
 			}
@@ -116,10 +118,8 @@ func Parse(input string) (*Chart, error) {
 
 		// Parse key: value
 		if inDataBlock && len(dataLines) > 0 {
-			if currentSeries != nil {
-				currentSeries.Data = parseDataBlock(dataLines, chart.XAxisType)
-				dataLines = nil
-			}
+			processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, dataLines, chart.XAxisType)
+			dataLines = nil
 			inDataBlock = false
 		}
 
@@ -153,23 +153,27 @@ func Parse(input string) (*Chart, error) {
 		case "grid":
 			chart.Grid = value == "true"
 		case "series":
-			// Save previous series if exists
-			if currentSeries != nil && len(currentSeries.Data) > 0 {
-				chart.Series = append(chart.Series, *currentSeries)
-			}
-			// Start new series
-			currentSeries = &Series{
-				Name:  value,
-				Style: "line",
-				Color: "",
+			// Check if pipe-separated (multi-series format)
+			if strings.Contains(value, "|") {
+				seriesNames = parseDelimitedList(value, "|")
+			} else {
+				seriesNames = []string{value}
 			}
 		case "color":
-			if currentSeries != nil {
-				currentSeries.Color = value
+			// Check if pipe-separated
+			if strings.Contains(value, "|") {
+				seriesColors = parseDelimitedList(value, "|")
+			} else {
+				seriesColors = []string{value}
 			}
 		case "style":
-			if currentSeries != nil {
-				currentSeries.Style = value
+			// Check if pipe or comma-separated
+			if strings.Contains(value, "|") {
+				seriesStyles = parseDelimitedList(value, "|")
+			} else if strings.Contains(value, ",") {
+				seriesStyles = parseDelimitedList(value, ",")
+			} else {
+				seriesStyles = []string{value}
 			}
 		case "data":
 			// Start data block
@@ -178,12 +182,9 @@ func Parse(input string) (*Chart, error) {
 		}
 	}
 
-	// Handle final series
-	if inDataBlock && currentSeries != nil && len(dataLines) > 0 {
-		currentSeries.Data = parseDataBlock(dataLines, chart.XAxisType)
-	}
-	if currentSeries != nil && len(currentSeries.Data) > 0 {
-		chart.Series = append(chart.Series, *currentSeries)
+	// Handle final data block
+	if inDataBlock && len(dataLines) > 0 {
+		processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, dataLines, chart.XAxisType)
 	}
 
 	// Assign default colors
@@ -202,13 +203,118 @@ func Parse(input string) (*Chart, error) {
 	return chart, nil
 }
 
+// parseDelimitedList splits a string by a delimiter and trims each element
+func parseDelimitedList(value, delimiter string) []string {
+	parts := strings.Split(value, delimiter)
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// processMultiSeriesData handles both single and multi-series data blocks
+func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyles []string, dataLines []string, xAxisType string) {
+	if len(seriesNames) == 0 {
+		return
+	}
+
+	// Check if data is multi-series (pipe-separated values)
+	isMultiSeries := false
+	if len(dataLines) > 0 {
+		firstLine := strings.TrimSpace(dataLines[0])
+		parts := strings.Split(firstLine, ":")
+		if len(parts) == 2 {
+			values := strings.Split(strings.TrimSpace(parts[1]), "|")
+			isMultiSeries = len(values) > 1
+		}
+	}
+
+	if isMultiSeries {
+		// Parse multi-series data
+		seriesDataMap := make(map[int][][2]string)
+
+		for _, dataLine := range dataLines {
+			dataLine = strings.TrimSpace(dataLine)
+			parts := strings.SplitN(dataLine, ":", 2)
+			if len(parts) != 2 {
+				continue
+			}
+
+			xStr := strings.TrimSpace(parts[0])
+			values := strings.Split(strings.TrimSpace(parts[1]), "|")
+
+			for idx, valueStr := range values {
+				valueStr = strings.TrimSpace(valueStr)
+				seriesDataMap[idx] = append(seriesDataMap[idx], [2]string{xStr, valueStr})
+			}
+		}
+
+		// Create series from the map
+		for idx, dataPoints := range seriesDataMap {
+			if idx >= len(seriesNames) {
+				break
+			}
+
+			series := Series{
+				Name: seriesNames[idx],
+				Data: parseDataPoints(dataPoints, xAxisType),
+			}
+
+			if idx < len(seriesColors) {
+				series.Color = seriesColors[idx]
+			}
+
+			if idx < len(seriesStyles) {
+				series.Style = seriesStyles[idx]
+			} else {
+				series.Style = "line"
+			}
+
+			if series.Color == "" {
+				series.Color = "#3b82f6"
+			}
+
+			chart.Series = append(chart.Series, series)
+		}
+	} else {
+		// Single series data
+		dataPoints := parseDataBlock(dataLines, xAxisType)
+
+		if len(seriesNames) > 0 {
+			series := Series{
+				Name: seriesNames[0],
+				Data: dataPoints,
+			}
+
+			if len(seriesColors) > 0 {
+				series.Color = seriesColors[0]
+			}
+
+			if len(seriesStyles) > 0 {
+				series.Style = seriesStyles[0]
+			} else {
+				series.Style = "line"
+			}
+
+			if series.Color == "" {
+				series.Color = "#3b82f6"
+			}
+
+			chart.Series = append(chart.Series, series)
+		}
+	}
+}
+
 // parseDataBlock parses multiline data in format:
 //
 //	x1: y1
 //	x2: y2
-//	x3: y3
 func parseDataBlock(lines []string, xAxisType string) []DataPoint {
-	points := []DataPoint{}
+	dataPoints := make([][2]string, 0, len(lines))
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -224,18 +330,29 @@ func parseDataBlock(lines []string, xAxisType string) []DataPoint {
 		xStr := strings.TrimSpace(parts[0])
 		yStr := strings.TrimSpace(parts[1])
 
+		dataPoints = append(dataPoints, [2]string{xStr, yStr})
+	}
+
+	return parseDataPoints(dataPoints, xAxisType)
+}
+
+// parseDataPoints converts string pairs to DataPoints
+func parseDataPoints(dataPoints [][2]string, xAxisType string) []DataPoint {
+	points := []DataPoint{}
+
+	for _, pair := range dataPoints {
+		xStr := pair[0]
+		yStr := pair[1]
+
 		var x, y float64
 		var err error
 
-		// Parse X based on type
-		if xAxisType == "date" {
-			t, parseErr := time.Parse("2006-01-02", xStr)
-			if parseErr == nil {
-				x = float64(t.Unix())
-			} else {
-				continue
-			}
+		// Try to parse as date first, then fall back to numeric
+		t, dateErr := time.Parse("2006-01-02", xStr)
+		if dateErr == nil {
+			x = float64(t.Unix())
 		} else {
+			// Try numeric parsing
 			x, err = strconv.ParseFloat(xStr, 64)
 			if err != nil {
 				continue
