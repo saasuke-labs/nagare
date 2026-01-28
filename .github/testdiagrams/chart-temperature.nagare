@@ -7,12 +7,57 @@ xlabel: Hour
 ylabel: Temperature (°C)
 legend: bottom-right
 grid: true
-series.server1.data: 0:22.5,2:23.1,4:24.2,6:26.8,8:28.5,10:31.2,12:33.5,14:34.8,16:33.2,18:30.5,20:27.3,22:24.8,24:23.1
-series.server1.color: #ef4444
-series.server1.style: line
-series.server2.data: 0:21.8,2:22.5,4:23.8,6:25.5,8:27.2,10:29.8,12:31.5,14:32.2,16:31.5,18:29.2,20:26.8,22:24.2,24:22.5
-series.server2.color: #10b981
-series.server2.style: line
-series.server3.data: 0:23.2,2:23.8,4:24.5,6:27.2,8:29.5,10:32.8,12:35.2,14:36.5,16:34.8,18:31.2,20:28.5,22:25.8,24:24.2
-series.server3.color: #f59e0b
-series.server3.style: dotted
+
+series: server1
+color: #ef4444
+style: line
+data:
+  0: 22.5
+  2: 23.1
+  4: 24.2
+  6: 26.8
+  8: 28.5
+  10: 31.2
+  12: 33.5
+  14: 34.8
+  16: 33.2
+  18: 30.5
+  20: 27.3
+  22: 24.8
+  24: 23.1
+
+series: server2
+color: #10b981
+style: line
+data:
+  0: 21.8
+  2: 22.5
+  4: 23.8
+  6: 25.5
+  8: 27.2
+  10: 29.8
+  12: 31.5
+  14: 32.2
+  16: 31.5
+  18: 29.2
+  20: 26.8
+  22: 24.2
+  24: 22.5
+
+series: server3
+color: #f59e0b
+style: dotted
+data:
+  0: 23.2
+  2: 23.8
+  4: 24.5
+  6: 27.2
+  8: 29.5
+  10: 32.8
+  12: 35.2
+  14: 36.5
+  16: 34.8
+  18: 31.2
+  20: 28.5
+  22: 25.8
+  24: 24.2
