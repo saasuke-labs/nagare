@@ -1,3 +1,6 @@
+//go:build webp
+// +build webp
+
 package diagram
 
 import (
