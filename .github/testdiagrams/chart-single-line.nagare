@@ -1,0 +1,12 @@
+chart
+title: Running Distance Over Time
+width: 900
+height: 600
+xaxis: date
+xlabel: Date
+ylabel: Distance (km)
+legend: top-right
+grid: true
+series.distance.data: 2025-01-01:3.01,2025-01-02:3.5,2025-01-03:4.2,2025-01-04:2.8,2025-01-05:5.1,2025-01-06:4.6,2025-01-07:6.2
+series.distance.color: #3b82f6
+series.distance.style: line

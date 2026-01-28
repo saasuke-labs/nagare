@@ -33,6 +33,8 @@ const (
 	defaultPackageHeight     = 180.0
 	defaultArtifactWidth     = 200.0
 	defaultArtifactHeight    = 180.0
+	defaultLineChartWidth    = 800.0
+	defaultLineChartHeight   = 500.0
 	defaultComponentX        = 0.0
 	defaultComponentY        = 0.0
 	arrowElbowPadding        = 24.0
@@ -55,6 +57,7 @@ const (
 	componentTypePackage          = "Package"
 	componentTypeArtifact         = "Artifact"
 	componentTypeFile             = "File"
+	componentTypeLineChart        = "LineChart"
 )
 
 // Rect represents a rectangle in the layout
@@ -386,6 +389,12 @@ func syncVMChildGeometry(vm *components.VM, nodeIndex map[string]components.Shap
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
+		case *components.LineChart:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
 		}
 	}
 }
@@ -471,6 +480,8 @@ func buildComponentTree(node parser.Node, nodeIndex map[string]components.Shape)
 		return []components.Component{buildPackage(node, nil, nodeIndex)}
 	case componentTypeArtifact, componentTypeFile:
 		return []components.Component{buildArtifact(node, nil, nodeIndex)}
+	case componentTypeLineChart:
+		return []components.Component{buildLineChart(node, nodeIndex)}
 	case componentTypeRectangle:
 		return []components.Component{buildRectangle(node, nil, nodeIndex)}
 	default:
@@ -801,6 +812,23 @@ func buildRectangle(node parser.Node, vm *components.VM, nodeIndex map[string]co
 	nodeIndex[node.Text] = absRectShape
 
 	return rect
+}
+
+func buildLineChart(node parser.Node, nodeIndex map[string]components.Shape) *components.LineChart {
+	chart := components.NewLineChart(node.Text)
+	chart.Shape = components.Shape{
+		Width:  defaultLineChartWidth,
+		Height: defaultLineChartHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &chart.Shape, &chart.Props, node.Text)
+	chart.State = applyNamedStateProperties(node, &chart.Shape, &chart.Props, true)
+
+	nodeIndex[node.Text] = chart.Shape
+
+	return chart
 }
 
 func applyIDStateProperties(node parser.Node, shape *components.Shape, props propertyParser, componentID string) {
