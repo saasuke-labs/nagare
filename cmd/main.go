@@ -4,7 +4,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
+	"github.com/saasuke-labs/nagare/pkg/chart"
 	"github.com/saasuke-labs/nagare/pkg/diagram"
 )
 
@@ -58,10 +60,25 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	html, err := diagram.CreateDiagram(string(code))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	input := strings.TrimSpace(string(code))
+	var html string
+
+	// Check first line to determine type
+	if strings.HasPrefix(input, "chart") {
+		// Parse and render chart
+		c, err := chart.Parse(input)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		html = c.RenderHTML()
+	} else {
+		// Default to diagram
+		html, err = diagram.CreateDiagram(input)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Send response

@@ -1,0 +1,21 @@
+chart
+title: Training Metrics
+width: 900
+height: 600
+xaxis: date
+xlabel: Date
+ylabel: Distance (km) / Pace (min/km)
+legend: top-right
+grid: true
+
+series: distance | pace
+color: #3b82f6 | #ef4444
+style: line | dashed
+data:
+  2025-01-01: 3.01 | 6.5
+  2025-01-02: 3.5 | 6.3
+  2025-01-03: 4.2 | 6.1
+  2025-01-04: 2.8 | 6.8
+  2025-01-05: 5.1 | 5.9
+  2025-01-06: 4.6 | 6
+  2025-01-07: 6.2 | 6.2

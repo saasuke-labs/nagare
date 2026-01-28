@@ -1,0 +1,27 @@
+chart
+title: Network Latency (ms)
+width: 900
+height: 600
+xaxis: number
+xlabel: Time (seconds)
+ylabel: Latency (ms)
+legend: none
+grid: true
+
+series: latency
+color: #3b82f6
+style: line
+data:
+  0: 12.5
+  5: 13.2
+  10: 14.8
+  15: 11.5
+  20: 15.2
+  25: 18.5
+  30: 22.8
+  35: 28.5
+  40: 25.2
+  45: 19.8
+  50: 16.5
+  55: 14.2
+  60: 13.5
