@@ -23,6 +23,12 @@ type Arrow struct {
 
 var arrowMarkerCounter uint64
 
+// ResetArrowMarkerCounter resets the global arrow marker counter.
+// This is primarily useful for testing to ensure consistent IDs.
+func ResetArrowMarkerCounter() {
+	atomic.StoreUint64(&arrowMarkerCounter, 0)
+}
+
 func nextArrowMarkerID() string {
 	id := atomic.AddUint64(&arrowMarkerCounter, 1)
 	return fmt.Sprintf("arrowhead-%d", id)

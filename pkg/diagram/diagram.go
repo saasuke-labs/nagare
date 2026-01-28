@@ -8,24 +8,24 @@ import (
 )
 
 // CreateDiagram generates an SVG diagram from the provided code and returns it as a string.
-// Uses the debug version internally for backward compatibility with HTTP server logging.
 func CreateDiagram(code string) (string, error) {
-	return nagare.RenderToSVGWithDebug(code)
+	svg, _, _, err := CreateDiagramWithSize(code)
+	return svg, err
 }
 
 // CreateDiagramWithSize generates an SVG diagram and returns the SVG along with the computed canvas size.
 func CreateDiagramWithSize(code string) (string, int, int, error) {
-	// Use the debug version to maintain existing logging behavior
-	svg, err := nagare.RenderToSVGWithDebug(code)
+	// Render the SVG
+	svg, err := nagare.RenderToSVG(code)
 	if err != nil {
 		return "", 0, 0, err
 	}
 
-	// Calculate layout to get dimensions (reusing logic)
+	// Calculate layout to get dimensions
 	tokens := tokenizer.Tokenize(code)
 	ast, parseErr := parser.Parse(tokens)
 	if parseErr != nil {
-		// Should not happen since nagare.RenderToSVGWithDebug succeeded
+		// Should not happen since nagare.RenderToSVG succeeded
 		return svg, 800, 400, nil
 	}
 

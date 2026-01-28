@@ -3,6 +3,8 @@ package diagram
 import (
 	_ "embed"
 	"testing"
+
+	"github.com/saasuke-labs/nagare/pkg/components"
 )
 
 //go:embed fixtures/code_block_1.txt
@@ -37,6 +39,9 @@ func TestCreateDiagramFromActualCodeBlocks(t *testing.T) {
 
 	for _, td := range testData {
 		t.Run(td.name, func(t *testing.T) {
+			// Reset arrow counter to ensure consistent IDs
+			components.ResetArrowMarkerCounter()
+
 			html, err := CreateDiagram(td.code)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
