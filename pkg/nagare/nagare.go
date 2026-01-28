@@ -3,7 +3,9 @@ package nagare
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/saasuke-labs/nagare/pkg/chart"
 	"github.com/saasuke-labs/nagare/pkg/layout"
 	"github.com/saasuke-labs/nagare/pkg/parser"
 	"github.com/saasuke-labs/nagare/pkg/renderer"
@@ -12,7 +14,20 @@ import (
 
 // RenderToSVG takes nagare DSL code as a string and returns the rendered SVG as a string.
 // This is the main entry point for using nagare as a library.
+// Automatically detects whether the input is a chart or diagram.
 func RenderToSVG(code string) (string, error) {
+	input := strings.TrimSpace(code)
+
+	// Check if this is a chart definition
+	if strings.HasPrefix(input, "chart") {
+		c, err := chart.Parse(input)
+		if err != nil {
+			return "", fmt.Errorf("chart parse error: %w", err)
+		}
+		return c.RenderSVG(), nil
+	}
+
+	// Default: render as diagram
 	// Pipeline:
 	// 1. Tokenize
 	tokens := tokenizer.Tokenize(code)
