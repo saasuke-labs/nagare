@@ -348,25 +348,25 @@ func parseDuration(s string) (float64, bool) {
 	if len(parts) == 2 {
 		// MM:SS format
 		minutes, err = strconv.ParseFloat(parts[0], 64)
-		if err != nil {
+		if err != nil || minutes < 0 {
 			return 0, false
 		}
 		seconds, err = strconv.ParseFloat(parts[1], 64)
-		if err != nil {
+		if err != nil || seconds < 0 {
 			return 0, false
 		}
 	} else {
 		// HH:MM:SS format
 		hours, err = strconv.ParseFloat(parts[0], 64)
-		if err != nil {
+		if err != nil || hours < 0 {
 			return 0, false
 		}
 		minutes, err = strconv.ParseFloat(parts[1], 64)
-		if err != nil {
+		if err != nil || minutes < 0 {
 			return 0, false
 		}
 		seconds, err = strconv.ParseFloat(parts[2], 64)
-		if err != nil {
+		if err != nil || seconds < 0 {
 			return 0, false
 		}
 	}
@@ -377,6 +377,11 @@ func parseDuration(s string) (float64, bool) {
 
 // formatDuration formats seconds back to duration string
 func formatDuration(seconds float64) string {
+	// Handle negative values by taking absolute value
+	if seconds < 0 {
+		seconds = 0
+	}
+
 	hours := int(seconds / 3600)
 	minutes := int((seconds - float64(hours*3600)) / 60)
 	secs := int(seconds - float64(hours*3600) - float64(minutes*60))
@@ -610,18 +615,18 @@ func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax, yM
 	}
 
 	// Y axis labels
+	// Check if any series has duration data
+	hasDuration := false
+	for _, series := range c.Series {
+		if series.Type == "duration" {
+			hasDuration = true
+			break
+		}
+	}
+
 	for i := 0; i <= 5; i++ {
 		y := plotY + plotHeight - float64(i)*plotHeight/5.0
 		value := yMin + float64(i)*(yMax-yMin)/5.0
-
-		// Check if any series has duration data
-		hasDuration := false
-		for _, series := range c.Series {
-			if series.Type == "duration" {
-				hasDuration = true
-				break
-			}
-		}
 
 		label := ""
 		if hasDuration {

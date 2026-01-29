@@ -19,15 +19,23 @@ func TestParseDuration(t *testing.T) {
 		{"invalid", 0, false},
 		{"5", 0, false},
 		{"5:23:12:45", 0, false},
+		{"", 0, false},
+		{"  ", 0, false},
+		{"-5:30", 0, false},
+		{"5:-30", 0, false},
+		{"-5:-30", 0, false},
+		{"5: 30", 0, false},
+		{"abc:def", 0, false},
+		{"5.5:30", 5.5*60 + 30, true}, // Fractional minutes should work
 	}
 
 	for _, test := range tests {
 		result, valid := parseDuration(test.input)
 		if valid != test.valid {
-			t.Errorf("parseDuration(%s) valid = %v, expected %v", test.input, valid, test.valid)
+			t.Errorf("parseDuration(%q) valid = %v, expected %v", test.input, valid, test.valid)
 		}
 		if valid && result != test.expected {
-			t.Errorf("parseDuration(%s) = %.0f, expected %.0f", test.input, result, test.expected)
+			t.Errorf("parseDuration(%q) = %.0f, expected %.0f", test.input, result, test.expected)
 		}
 	}
 }
@@ -42,6 +50,8 @@ func TestFormatDuration(t *testing.T) {
 		{10951, "3:02:31"},
 		{30, "0:30"},
 		{3600, "1:00:00"},
+		{0, "0:00"},
+		{-100, "0:00"}, // Negative values should be clamped to 0
 	}
 
 	for _, test := range tests {

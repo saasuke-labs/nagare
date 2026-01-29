@@ -84,7 +84,7 @@ data:
 - **MM:SS** - Minutes and seconds (e.g., `5:30` = 5 minutes, 30 seconds)
 - **HH:MM:SS** - Hours, minutes, and seconds (e.g., `3:02:31` = 3 hours, 2 minutes, 31 seconds)
 
-Durations are converted to seconds internally for calculations but displayed in their original format on axis labels.
+Durations are converted to seconds internally for calculations. Y-axis labels show the scale range in duration format (interpolated values from min to max), not the original data point values.
 
 **Mixed Types:**
 
@@ -100,6 +100,8 @@ data:
   2025-01-01: 5:30 | 2:15 | 42.5
   2025-01-02: 5:15 | 2:00 | 45.2
 ```
+
+**Note:** When mixing duration and number types in the same chart, all Y-axis labels will be formatted as durations if any series has type "duration". For best results, use separate charts for duration and number data, or ensure all values are of the same type.
 
 ## Architecture
 
