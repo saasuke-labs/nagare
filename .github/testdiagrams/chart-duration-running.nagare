@@ -1,0 +1,31 @@
+chart
+title: Running Times - Marathon Training
+width: 900
+height: 600
+xaxis: date
+xlabel: Training Date
+ylabel: Time
+legend: top-right
+grid: true
+
+series: 5K Time
+color: #3b82f6
+type: duration
+style: line
+data:
+  2025-01-01: 25:30
+  2025-01-08: 24:45
+  2025-01-15: 24:15
+  2025-01-22: 23:50
+  2025-01-29: 23:20
+
+series: 10K Time
+color: #ef4444
+type: duration
+style: dashed
+data:
+  2025-01-01: 52:15
+  2025-01-08: 51:30
+  2025-01-15: 50:45
+  2025-01-22: 49:55
+  2025-01-29: 48:30

@@ -11,8 +11,10 @@ import (
 
 // DataPoint represents a single point in a series
 type DataPoint struct {
-	X float64
-	Y float64
+	X         float64
+	Y         float64
+	YLabel    string // Original label for Y value (e.g., duration format)
+	YIsDuration bool // Whether Y is a duration value
 }
 
 // Series represents a data series
@@ -21,6 +23,7 @@ type Series struct {
 	Data  []DataPoint
 	Color string
 	Style string // "line", "dashed", "dotted"
+	Type  string // "number" or "duration"
 }
 
 // Chart represents a line chart
@@ -87,6 +90,7 @@ func Parse(input string) (*Chart, error) {
 	var seriesNames []string
 	var seriesColors []string
 	var seriesStyles []string
+	var seriesTypes []string
 	var inDataBlock bool
 	var dataLines []string
 
@@ -97,11 +101,12 @@ func Parse(input string) (*Chart, error) {
 		if trimmed == "" {
 			// Empty line - end data block if we're in one
 			if inDataBlock && len(dataLines) > 0 {
-				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, dataLines, chart.XAxisType)
+				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, dataLines, chart.XAxisType)
 				dataLines = nil
 				seriesNames = nil
 				seriesColors = nil
 				seriesStyles = nil
+				seriesTypes = nil
 			}
 			inDataBlock = false
 			continue
@@ -118,7 +123,7 @@ func Parse(input string) (*Chart, error) {
 
 		// Parse key: value
 		if inDataBlock && len(dataLines) > 0 {
-			processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, dataLines, chart.XAxisType)
+			processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, dataLines, chart.XAxisType)
 			dataLines = nil
 			inDataBlock = false
 		}
@@ -175,6 +180,13 @@ func Parse(input string) (*Chart, error) {
 			} else {
 				seriesStyles = []string{value}
 			}
+		case "type":
+			// Check if pipe-separated
+			if strings.Contains(value, "|") {
+				seriesTypes = parseDelimitedList(value, "|")
+			} else {
+				seriesTypes = []string{value}
+			}
 		case "data":
 			// Start data block
 			inDataBlock = true
@@ -184,7 +196,7 @@ func Parse(input string) (*Chart, error) {
 
 	// Handle final data block
 	if inDataBlock && len(dataLines) > 0 {
-		processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, dataLines, chart.XAxisType)
+		processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, dataLines, chart.XAxisType)
 	}
 
 	// Assign default colors
@@ -217,7 +229,7 @@ func parseDelimitedList(value, delimiter string) []string {
 }
 
 // processMultiSeriesData handles both single and multi-series data blocks
-func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyles []string, dataLines []string, xAxisType string) {
+func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyles, seriesTypes []string, dataLines []string, xAxisType string) {
 	if len(seriesNames) == 0 {
 		return
 	}
@@ -226,7 +238,7 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 	isMultiSeries := false
 	if len(dataLines) > 0 {
 		firstLine := strings.TrimSpace(dataLines[0])
-		parts := strings.Split(firstLine, ":")
+		parts := strings.SplitN(firstLine, ":", 2) // Use SplitN to split only on first colon
 		if len(parts) == 2 {
 			values := strings.Split(strings.TrimSpace(parts[1]), "|")
 			isMultiSeries = len(values) > 1
@@ -259,9 +271,16 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 				break
 			}
 
+			// Get the type for this series
+			dataType := "number"
+			if idx < len(seriesTypes) {
+				dataType = seriesTypes[idx]
+			}
+
 			series := Series{
 				Name: seriesNames[idx],
-				Data: parseDataPoints(dataPoints, xAxisType),
+				Data: parseDataPoints(dataPoints, xAxisType, dataType),
+				Type: dataType,
 			}
 
 			if idx < len(seriesColors) {
@@ -282,12 +301,18 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 		}
 	} else {
 		// Single series data
-		dataPoints := parseDataBlock(dataLines, xAxisType)
+		dataType := "number"
+		if len(seriesTypes) > 0 {
+			dataType = seriesTypes[0]
+		}
+
+		dataPoints := parseDataBlock(dataLines, xAxisType, dataType)
 
 		if len(seriesNames) > 0 {
 			series := Series{
 				Name: seriesNames[0],
 				Data: dataPoints,
+				Type: dataType,
 			}
 
 			if len(seriesColors) > 0 {
@@ -309,11 +334,69 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 	}
 }
 
+// parseDuration parses duration strings in format MM:SS or HH:MM:SS
+// Returns seconds and true if valid duration, otherwise 0 and false
+func parseDuration(s string) (float64, bool) {
+	parts := strings.Split(s, ":")
+	if len(parts) < 2 || len(parts) > 3 {
+		return 0, false
+	}
+
+	var hours, minutes, seconds float64
+	var err error
+
+	if len(parts) == 2 {
+		// MM:SS format
+		minutes, err = strconv.ParseFloat(parts[0], 64)
+		if err != nil || minutes < 0 {
+			return 0, false
+		}
+		seconds, err = strconv.ParseFloat(parts[1], 64)
+		if err != nil || seconds < 0 {
+			return 0, false
+		}
+	} else {
+		// HH:MM:SS format
+		hours, err = strconv.ParseFloat(parts[0], 64)
+		if err != nil || hours < 0 {
+			return 0, false
+		}
+		minutes, err = strconv.ParseFloat(parts[1], 64)
+		if err != nil || minutes < 0 {
+			return 0, false
+		}
+		seconds, err = strconv.ParseFloat(parts[2], 64)
+		if err != nil || seconds < 0 {
+			return 0, false
+		}
+	}
+
+	totalSeconds := hours*3600 + minutes*60 + seconds
+	return totalSeconds, true
+}
+
+// formatDuration formats seconds back to duration string
+func formatDuration(seconds float64) string {
+	// Handle negative values by taking absolute value
+	if seconds < 0 {
+		seconds = 0
+	}
+
+	hours := int(seconds / 3600)
+	minutes := int((seconds - float64(hours*3600)) / 60)
+	secs := int(seconds - float64(hours*3600) - float64(minutes*60))
+
+	if hours > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", hours, minutes, secs)
+	}
+	return fmt.Sprintf("%d:%02d", minutes, secs)
+}
+
 // parseDataBlock parses multiline data in format:
 //
 //	x1: y1
 //	x2: y2
-func parseDataBlock(lines []string, xAxisType string) []DataPoint {
+func parseDataBlock(lines []string, xAxisType string, dataType string) []DataPoint {
 	dataPoints := make([][2]string, 0, len(lines))
 
 	for _, line := range lines {
@@ -333,11 +416,11 @@ func parseDataBlock(lines []string, xAxisType string) []DataPoint {
 		dataPoints = append(dataPoints, [2]string{xStr, yStr})
 	}
 
-	return parseDataPoints(dataPoints, xAxisType)
+	return parseDataPoints(dataPoints, xAxisType, dataType)
 }
 
 // parseDataPoints converts string pairs to DataPoints
-func parseDataPoints(dataPoints [][2]string, xAxisType string) []DataPoint {
+func parseDataPoints(dataPoints [][2]string, xAxisType string, dataType string) []DataPoint {
 	points := []DataPoint{}
 
 	for _, pair := range dataPoints {
@@ -346,6 +429,8 @@ func parseDataPoints(dataPoints [][2]string, xAxisType string) []DataPoint {
 
 		var x, y float64
 		var err error
+		var yLabel string
+		var yIsDuration bool
 
 		// Try to parse as date first, then fall back to numeric
 		t, dateErr := time.Parse("2006-01-02", xStr)
@@ -359,13 +444,28 @@ func parseDataPoints(dataPoints [][2]string, xAxisType string) []DataPoint {
 			}
 		}
 
-		// Parse Y
-		y, err = strconv.ParseFloat(yStr, 64)
-		if err != nil {
-			continue
+		// Parse Y based on type
+		if dataType == "duration" {
+			// Try to parse as duration
+			if seconds, ok := parseDuration(yStr); ok {
+				y = seconds
+				yLabel = yStr
+				yIsDuration = true
+			} else {
+				// If duration parsing fails, skip this point
+				continue
+			}
+		} else {
+			// Parse as number
+			y, err = strconv.ParseFloat(yStr, 64)
+			if err != nil {
+				continue
+			}
+			yLabel = ""
+			yIsDuration = false
 		}
 
-		points = append(points, DataPoint{X: x, Y: y})
+		points = append(points, DataPoint{X: x, Y: y, YLabel: yLabel, YIsDuration: yIsDuration})
 	}
 
 	// Sort by X
@@ -515,12 +615,28 @@ func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax, yM
 	}
 
 	// Y axis labels
+	// Check if any series has duration data
+	hasDuration := false
+	for _, series := range c.Series {
+		if series.Type == "duration" {
+			hasDuration = true
+			break
+		}
+	}
+
 	for i := 0; i <= 5; i++ {
 		y := plotY + plotHeight - float64(i)*plotHeight/5.0
 		value := yMin + float64(i)*(yMax-yMin)/5.0
 
-		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="end" font-size="11" fill="#666">%.1f</text>`,
-			plotX-10, y+4, value))
+		label := ""
+		if hasDuration {
+			label = formatDuration(value)
+		} else {
+			label = fmt.Sprintf("%.1f", value)
+		}
+
+		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="end" font-size="11" fill="#666">%s</text>`,
+			plotX-10, y+4, label))
 	}
 
 	// Axis labels
