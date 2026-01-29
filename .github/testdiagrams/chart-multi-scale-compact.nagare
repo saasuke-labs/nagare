@@ -13,8 +13,8 @@ scale
   type: number
 
 scale
-  id: cpu
-  label: CPU Usage (%)
+  id: percentage
+  label: Utilization (%)
   type: number
   min: 0
   max: 100
@@ -42,7 +42,7 @@ data:
   2025-01-05: 19000 | 160
 
 series: CPU Usage | Memory Usage
-yaxis: cpu | cpu
+yaxis: percentage | percentage
 color: #ec4899 | #06b6d4
 style: line | dashed
 data:
