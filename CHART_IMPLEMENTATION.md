@@ -63,6 +63,44 @@ data:
 
 Both formats are fully supported and can be mixed in the same document.
 
+### Duration Type Support
+
+Charts now support duration values in addition to numbers. Use the `type` field to specify whether data should be parsed as durations:
+
+```
+chart
+title: Running Times
+xaxis: date
+
+series: 5K Time
+type: duration
+data:
+  2025-01-01: 25:30
+  2025-01-08: 24:45
+  2025-01-15: 24:15
+```
+
+**Duration Formats:**
+- **MM:SS** - Minutes and seconds (e.g., `5:30` = 5 minutes, 30 seconds)
+- **HH:MM:SS** - Hours, minutes, and seconds (e.g., `3:02:31` = 3 hours, 2 minutes, 31 seconds)
+
+Durations are converted to seconds internally for calculations but displayed in their original format on axis labels.
+
+**Mixed Types:**
+
+You can mix duration and number types in the same chart using pipe-delimited format:
+
+```
+chart
+title: Training Metrics
+
+series: Lap Time | Rest Time | Distance
+type: duration | duration | number
+data:
+  2025-01-01: 5:30 | 2:15 | 42.5
+  2025-01-02: 5:15 | 2:00 | 45.2
+```
+
 ## Architecture
 
 ### New Package: `pkg/chart/`
@@ -84,6 +122,9 @@ Located in `.github/testdiagrams/`:
 3. **chart-temperature.nagare** - Three series, dotted line example (temperature monitoring)
 4. **chart-sales.nagare** - Multi-line sales data with legend positioning (monthly sales)
 5. **chart-network.nagare** - Single series, no legend (network latency)
+6. **chart-duration-running.nagare** - Duration type example (5K and 10K running times)
+7. **chart-duration-mixed.nagare** - Mixed duration and number types (lap time, rest time, distance)
+8. **chart-duration-marathon.nagare** - Long duration format (marathon times in HH:MM:SS)
 
 All diagrams use the **new multiline format** for data entry.
 
@@ -101,6 +142,7 @@ All diagrams use the **new multiline format** for data entry.
 
 - Multiple series per chart
 - Date and numeric X-axis types
+- **Duration Y-values** - Support for time durations in MM:SS or HH:MM:SS format
 - Auto-scaling with padding
 
 **Styling:**
