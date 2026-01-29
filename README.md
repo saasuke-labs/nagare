@@ -34,10 +34,18 @@ curl -X POST http://localhost:8080/render \
 
 ### 2. CLI Mode
 
-Render a diagram file directly to SVG:
+Render a diagram file directly to SVG or WebP:
 
 ```bash
+# Render to SVG (format auto-detected from extension)
 nagare -input diagram.nagare -output diagram.svg
+
+# Render to WebP (format auto-detected from extension)
+nagare -input diagram.nagare -output diagram.webp
+
+# Explicitly specify format
+nagare -input diagram.nagare -output output.file -format svg
+nagare -input diagram.nagare -output output.file -format webp
 ```
 
 ### 3. Library Mode
