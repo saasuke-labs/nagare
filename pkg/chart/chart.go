@@ -21,8 +21,8 @@ type DataPoint struct {
 type Scale struct {
 	ID    string  // Unique identifier (e.g., "default", "distance", "duration")
 	Label string  // Label for this scale
-	Min   float64 // Minimum value (0 means auto-calculate)
-	Max   float64 // Maximum value (0 means auto-calculate)
+	Min   float64 // Minimum value (used when Auto is false)
+	Max   float64 // Maximum value (used when Auto is false)
 	Auto  bool    // Whether to auto-calculate min/max
 	Type  string  // "number" or "duration"
 }
@@ -109,6 +109,7 @@ func Parse(input string) (*Chart, error) {
 	var dataLines []string
 	var currentScale *Scale
 	var inScaleBlock bool
+	var scaleMinSet, scaleMaxSet bool
 
 	for i := 1; i < len(lines); i++ {
 		line := lines[i]
@@ -126,8 +127,13 @@ func Parse(input string) (*Chart, error) {
 				seriesYAxes = nil
 			}
 			if inScaleBlock && currentScale != nil {
+				if scaleMinSet && scaleMaxSet {
+					currentScale.Auto = false
+				}
 				chart.Scales = append(chart.Scales, *currentScale)
 				currentScale = nil
+				scaleMinSet = false
+				scaleMaxSet = false
 			}
 			inDataBlock = false
 			inScaleBlock = false
@@ -155,10 +161,16 @@ func Parse(input string) (*Chart, error) {
 				inDataBlock = false
 			}
 			if inScaleBlock && currentScale != nil {
+				// Finalize previous scale - set Auto based on whether min/max were set
+				if scaleMinSet && scaleMaxSet {
+					currentScale.Auto = false
+				}
 				chart.Scales = append(chart.Scales, *currentScale)
 			}
 			// Start new scale block
 			inScaleBlock = true
+			scaleMinSet = false
+			scaleMaxSet = false
 			currentScale = &Scale{
 				Auto: true,
 				Type: "number",
@@ -173,10 +185,15 @@ func Parse(input string) (*Chart, error) {
 			inDataBlock = false
 		}
 		if inScaleBlock && currentScale != nil && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
-			// Non-indented line while in scale block - save scale and exit block
+			// Non-indented line while in scale block - finalize and save scale
+			if scaleMinSet && scaleMaxSet {
+				currentScale.Auto = false
+			}
 			chart.Scales = append(chart.Scales, *currentScale)
 			currentScale = nil
 			inScaleBlock = false
+			scaleMinSet = false
+			scaleMaxSet = false
 		}
 
 		parts := strings.SplitN(trimmed, ":", 2)
@@ -261,12 +278,12 @@ func Parse(input string) (*Chart, error) {
 			case "min":
 				if min, err := strconv.ParseFloat(value, 64); err == nil {
 					currentScale.Min = min
-					currentScale.Auto = false
+					scaleMinSet = true
 				}
 			case "max":
 				if max, err := strconv.ParseFloat(value, 64); err == nil {
 					currentScale.Max = max
-					currentScale.Auto = false
+					scaleMaxSet = true
 				}
 			case "type":
 				currentScale.Type = value
@@ -281,7 +298,21 @@ func Parse(input string) (*Chart, error) {
 
 	// Handle final scale block
 	if inScaleBlock && currentScale != nil {
+		if scaleMinSet && scaleMaxSet {
+			currentScale.Auto = false
+		}
 		chart.Scales = append(chart.Scales, *currentScale)
+	}
+
+	// Validate scales
+	for i := range chart.Scales {
+		scale := &chart.Scales[i]
+		// If auto is disabled but range is invalid, reset to auto
+		if !scale.Auto && scale.Min >= scale.Max {
+			scale.Auto = true
+			scale.Min = 0
+			scale.Max = 0
+		}
 	}
 
 	// Ensure there's at least a default scale if none defined
@@ -597,7 +628,6 @@ func (c *Chart) RenderSVG() string {
 	}
 
 	padding := 60.0
-	rightPadding := 60.0
 	topPadding := 40.0
 	if c.Title != "" {
 		topPadding = 60.0
@@ -605,6 +635,7 @@ func (c *Chart) RenderSVG() string {
 
 	// Check if we have multiple scales (need right axis)
 	hasRightAxis := len(c.Scales) > 1
+	rightPadding := padding
 	if hasRightAxis {
 		rightPadding = 60.0
 	}
@@ -702,6 +733,7 @@ func (c *Chart) calculateScaleRanges() {
 
 		yMin := math.MaxFloat64
 		yMax := -math.MaxFloat64
+		foundData := false
 
 		// Find all series belonging to this scale
 		for _, series := range c.Series {
@@ -709,6 +741,7 @@ func (c *Chart) calculateScaleRanges() {
 				continue
 			}
 			for _, point := range series.Data {
+				foundData = true
 				if point.Y < yMin {
 					yMin = point.Y
 				}
@@ -716,6 +749,13 @@ func (c *Chart) calculateScaleRanges() {
 					yMax = point.Y
 				}
 			}
+		}
+
+		// Handle case where no data was found for this scale
+		if !foundData {
+			scale.Min = 0
+			scale.Max = 1
+			continue
 		}
 
 		// Add 10% padding
