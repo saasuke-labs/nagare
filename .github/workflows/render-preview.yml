@@ -25,15 +25,10 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Build Nagare server
-        run: go build -o nagare-server ./cmd
+      - name: Build Nagare CLI
+        run: go build -tags webp -o nagare ./cmd
 
-      - name: Start Nagare server
-        run: |
-          ./nagare-server > server.log 2>&1 &
-          echo $! > server.pid
-
-      - name: Render regression diagrams via /render and /render-webp
+      - name: Render regression diagrams via CLI
         run: |
           set -euo pipefail
 
@@ -44,46 +39,12 @@ jobs:
             exit 1
           fi
 
-          # Wait for the server to be ready.
-          for attempt in {1..60}; do
-            if curl -fsS http://localhost:8080/test >/dev/null 2>&1; then
-              break
-            fi
-            if [ "$attempt" -eq 60 ]; then
-              echo "Server failed to respond" >&2
-              exit 1
-            fi
-            sleep 1
-          done
-
           for nagare_file in "${diagrams[@]}"; do
             base_name=$(basename "$nagare_file" .nagare)
-            echo "Rendering $nagare_file"
-            curl -fsS -X POST \
-              -H 'Content-Type: text/plain' \
-              --data-binary @"$nagare_file" \
-              http://localhost:8080/render \
-              -o "${base_name}.svg"
-
-            curl -fsS -X POST \
-              -H 'Content-Type: text/plain' \
-              --data-binary @"$nagare_file" \
-              http://localhost:8080/render-webp \
-              -o "${base_name}.webp"
+            echo "Rendering $nagare_file to SVG and WebP"
+            ./nagare -input "$nagare_file" -output "${base_name}.svg"
+            ./nagare -input "$nagare_file" -output "${base_name}.webp"
           done
-
-      - name: Stop Nagare server
-        if: always()
-        run: |
-          if [ -f server.pid ]; then
-            kill $(cat server.pid) 2>/dev/null || true
-            sleep 1
-            if kill -0 $(cat server.pid) 2>/dev/null; then
-              kill -9 $(cat server.pid) 2>/dev/null || true
-            fi
-          fi
-          echo '--- Nagare server log ---'
-          cat server.log || true
 
       - name: Upload rendered diagrams to repository and create PR comment
         env:
