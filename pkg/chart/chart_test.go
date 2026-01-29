@@ -305,3 +305,227 @@ data:
 	}
 }
 
+func TestParseScaleDefinition(t *testing.T) {
+	input := `chart
+title: Multi-Scale Chart
+
+scale
+  id: time
+  label: Duration (minutes)
+  type: duration
+
+scale
+  id: distance
+  label: Distance (km)
+
+series: duration
+yaxis: time
+type: duration
+data:
+  1: 5:30
+  2: 6:15
+
+series: distance
+yaxis: distance
+data:
+  1: 3.5
+  2: 4.2`
+
+	c, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// Check scales
+	if len(c.Scales) != 2 {
+		t.Fatalf("Expected 2 scales, got %d", len(c.Scales))
+	}
+
+	// Check first scale
+	scale0 := c.Scales[0]
+	if scale0.ID != "time" {
+		t.Errorf("Expected scale 0 ID 'time', got '%s'", scale0.ID)
+	}
+	if scale0.Label != "Duration (minutes)" {
+		t.Errorf("Expected scale 0 label 'Duration (minutes)', got '%s'", scale0.Label)
+	}
+	if scale0.Type != "duration" {
+		t.Errorf("Expected scale 0 type 'duration', got '%s'", scale0.Type)
+	}
+	if !scale0.Auto {
+		t.Error("Expected scale 0 Auto=true")
+	}
+
+	// Check second scale
+	scale1 := c.Scales[1]
+	if scale1.ID != "distance" {
+		t.Errorf("Expected scale 1 ID 'distance', got '%s'", scale1.ID)
+	}
+	if scale1.Label != "Distance (km)" {
+		t.Errorf("Expected scale 1 label 'Distance (km)', got '%s'", scale1.Label)
+	}
+
+	// Check series scale assignments
+	if len(c.Series) != 2 {
+		t.Fatalf("Expected 2 series, got %d", len(c.Series))
+	}
+
+	// Find series by name
+	var durationSeries, distanceSeries *Series
+	for i := range c.Series {
+		if c.Series[i].Name == "duration" {
+			durationSeries = &c.Series[i]
+		} else if c.Series[i].Name == "distance" {
+			distanceSeries = &c.Series[i]
+		}
+	}
+
+	if durationSeries == nil {
+		t.Fatal("Duration series not found")
+	}
+	if durationSeries.YAxis != "time" {
+		t.Errorf("Expected duration series YAxis='time', got '%s'", durationSeries.YAxis)
+	}
+
+	if distanceSeries == nil {
+		t.Fatal("Distance series not found")
+	}
+	if distanceSeries.YAxis != "distance" {
+		t.Errorf("Expected distance series YAxis='distance', got '%s'", distanceSeries.YAxis)
+	}
+}
+
+func TestMultiScaleRangeCalculation(t *testing.T) {
+	input := `chart
+title: Training Data
+
+scale
+  id: duration
+  label: Time (min)
+  type: duration
+
+scale
+  id: distance
+  label: Distance (km)
+
+series: run-time
+yaxis: duration
+type: duration
+data:
+  1: 30:00
+  2: 35:00
+  3: 32:00
+
+series: run-distance
+yaxis: distance
+data:
+  1: 5.0
+  2: 6.2
+  3: 5.5`
+
+	c, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// Calculate scale ranges
+	c.calculateScaleRanges()
+
+	if len(c.Scales) != 2 {
+		t.Fatalf("Expected 2 scales, got %d", len(c.Scales))
+	}
+
+	// Check duration scale (30:00 = 1800s, 35:00 = 2100s)
+	durationScale := c.Scales[0]
+	if durationScale.Min >= 1800 {
+		t.Errorf("Expected duration scale Min < 1800, got %.2f", durationScale.Min)
+	}
+	if durationScale.Max <= 2100 {
+		t.Errorf("Expected duration scale Max > 2100, got %.2f", durationScale.Max)
+	}
+
+	// Check distance scale (5.0 to 6.2)
+	distanceScale := c.Scales[1]
+	if distanceScale.Min >= 5.0 {
+		t.Errorf("Expected distance scale Min < 5.0, got %.2f", distanceScale.Min)
+	}
+	if distanceScale.Max <= 6.2 {
+		t.Errorf("Expected distance scale Max > 6.2, got %.2f", distanceScale.Max)
+	}
+}
+
+func TestBackwardCompatibility(t *testing.T) {
+	// Test that old charts without scale definitions still work
+	input := `chart
+title: Simple Chart
+ylabel: Values
+
+series: test
+data:
+  1: 10
+  2: 20
+  3: 15`
+
+	c, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// Should create a default scale
+	if len(c.Scales) != 1 {
+		t.Fatalf("Expected 1 default scale, got %d", len(c.Scales))
+	}
+
+	if c.Scales[0].ID != "default" {
+		t.Errorf("Expected default scale ID 'default', got '%s'", c.Scales[0].ID)
+	}
+
+	// Should use YAxisLabel for scale label
+	if c.Scales[0].Label != "Values" {
+		t.Errorf("Expected scale label 'Values', got '%s'", c.Scales[0].Label)
+	}
+
+	// Series should be assigned to default scale
+	if c.Series[0].YAxis != "default" {
+		t.Errorf("Expected series YAxis='default', got '%s'", c.Series[0].YAxis)
+	}
+}
+
+func TestScaleWithManualRange(t *testing.T) {
+	input := `chart
+title: Chart with Manual Scale
+
+scale
+  id: custom
+  label: Custom Scale
+  min: 0
+  max: 100
+
+series: test
+yaxis: custom
+data:
+  1: 30
+  2: 50
+  3: 70`
+
+	c, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if len(c.Scales) != 1 {
+		t.Fatalf("Expected 1 scale, got %d", len(c.Scales))
+	}
+
+	scale := c.Scales[0]
+	if scale.Min != 0 {
+		t.Errorf("Expected scale Min=0, got %.2f", scale.Min)
+	}
+	if scale.Max != 100 {
+		t.Errorf("Expected scale Max=100, got %.2f", scale.Max)
+	}
+	if scale.Auto {
+		t.Error("Expected scale Auto=false when min/max are set")
+	}
+}
+

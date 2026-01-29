@@ -141,8 +141,28 @@ func Parse(input string) (*Chart, error) {
 			}
 			if inDataBlock {
 				dataLines = append(dataLines, trimmed)
+				continue
 			}
-			// For scale blocks, indented lines are properties handled in the switch
+			// For scale blocks, indented lines are properties - fall through to parsing
+		}
+
+		// Check for scale block start (non-indented "scale" keyword)
+		if trimmed == "scale" && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
+			// End any previous blocks
+			if inDataBlock && len(dataLines) > 0 {
+				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, dataLines, chart.XAxisType)
+				dataLines = nil
+				inDataBlock = false
+			}
+			if inScaleBlock && currentScale != nil {
+				chart.Scales = append(chart.Scales, *currentScale)
+			}
+			// Start new scale block
+			inScaleBlock = true
+			currentScale = &Scale{
+				Auto: true,
+				Type: "number",
+			}
 			continue
 		}
 
@@ -152,7 +172,8 @@ func Parse(input string) (*Chart, error) {
 			dataLines = nil
 			inDataBlock = false
 		}
-		if inScaleBlock && currentScale != nil {
+		if inScaleBlock && currentScale != nil && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
+			// Non-indented line while in scale block - save scale and exit block
 			chart.Scales = append(chart.Scales, *currentScale)
 			currentScale = nil
 			inScaleBlock = false
@@ -217,8 +238,8 @@ func Parse(input string) (*Chart, error) {
 			} else {
 				seriesTypes = []string{value}
 			}
-		case "yaxis", "scale":
-			// Y-axis/scale assignment for series
+		case "yaxis":
+			// Y-axis/scale assignment for series (only yaxis, not scale)
 			if strings.Contains(value, "|") {
 				seriesYAxes = parseDelimitedList(value, "|")
 			} else {
@@ -249,20 +270,6 @@ func Parse(input string) (*Chart, error) {
 				}
 			case "type":
 				currentScale.Type = value
-			}
-		}
-
-		// Check for scale block start (non-indented "scale" keyword)
-		if key == "scale" && value == "" && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
-			// Save any previous scale
-			if inScaleBlock && currentScale != nil {
-				chart.Scales = append(chart.Scales, *currentScale)
-			}
-			// Start new scale block
-			inScaleBlock = true
-			currentScale = &Scale{
-				Auto: true,
-				Type: "number",
 			}
 		}
 	}
