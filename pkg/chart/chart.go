@@ -17,6 +17,16 @@ type DataPoint struct {
 	YIsDuration bool // Whether Y is a duration value
 }
 
+// Scale represents a Y-axis scale with its own range and label
+type Scale struct {
+	ID    string  // Unique identifier (e.g., "default", "distance", "duration")
+	Label string  // Label for this scale
+	Min   float64 // Minimum value (used when Auto is false)
+	Max   float64 // Maximum value (used when Auto is false)
+	Auto  bool    // Whether to auto-calculate min/max
+	Type  string  // "number" or "duration"
+}
+
 // Series represents a data series
 type Series struct {
 	Name  string
@@ -24,6 +34,7 @@ type Series struct {
 	Color string
 	Style string // "line", "dashed", "dotted"
 	Type  string // "number" or "duration"
+	YAxis string // Scale ID this series belongs to (default: "default")
 }
 
 // Chart represents a line chart
@@ -33,10 +44,11 @@ type Chart struct {
 	Height     float64
 	XAxisType  string // "number" or "date"
 	XAxisLabel string
-	YAxisLabel string
+	YAxisLabel string // Deprecated: use Scales instead
 	Legend     string // "top-left", "top-right", "bottom-left", "bottom-right", "none"
 	Grid       bool
 	Series     []Series
+	Scales     []Scale // Y-axis scales
 }
 
 // Parse parses chart definition into a Chart struct
@@ -85,47 +97,103 @@ func Parse(input string) (*Chart, error) {
 		Legend:    "top-right",
 		Grid:      true,
 		Series:    []Series{},
+		Scales:    []Scale{},
 	}
 
 	var seriesNames []string
 	var seriesColors []string
 	var seriesStyles []string
 	var seriesTypes []string
+	var seriesYAxes []string
 	var inDataBlock bool
 	var dataLines []string
+	var currentScale *Scale
+	var inScaleBlock bool
+	var scaleMinSet, scaleMaxSet bool
 
 	for i := 1; i < len(lines); i++ {
 		line := lines[i]
 		trimmed := strings.TrimSpace(line)
 
 		if trimmed == "" {
-			// Empty line - end data block if we're in one
+			// Empty line - end data/scale block if we're in one
 			if inDataBlock && len(dataLines) > 0 {
-				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, dataLines, chart.XAxisType)
+				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, dataLines, chart.XAxisType)
 				dataLines = nil
 				seriesNames = nil
 				seriesColors = nil
 				seriesStyles = nil
 				seriesTypes = nil
+				seriesYAxes = nil
+			}
+			if inScaleBlock && currentScale != nil {
+				if scaleMinSet && scaleMaxSet {
+					currentScale.Auto = false
+				}
+				chart.Scales = append(chart.Scales, *currentScale)
+				currentScale = nil
+				scaleMinSet = false
+				scaleMaxSet = false
 			}
 			inDataBlock = false
+			inScaleBlock = false
 			continue
 		}
 
 		// Check if line starts with spaces (multiline data)
 		if len(line) > 0 && (line[0] == ' ' || line[0] == '\t') {
-			if !inDataBlock {
-				continue // Skip indented lines outside data block
+			if !inDataBlock && !inScaleBlock {
+				continue // Skip indented lines outside data/scale block
 			}
-			dataLines = append(dataLines, trimmed)
+			if inDataBlock {
+				dataLines = append(dataLines, trimmed)
+				continue
+			}
+			// For scale blocks, indented lines are properties - fall through to parsing
+		}
+
+		// Check for scale block start (non-indented "scale" keyword)
+		if trimmed == "scale" && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
+			// End any previous blocks
+			if inDataBlock && len(dataLines) > 0 {
+				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, dataLines, chart.XAxisType)
+				dataLines = nil
+				inDataBlock = false
+			}
+			if inScaleBlock && currentScale != nil {
+				// Finalize previous scale - set Auto based on whether min/max were set
+				if scaleMinSet && scaleMaxSet {
+					currentScale.Auto = false
+				}
+				chart.Scales = append(chart.Scales, *currentScale)
+			}
+			// Start new scale block
+			inScaleBlock = true
+			scaleMinSet = false
+			scaleMaxSet = false
+			currentScale = &Scale{
+				Auto: true,
+				Type: "number",
+			}
 			continue
 		}
 
 		// Parse key: value
 		if inDataBlock && len(dataLines) > 0 {
-			processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, dataLines, chart.XAxisType)
+			processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, dataLines, chart.XAxisType)
 			dataLines = nil
 			inDataBlock = false
+		}
+		if inScaleBlock && currentScale != nil && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
+			// Non-indented line while in scale block - finalize and save scale
+			if scaleMinSet && scaleMaxSet {
+				currentScale.Auto = false
+			}
+			chart.Scales = append(chart.Scales, *currentScale)
+			currentScale = nil
+			inScaleBlock = false
+			scaleMinSet = false
+			scaleMaxSet = false
 		}
 
 		parts := strings.SplitN(trimmed, ":", 2)
@@ -187,16 +255,84 @@ func Parse(input string) (*Chart, error) {
 			} else {
 				seriesTypes = []string{value}
 			}
+		case "yaxis":
+			// Y-axis/scale assignment for series (only yaxis, not scale)
+			if strings.Contains(value, "|") {
+				seriesYAxes = parseDelimitedList(value, "|")
+			} else {
+				seriesYAxes = []string{value}
+			}
 		case "data":
 			// Start data block
 			inDataBlock = true
 			dataLines = []string{}
 		}
+
+		// Handle scale block properties (when in scale block)
+		if inScaleBlock && currentScale != nil {
+			switch key {
+			case "id":
+				currentScale.ID = value
+			case "label":
+				currentScale.Label = value
+			case "min":
+				if min, err := strconv.ParseFloat(value, 64); err == nil {
+					currentScale.Min = min
+					scaleMinSet = true
+				}
+			case "max":
+				if max, err := strconv.ParseFloat(value, 64); err == nil {
+					currentScale.Max = max
+					scaleMaxSet = true
+				}
+			case "type":
+				currentScale.Type = value
+			}
+		}
 	}
 
 	// Handle final data block
 	if inDataBlock && len(dataLines) > 0 {
-		processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, dataLines, chart.XAxisType)
+		processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, dataLines, chart.XAxisType)
+	}
+
+	// Handle final scale block
+	if inScaleBlock && currentScale != nil {
+		if scaleMinSet && scaleMaxSet {
+			currentScale.Auto = false
+		}
+		chart.Scales = append(chart.Scales, *currentScale)
+	}
+
+	// Validate scales
+	for i := range chart.Scales {
+		scale := &chart.Scales[i]
+		// If auto is disabled but range is invalid, reset to auto
+		if !scale.Auto && scale.Min >= scale.Max {
+			scale.Auto = true
+			scale.Min = 0
+			scale.Max = 0
+		}
+	}
+
+	// Ensure there's at least a default scale if none defined
+	if len(chart.Scales) == 0 {
+		chart.Scales = append(chart.Scales, Scale{
+			ID:   "default",
+			Auto: true,
+			Type: "number",
+		})
+		// Use old YAxisLabel if present
+		if chart.YAxisLabel != "" {
+			chart.Scales[0].Label = chart.YAxisLabel
+		}
+	}
+
+	// Assign default yaxis to series that don't have one
+	for i := range chart.Series {
+		if chart.Series[i].YAxis == "" {
+			chart.Series[i].YAxis = "default"
+		}
 	}
 
 	// Assign default colors
@@ -229,7 +365,7 @@ func parseDelimitedList(value, delimiter string) []string {
 }
 
 // processMultiSeriesData handles both single and multi-series data blocks
-func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyles, seriesTypes []string, dataLines []string, xAxisType string) {
+func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes []string, dataLines []string, xAxisType string) {
 	if len(seriesNames) == 0 {
 		return
 	}
@@ -293,6 +429,10 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 				series.Style = "line"
 			}
 
+			if idx < len(seriesYAxes) {
+				series.YAxis = seriesYAxes[idx]
+			}
+
 			if series.Color == "" {
 				series.Color = "#3b82f6"
 			}
@@ -323,6 +463,10 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 				series.Style = seriesStyles[0]
 			} else {
 				series.Style = "line"
+			}
+
+			if len(seriesYAxes) > 0 {
+				series.YAxis = seriesYAxes[0]
 			}
 
 			if series.Color == "" {
@@ -489,12 +633,23 @@ func (c *Chart) RenderSVG() string {
 		topPadding = 60.0
 	}
 
-	plotWidth := c.Width - 2*padding
+	// Check if we have multiple scales (need right axis)
+	hasRightAxis := len(c.Scales) > 1
+	rightPadding := padding
+	if hasRightAxis {
+		rightPadding = 60.0
+	}
+
+	plotWidth := c.Width - padding - rightPadding
 	plotHeight := c.Height - padding - topPadding
 	plotX := padding
 	plotY := topPadding
 
-	xMin, xMax, yMin, yMax := c.calculateRanges()
+	// Calculate X range (same for all series)
+	xMin, xMax, _, _ := c.calculateRanges()
+	
+	// Calculate scale-specific Y ranges
+	c.calculateScaleRanges()
 
 	var svg strings.Builder
 	svg.WriteString(fmt.Sprintf(`<svg width="%.0f" height="%.0f" xmlns="http://www.w3.org/2000/svg">`, c.Width, c.Height))
@@ -512,10 +667,10 @@ func (c *Chart) RenderSVG() string {
 	}
 
 	// Axes
-	svg.WriteString(c.generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax, yMin, yMax))
+	svg.WriteString(c.generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax))
 
 	// Series
-	svg.WriteString(c.generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax, yMin, yMax))
+	svg.WriteString(c.generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax))
 
 	// Legend
 	if c.Legend != "none" && len(c.Series) > 1 {
@@ -566,6 +721,54 @@ func (c *Chart) calculateRanges() (xMin, xMax, yMin, yMax float64) {
 	return
 }
 
+// calculateScaleRanges calculates min/max for each scale based on its series
+func (c *Chart) calculateScaleRanges() {
+	for i := range c.Scales {
+		scale := &c.Scales[i]
+		
+		// Skip if min/max are manually set
+		if !scale.Auto {
+			continue
+		}
+
+		yMin := math.MaxFloat64
+		yMax := -math.MaxFloat64
+		foundData := false
+
+		// Find all series belonging to this scale
+		for _, series := range c.Series {
+			if series.YAxis != scale.ID {
+				continue
+			}
+			for _, point := range series.Data {
+				foundData = true
+				if point.Y < yMin {
+					yMin = point.Y
+				}
+				if point.Y > yMax {
+					yMax = point.Y
+				}
+			}
+		}
+
+		// Handle case where no data was found for this scale
+		if !foundData {
+			scale.Min = 0
+			scale.Max = 1
+			continue
+		}
+
+		// Add 10% padding
+		yRange := yMax - yMin
+		if yRange == 0 {
+			yRange = 1
+		}
+
+		scale.Min = yMin - yRange*0.1
+		scale.Max = yMax + yRange*0.1
+	}
+}
+
 func (c *Chart) generateGrid(plotX, plotY, plotWidth, plotHeight float64) string {
 	var lines strings.Builder
 
@@ -586,16 +789,12 @@ func (c *Chart) generateGrid(plotX, plotY, plotWidth, plotHeight float64) string
 	return lines.String()
 }
 
-func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax, yMin, yMax float64) string {
+func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax float64) string {
 	var svg strings.Builder
 
 	// X axis
 	svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
 		plotX, plotY+plotHeight, plotX+plotWidth, plotY+plotHeight))
-
-	// Y axis
-	svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
-		plotX, plotY, plotX, plotY+plotHeight))
 
 	// X axis labels
 	for i := 0; i <= 5; i++ {
@@ -614,22 +813,28 @@ func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax, yM
 			x, plotY+plotHeight+20, label))
 	}
 
-	// Y axis labels
-	// Check if any series has duration data
-	hasDuration := false
-	for _, series := range c.Series {
-		if series.Type == "duration" {
-			hasDuration = true
-			break
-		}
+	// X axis label
+	if c.XAxisLabel != "" {
+		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="12" fill="#333">%s</text>`,
+			plotX+plotWidth/2, plotY+plotHeight+40, c.XAxisLabel))
 	}
+
+	// Render Y axes based on scales
+	if len(c.Scales) == 0 {
+		return svg.String()
+	}
+
+	// Left Y axis (first scale)
+	leftScale := c.Scales[0]
+	svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
+		plotX, plotY, plotX, plotY+plotHeight))
 
 	for i := 0; i <= 5; i++ {
 		y := plotY + plotHeight - float64(i)*plotHeight/5.0
-		value := yMin + float64(i)*(yMax-yMin)/5.0
+		value := leftScale.Min + float64(i)*(leftScale.Max-leftScale.Min)/5.0
 
 		label := ""
-		if hasDuration {
+		if leftScale.Type == "duration" {
 			label = formatDuration(value)
 		} else {
 			label = fmt.Sprintf("%.1f", value)
@@ -639,27 +844,76 @@ func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax, yM
 			plotX-10, y+4, label))
 	}
 
-	// Axis labels
-	if c.XAxisLabel != "" {
-		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="12" fill="#333">%s</text>`,
-			plotX+plotWidth/2, plotY+plotHeight+40, c.XAxisLabel))
-	}
-
-	if c.YAxisLabel != "" {
+	// Left Y axis label
+	if leftScale.Label != "" {
+		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="12" fill="#333" transform="rotate(-90 %.2f %.2f)">%s</text>`,
+			plotX-40, plotY+plotHeight/2, plotX-40, plotY+plotHeight/2, leftScale.Label))
+	} else if c.YAxisLabel != "" {
+		// Backward compatibility
 		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="12" fill="#333" transform="rotate(-90 %.2f %.2f)">%s</text>`,
 			plotX-40, plotY+plotHeight/2, plotX-40, plotY+plotHeight/2, c.YAxisLabel))
+	}
+
+	// Right Y axis (second scale if exists)
+	if len(c.Scales) > 1 {
+		rightScale := c.Scales[1]
+		rightX := plotX + plotWidth
+
+		svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
+			rightX, plotY, rightX, plotY+plotHeight))
+
+		for i := 0; i <= 5; i++ {
+			y := plotY + plotHeight - float64(i)*plotHeight/5.0
+			value := rightScale.Min + float64(i)*(rightScale.Max-rightScale.Min)/5.0
+
+			label := ""
+			if rightScale.Type == "duration" {
+				label = formatDuration(value)
+			} else {
+				label = fmt.Sprintf("%.1f", value)
+			}
+
+			svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="start" font-size="11" fill="#666">%s</text>`,
+				rightX+10, y+4, label))
+		}
+
+		// Right Y axis label
+		if rightScale.Label != "" {
+			svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="12" fill="#333" transform="rotate(90 %.2f %.2f)">%s</text>`,
+				rightX+40, plotY+plotHeight/2, rightX+40, plotY+plotHeight/2, rightScale.Label))
+		}
 	}
 
 	return svg.String()
 }
 
-func (c *Chart) generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax, yMin, yMax float64) string {
+func (c *Chart) generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax float64) string {
 	var svg strings.Builder
+
+	// Create a map of scale ID to scale for quick lookup
+	scaleMap := make(map[string]*Scale)
+	for i := range c.Scales {
+		scaleMap[c.Scales[i].ID] = &c.Scales[i]
+	}
 
 	for _, series := range c.Series {
 		if len(series.Data) == 0 {
 			continue
 		}
+
+		// Get the scale for this series
+		scale, ok := scaleMap[series.YAxis]
+		if !ok {
+			// Fallback to first scale if series scale not found
+			if len(c.Scales) > 0 {
+				scale = &c.Scales[0]
+			} else {
+				continue
+			}
+		}
+
+		yMin := scale.Min
+		yMax := scale.Max
 
 		// Build path
 		var pathData strings.Builder

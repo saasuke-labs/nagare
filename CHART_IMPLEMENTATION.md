@@ -127,6 +127,7 @@ Located in `.github/testdiagrams/`:
 6. **chart-duration-running.nagare** - Duration type example (5K and 10K running times)
 7. **chart-duration-mixed.nagare** - Mixed duration and number types (lap time, rest time, distance)
 8. **chart-duration-marathon.nagare** - Long duration format (marathon times in HH:MM:SS)
+9. **chart-multi-scale.nagare** - Multi-scale example with duration and distance (NEW)
 
 All diagrams use the **new multiline format** for data entry.
 
@@ -180,6 +181,91 @@ PASS
 - Scatter plots
 - Pie charts
 - Stacked area charts
-- Custom axis ranges
-- Multiple Y-axes
 - Tooltips/hover information
+
+## Multi-Scale Support (NEW)
+
+Charts now support multiple Y-axis scales, allowing you to plot different metrics with different units on the same chart. This prevents the "almost flat" rendering issue when mixing values with vastly different ranges (e.g., duration in seconds vs distance in kilometers).
+
+### Basic Multi-Scale Usage
+
+Define separate scales and assign each series to a scale using the `yaxis` property:
+
+```
+chart
+title: Training Metrics - Duration vs Distance
+xaxis: date
+
+scale
+  id: duration
+  label: Duration (minutes)
+  type: duration
+
+scale
+  id: distance
+  label: Distance (km)
+
+series: total-duration
+yaxis: duration
+type: duration
+data:
+  2025-01-01: 60:00
+  2025-01-02: 62:30
+
+series: jog-distance
+yaxis: distance
+data:
+  2025-01-01: 5.0
+  2025-01-02: 5.2
+```
+
+**Result:**
+- Left Y-axis shows duration scale (for total-duration)
+- Right Y-axis shows distance scale (for jog-distance)
+- Each series is properly scaled to its own axis
+
+### Scale Properties
+
+Each scale block supports:
+- **id** (required) - Unique identifier for the scale
+- **label** (optional) - Axis label text
+- **type** (optional) - `number` (default) or `duration`
+- **min** (optional) - Manual minimum value (auto-calculated if not specified)
+- **max** (optional) - Manual maximum value (auto-calculated if not specified)
+
+### Manual Range Specification
+
+You can manually set the range for a scale:
+
+```
+scale
+  id: percentage
+  label: Success Rate (%)
+  min: 0
+  max: 100
+```
+
+When min/max are specified, auto-calculation is disabled for that scale.
+
+### Backward Compatibility
+
+Old charts without scale definitions continue to work. A default scale is automatically created:
+- Always initialized with type "number"
+- Uses `ylabel` (if present) for the scale label
+- All series are assigned to the "default" scale
+- Range is auto-calculated based on all data points
+
+### Multiple Scales Rendering
+
+- **First scale** - Rendered on the left Y-axis
+- **Second scale** - Rendered on the right Y-axis
+- Additional scales beyond two are currently supported in the data model but only the first two are rendered
+
+### Use Cases
+
+Perfect for charts that combine:
+- Duration and distance (running/training metrics)
+- Time and count (performance monitoring)
+- Temperature and humidity (weather data)
+- Price and volume (financial charts)
+- Any metrics with different units or value ranges
