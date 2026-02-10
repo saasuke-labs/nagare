@@ -11,10 +11,10 @@ import (
 
 // DataPoint represents a single point in a series
 type DataPoint struct {
-	X         float64
-	Y         float64
-	YLabel    string // Original label for Y value (e.g., duration format)
-	YIsDuration bool // Whether Y is a duration value
+	X           float64
+	Y           float64
+	YLabel      string // Original label for Y value (e.g., duration format)
+	YIsDuration bool   // Whether Y is a duration value
 }
 
 // Scale represents a Y-axis scale with its own range and label
@@ -628,26 +628,64 @@ func (c *Chart) RenderSVG() string {
 	}
 
 	padding := 60.0
-	topPadding := 40.0
+	baseTopPadding := 40.0
 	if c.Title != "" {
-		topPadding = 60.0
+		baseTopPadding = 60.0
 	}
+	baseBottomPadding := 60.0
+	leftPadding := padding
+	rightPadding := padding
 
 	// Check if we have multiple scales (need right axis)
 	hasRightAxis := len(c.Scales) > 1
-	rightPadding := padding
 	if hasRightAxis {
 		rightPadding = 60.0
 	}
 
-	plotWidth := c.Width - padding - rightPadding
-	plotHeight := c.Height - padding - topPadding
-	plotX := padding
-	plotY := topPadding
+	legendLayout := legendLayout{}
+	legendPos := c.legendPosition()
+	showLegend := c.Legend != "none" && len(c.Series) > 1
+	legendGap := 10.0
+	if showLegend && legendPos != "none" {
+		legendLayout.Orientation = legendPos
+		legendLayout.Width, legendLayout.Height = c.legendSize(legendPos)
+		switch legendPos {
+		case "top":
+			baseTopPadding += legendLayout.Height + legendGap
+		case "bottom":
+			baseBottomPadding += legendLayout.Height + legendGap
+		case "left":
+			leftPadding += legendLayout.Width + legendGap
+		case "right":
+			rightPadding += legendLayout.Width + legendGap
+		}
+	}
+
+	plotWidth := c.Width - leftPadding - rightPadding
+	plotHeight := c.Height - baseBottomPadding - baseTopPadding
+	plotX := leftPadding
+	plotY := baseTopPadding
+
+	if showLegend && legendPos != "none" {
+		switch legendPos {
+		case "top":
+			legendLayout.X = plotX + (plotWidth-legendLayout.Width)/2
+			legendLayout.Y = plotY - legendLayout.Height - legendGap
+		case "bottom":
+			legendLayout.X = plotX + (plotWidth-legendLayout.Width)/2
+			legendLayout.Y = plotY + plotHeight + legendGap
+		case "left":
+			legendLayout.X = plotX - legendLayout.Width - legendGap
+			legendLayout.Y = plotY + (plotHeight-legendLayout.Height)/2
+		case "right":
+			legendLayout.X = plotX + plotWidth + legendGap
+			legendLayout.Y = plotY + (plotHeight-legendLayout.Height)/2
+		}
+	}
 
 	// Calculate X range (same for all series)
 	xMin, xMax, _, _ := c.calculateRanges()
-	
+
 	// Calculate scale-specific Y ranges
 	c.calculateScaleRanges()
 
@@ -673,8 +711,8 @@ func (c *Chart) RenderSVG() string {
 	svg.WriteString(c.generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax))
 
 	// Legend
-	if c.Legend != "none" && len(c.Series) > 1 {
-		svg.WriteString(c.generateLegend(plotX, plotY, plotWidth, plotHeight))
+	if showLegend && legendPos != "none" {
+		svg.WriteString(c.generateLegend(legendLayout))
 	}
 
 	svg.WriteString(`</svg>`)
@@ -702,7 +740,7 @@ func (c *Chart) calculateRanges() (xMin, xMax, yMin, yMax float64) {
 		}
 	}
 
-	// Add 10% padding
+	// Add padding (smaller on X so lines are closer to edges)
 	xRange := xMax - xMin
 	yRange := yMax - yMin
 
@@ -713,19 +751,91 @@ func (c *Chart) calculateRanges() (xMin, xMax, yMin, yMax float64) {
 		yRange = 1
 	}
 
-	xMin -= xRange * 0.1
-	xMax += xRange * 0.1
-	yMin -= yRange * 0.1
-	yMax += yRange * 0.1
+	xPaddingFactor := 0.03
+	yPaddingFactor := 0.1
+	xMin -= xRange * xPaddingFactor
+	xMax += xRange * xPaddingFactor
+	yMin -= yRange * yPaddingFactor
+	yMax += yRange * yPaddingFactor
 
 	return
+}
+
+type legendLayout struct {
+	X, Y        float64
+	Width       float64
+	Height      float64
+	Orientation string
+}
+
+func (c *Chart) legendPosition() string {
+	legend := strings.ToLower(strings.TrimSpace(c.Legend))
+	if legend == "none" || legend == "" {
+		return "none"
+	}
+	if strings.Contains(legend, "top") {
+		return "top"
+	}
+	if strings.Contains(legend, "bottom") {
+		return "bottom"
+	}
+	if strings.Contains(legend, "left") {
+		return "left"
+	}
+	if strings.Contains(legend, "right") {
+		return "right"
+	}
+	return "top"
+}
+
+func (c *Chart) legendSize(position string) (width, height float64) {
+	const (
+		fontSize       = 11.0
+		lineWidth      = 15.0
+		textGap        = 6.0
+		itemGap        = 14.0
+		padding        = 8.0
+		rowHeight      = 20.0
+		charWidthRatio = 0.6
+	)
+
+	maxTextWidth := 0.0
+	itemCount := float64(len(c.Series))
+	for _, series := range c.Series {
+		textWidth := float64(len([]rune(series.Name))) * fontSize * charWidthRatio
+		if textWidth > maxTextWidth {
+			maxTextWidth = textWidth
+		}
+	}
+
+	itemWidth := lineWidth + textGap + maxTextWidth
+
+	switch position {
+	case "left", "right":
+		width = padding*2 + itemWidth
+		height = padding*2 + rowHeight*itemCount
+	default: // top or bottom
+		totalItemsWidth := 0.0
+		for i, series := range c.Series {
+			textWidth := float64(len([]rune(series.Name))) * fontSize * charWidthRatio
+			itemW := lineWidth + textGap + textWidth
+			totalItemsWidth += itemW
+			if i < len(c.Series)-1 {
+				totalItemsWidth += itemGap
+			}
+		}
+		width = padding*2 + totalItemsWidth
+		height = padding*2 + rowHeight
+	}
+
+	return width, height
 }
 
 // calculateScaleRanges calculates min/max for each scale based on its series
 func (c *Chart) calculateScaleRanges() {
 	for i := range c.Scales {
 		scale := &c.Scales[i]
-		
+
 		// Skip if min/max are manually set
 		if !scale.Auto {
 			continue
@@ -953,30 +1063,49 @@ func (c *Chart) generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax f
 	return svg.String()
 }
 
-func (c *Chart) generateLegend(plotX, plotY, plotWidth, plotHeight float64) string {
+func (c *Chart) generateLegend(layout legendLayout) string {
 	var svg strings.Builder
 
-	legendX, legendY := plotX+plotWidth-120, plotY+10
+	legendX, legendY := layout.X, layout.Y
+	legendWidth, legendHeight := layout.Width, layout.Height
 
-	if strings.Contains(c.Legend, "left") {
-		legendX = plotX + 10
+	svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="white" stroke="#ccc" stroke-width="1" rx="3"/>`,
+		legendX, legendY, legendWidth, legendHeight))
+
+	const (
+		padding   = 8.0
+		rowHeight = 20.0
+		lineWidth = 15.0
+		textGap   = 6.0
+		itemGap   = 14.0
+	)
+
+	if layout.Orientation == "left" || layout.Orientation == "right" {
+		for i, series := range c.Series {
+			y := legendY + padding + 12 + float64(i)*rowHeight
+			svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="3" fill="%s"/>`,
+				legendX+padding, y-2, lineWidth, series.Color))
+			svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" font-size="11" fill="#333">%s</text>`,
+				legendX+padding+lineWidth+textGap, y+2, series.Name))
+		}
+		return svg.String()
 	}
-	if strings.Contains(c.Legend, "bottom") {
-		legendY = plotY + plotHeight - float64(len(c.Series))*25 - 10
-	}
 
-	legendHeight := float64(len(c.Series)) * 20
-	svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="110" height="%.2f" fill="white" stroke="#ccc" stroke-width="1" rx="3"/>`,
-		legendX, legendY, legendHeight+10))
-
+	// Horizontal legend (top/bottom)
+	currentX := legendX + padding
+	baselineY := legendY + padding + 12
 	for i, series := range c.Series {
-		y := legendY + 15 + float64(i)*20
-
-		svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="15" height="3" fill="%s"/>`,
-			legendX+5, y-2, series.Color))
-
+		svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="3" fill="%s"/>`,
+			currentX, baselineY-2, lineWidth, series.Color))
 		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" font-size="11" fill="#333">%s</text>`,
-			legendX+25, y+2, series.Name))
+			currentX+lineWidth+textGap, baselineY+2, series.Name))
+
+		textWidth := float64(len([]rune(series.Name))) * 11.0 * 0.6
+		itemWidth := lineWidth + textGap + textWidth
+		if i < len(c.Series)-1 {
+			itemWidth += itemGap
+		}
+		currentX += itemWidth
 	}
 
 	return svg.String()
