@@ -10,6 +10,8 @@ import (
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
+const AllowedActions = "read,write"
+
 //go:embed database.html
 var templateFile embed.FS
 
@@ -44,26 +46,29 @@ func DefaultProps() Props {
 
 type Legacy struct {
 	components.Shape
-	Text  string
-	Props Props
-	State string
+	Text    string
+	Props   Props
+	State   string
+	Actions map[string][]map[string]any
 }
 
 func NewLegacy(id string) *Legacy {
-	return &Legacy{Text: id, Props: DefaultProps()}
+
+	return &Legacy{Text: id, Props: DefaultProps(), Actions: make(map[string][]map[string]any)}
 }
 
 type templateData struct {
-	X      float64
-	Y      float64
-	Width  float64
-	Height float64
-	Props  Props
-	Text   string
+	X       float64
+	Y       float64
+	Width   float64
+	Height  float64
+	Props   Props
+	Text    string
+	Actions map[string][]map[string]any
 }
 
 func (l *Legacy) data() templateData {
-	return templateData{X: l.X, Y: l.Y, Width: l.Width, Height: l.Height, Props: l.Props, Text: l.Text}
+	return templateData{X: l.X, Y: l.Y, Width: l.Width, Height: l.Height, Props: l.Props, Text: l.Text, Actions: l.Actions}
 }
 
 func (l *Legacy) Draw() string {

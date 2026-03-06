@@ -25,14 +25,15 @@ type State struct {
 
 // Node represents a node in the AST
 type Node struct {
-	Type        NodeType // Can be a predefined type or a custom type string
-	Text        string   // The name/label of the node
-	Children    []Node
-	Depth       int    // Track nesting level
-	State       string // Current state name if specified with @
-	States      map[string]State
-	Globals     map[string]State
-	Connections []Connection
+	Type         NodeType // Can be a predefined type or a custom type string
+	Text         string   // The name/label of the node
+	Children     []Node
+	Depth        int    // Track nesting level
+	State        string // Current state name if specified with @
+	States       map[string]State
+	Globals      map[string]State
+	GlobalStates []State
+	Connections  []Connection
 }
 
 // AnchorDescriptor captures anchor metadata for connection endpoints.
@@ -121,8 +122,21 @@ func (p *Parser) parseState() (*State, error) {
 	if p.current >= len(p.tokens) || p.tokens[p.current].Type != tokenizer.IDENTIFIER {
 		return nil, errors.New("expected state name after @")
 	}
-	name := p.tokens[p.current].Value
-	p.current++ // Move past state name
+
+	var nameBuilder strings.Builder
+	nameBuilder.WriteString(p.tokens[p.current].Value)
+	p.current++ // Move past first state name segment
+
+	// Support dotted state names for actions, e.g. @db.read(...)
+	for p.current+1 < len(p.tokens) &&
+		p.tokens[p.current].Type == tokenizer.DOT &&
+		p.tokens[p.current+1].Type == tokenizer.IDENTIFIER {
+		nameBuilder.WriteString(".")
+		nameBuilder.WriteString(p.tokens[p.current+1].Value)
+		p.current += 2
+	}
+
+	name := nameBuilder.String()
 
 	if p.current >= len(p.tokens) || p.tokens[p.current].Type != tokenizer.LEFT_PAREN {
 		return nil, errors.New("expected ( after state name")
@@ -210,6 +224,7 @@ func (p *Parser) parse(depth int) (Node, error) {
 
 			// Store the state definition for lookup during layout/render phases
 			root.Globals[state.Name] = *state
+			root.GlobalStates = append(root.GlobalStates, *state)
 
 			// Associate the state with nodes that explicitly reference it by state name
 			fmt.Printf("State %s props: %s\n", state.Name, state.PropsDef)
@@ -349,6 +364,9 @@ func (p *Parser) parse(depth int) (Node, error) {
 
 	if len(root.Globals) == 0 {
 		root.Globals = nil
+	}
+	if len(root.GlobalStates) == 0 {
+		root.GlobalStates = nil
 	}
 	return root, nil
 }

@@ -218,3 +218,47 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestParseSupportsDottedActionStates(t *testing.T) {
+	code := `@layout(w:1000,h:800)
+
+db:Database
+
+@db(x:50,y:100,w:100,h:100)
+@db.read(begin:1s,dur:2s)
+@db.write(begin:4s,dur:2s)
+@db.read(begin:7s,dur:2s)`
+
+	tokens := tokenizer.Tokenize(code)
+	got, err := Parse(tokens)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error = %v", err)
+	}
+
+	if got.Globals == nil {
+		t.Fatal("expected Globals to be populated")
+	}
+
+	if _, ok := got.Globals["db.read"]; !ok {
+		t.Fatal("expected dotted state key db.read in Globals")
+	}
+
+	if _, ok := got.Globals["db.write"]; !ok {
+		t.Fatal("expected dotted state key db.write in Globals")
+	}
+
+	if len(got.GlobalStates) != 5 {
+		t.Fatalf("expected 5 global state entries, got %d", len(got.GlobalStates))
+	}
+
+	readCount := 0
+	for _, s := range got.GlobalStates {
+		if s.Name == "db.read" {
+			readCount++
+		}
+	}
+
+	if readCount != 2 {
+		t.Fatalf("expected 2 db.read action entries, got %d", readCount)
+	}
+}

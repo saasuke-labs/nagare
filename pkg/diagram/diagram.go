@@ -203,6 +203,11 @@ func (d *Diagram) buildRenderNode(node parser.Node) *RenderNode {
 			mergeProps(props, parsePropsDefSafe(s.PropsDef))
 		}
 	}
+
+	if actions := collectActionsForNode(d.AST, node.Text); len(actions) > 0 {
+		props["actions"] = actions
+	}
+
 	props["_rawProps"] = strings.Join(rawDefs, ",")
 
 	// Include resolved geometry as numeric props when available.
@@ -233,6 +238,33 @@ func (d *Diagram) buildRenderNode(node parser.Node) *RenderNode {
 	}
 
 	return renderNode
+}
+
+func collectActionsForNode(ast parser.Node, nodeID string) map[string][]map[string]any {
+	actions := make(map[string][]map[string]any)
+	prefix := nodeID + "."
+
+	states := ast.GlobalStates
+	if len(states) == 0 {
+		// Backward-compatible fallback if parser did not populate GlobalStates.
+		states = make([]parser.State, 0, len(ast.Globals))
+		for _, state := range ast.Globals {
+			states = append(states, state)
+		}
+	}
+
+	for _, state := range states {
+		if !strings.HasPrefix(state.Name, prefix) {
+			continue
+		}
+		actionName := strings.TrimPrefix(state.Name, prefix)
+		if actionName == "" {
+			continue
+		}
+		actions[actionName] = append(actions[actionName], parsePropsDefSafe(state.PropsDef))
+	}
+
+	return actions
 }
 
 func layoutPropsDef(ast parser.Node) string {
@@ -407,6 +439,7 @@ func (d *Diagram) drawNode(node *RenderNode, shape components.Shape) string {
 		comp := diagramdatabase.NewLegacy(node.ID)
 		comp.Shape = localShape
 		_ = comp.Props.Parse(raw)
+		comp.Actions = actionMapFromAny(node.Props["actions"])
 		return comp.Draw()
 	case "messagequeue":
 		comp := diagrammessagequeue.NewLegacy(node.ID)
@@ -466,7 +499,7 @@ func rawPropsFromNode(node *RenderNode) string {
 
 	parts := make([]string, 0, len(node.Props))
 	for k, v := range node.Props {
-		if k == "x" || k == "y" || k == "w" || k == "h" || strings.HasPrefix(k, "_") {
+		if k == "x" || k == "y" || k == "w" || k == "h" || k == "actions" || strings.HasPrefix(k, "_") {
 			continue
 		}
 		parts = append(parts, fmt.Sprintf("%s:%s", k, serializePropValue(v)))
@@ -512,6 +545,32 @@ func floatProp(props map[string]any, key string) float64 {
 	default:
 		return 0
 	}
+}
+
+func actionMapFromAny(v any) map[string][]map[string]any {
+	out := make(map[string][]map[string]any)
+	if v == nil {
+		return out
+	}
+
+	typed, ok := v.(map[string][]map[string]any)
+	if !ok {
+		return out
+	}
+
+	for key, entries := range typed {
+		copied := make([]map[string]any, 0, len(entries))
+		for _, entry := range entries {
+			item := make(map[string]any, len(entry))
+			for k, val := range entry {
+				item[k] = val
+			}
+			copied = append(copied, item)
+		}
+		out[key] = copied
+	}
+
+	return out
 }
 
 func renderArrowComponents(children []components.Component) string {

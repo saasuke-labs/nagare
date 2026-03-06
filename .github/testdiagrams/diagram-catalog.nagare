@@ -1,0 +1,11 @@
+@layout(h:300,w:800)
+
+browser:Browser
+terminal:Terminal
+database:Database
+
+@browser(x:0, y:0, w:50,h:40)
+
+@terminal(x: 100, y:0, w:50, h:40)
+
+@database(x:200,y:0, w:50, h:40)
