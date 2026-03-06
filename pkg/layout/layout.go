@@ -130,10 +130,10 @@ func parseGeometryProps(def string) (geometryProps, error) {
 }
 
 func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex map[string]components.Shape) {
-	if w, ok := parseNumericOrPercent(geom.Width, 0); ok {
+	if w, ok := parseNumericValue(geom.Width); ok {
 		shape.Width = w
 	}
-	if h, ok := parseNumericOrPercent(geom.Height, 0); ok {
+	if h, ok := parseNumericValue(geom.Height); ok {
 		shape.Height = h
 	}
 	if geom.X != nil {
@@ -154,10 +154,10 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 					shape.AlignmentRefs = make(map[string]string)
 				}
 				shape.AlignmentRefs["x_string"] = strVal
-			} else if x, ok := parseNumericOrPercent(strVal, 0); ok {
+			} else if x, ok := parseNumericValue(strVal); ok {
 				shape.X = x
 			}
-		} else if x, ok := parseNumericOrPercent(geom.X, 0); ok {
+		} else if x, ok := parseNumericValue(geom.X); ok {
 			shape.X = x
 		}
 	}
@@ -179,16 +179,16 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 					shape.AlignmentRefs = make(map[string]string)
 				}
 				shape.AlignmentRefs["y_string"] = strVal
-			} else if y, ok := parseNumericOrPercent(strVal, 0); ok {
+			} else if y, ok := parseNumericValue(strVal); ok {
 				shape.Y = y
 			}
-		} else if y, ok := parseNumericOrPercent(geom.Y, 0); ok {
+		} else if y, ok := parseNumericValue(geom.Y); ok {
 			shape.Y = y
 		}
 	}
 }
 
-func parseNumericOrPercent(v interface{}, base float64) (float64, bool) {
+func parseNumericValue(v interface{}) (float64, bool) {
 	if v == nil {
 		return 0, false
 	}
@@ -202,18 +202,6 @@ func parseNumericOrPercent(v interface{}, base float64) (float64, bool) {
 		s := strings.TrimSpace(t)
 		if s == "" {
 			return 0, false
-		}
-		if strings.HasSuffix(s, "%") {
-			raw := strings.TrimSpace(strings.TrimSuffix(s, "%"))
-			p, err := strconv.ParseFloat(raw, 64)
-			if err != nil {
-				return 0, false
-			}
-			if base > 0 {
-				return base * (p / 100.0), true
-			}
-			// Without a known base, keep backward-compatible behavior.
-			return p, true
 		}
 		n, err := strconv.ParseFloat(s, 64)
 		if err != nil {
@@ -523,10 +511,10 @@ func calculateCanvasBounds(node parser.Node, defaultWidth, defaultHeight float64
 		return boundsWidth, boundsHeight
 	}
 
-	if w, ok := parseNumericOrPercent(geometry.Width, defaultWidth); ok {
+	if w, ok := parseNumericValue(geometry.Width); ok {
 		boundsWidth = w
 	}
-	if h, ok := parseNumericOrPercent(geometry.Height, defaultHeight); ok {
+	if h, ok := parseNumericValue(geometry.Height); ok {
 		boundsHeight = h
 	}
 

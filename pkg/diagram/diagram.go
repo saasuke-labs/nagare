@@ -335,7 +335,7 @@ func coerceValue(v string) any {
 		return n
 	}
 
-	// Keep percentages/alignment refs/symbolic strings as-is.
+	// Keep alignment refs/symbolic strings as-is.
 	return v
 }
 
@@ -346,19 +346,16 @@ func (d *Diagram) RenderTreeChildren(node *RenderNode) string {
 		return ""
 	}
 
-	rootWidth := floatProp(node.Props, "w", d.Layout.Bounds.Width)
-	rootHeight := floatProp(node.Props, "h", d.Layout.Bounds.Height)
-
 	var b strings.Builder
 	for _, child := range node.Children {
-		b.WriteString(d.renderNodeRecursive(child, 0, 0, rootWidth, rootHeight))
+		b.WriteString(d.renderNodeRecursive(child, 0, 0))
 		b.WriteString("\n")
 	}
 	return b.String()
 }
 
-func (d *Diagram) renderNodeRecursive(node *RenderNode, parentAbsX, parentAbsY, parentWidth, parentHeight float64) string {
-	absShape := shapeFromNode(node, parentWidth, parentHeight)
+func (d *Diagram) renderNodeRecursive(node *RenderNode, parentAbsX, parentAbsY float64) string {
+	absShape := shapeFromNode(node)
 	localShape := absShape
 	localShape.X = absShape.X - parentAbsX
 	localShape.Y = absShape.Y - parentAbsY
@@ -367,7 +364,7 @@ func (d *Diagram) renderNodeRecursive(node *RenderNode, parentAbsX, parentAbsY, 
 
 	var children strings.Builder
 	for _, child := range node.Children {
-		children.WriteString(d.renderNodeRecursive(child, absShape.X, absShape.Y, absShape.Width, absShape.Height))
+		children.WriteString(d.renderNodeRecursive(child, absShape.X, absShape.Y))
 		children.WriteString("\n")
 	}
 
@@ -451,12 +448,12 @@ func (d *Diagram) drawNode(node *RenderNode, shape components.Shape) string {
 	}
 }
 
-func shapeFromNode(node *RenderNode, parentWidth, parentHeight float64) components.Shape {
+func shapeFromNode(node *RenderNode) components.Shape {
 	return components.Shape{
-		X:      floatProp(node.Props, "x", parentWidth),
-		Y:      floatProp(node.Props, "y", parentHeight),
-		Width:  floatProp(node.Props, "w", parentWidth),
-		Height: floatProp(node.Props, "h", parentHeight),
+		X:      floatProp(node.Props, "x"),
+		Y:      floatProp(node.Props, "y"),
+		Width:  floatProp(node.Props, "w"),
+		Height: floatProp(node.Props, "h"),
 	}
 }
 
@@ -481,7 +478,7 @@ func rawPropsFromNode(node *RenderNode) string {
 func serializePropValue(v any) string {
 	switch t := v.(type) {
 	case string:
-		if strings.HasPrefix(t, "&") || strings.HasSuffix(t, "%") {
+		if strings.HasPrefix(t, "&") {
 			return t
 		}
 		return fmt.Sprintf("\"%s\"", t)
@@ -494,7 +491,7 @@ func serializePropValue(v any) string {
 	}
 }
 
-func floatProp(props map[string]any, key string, base float64) float64 {
+func floatProp(props map[string]any, key string) float64 {
 	v, ok := props[key]
 	if !ok {
 		return 0
@@ -507,16 +504,6 @@ func floatProp(props map[string]any, key string, base float64) float64 {
 		return float64(t)
 	case string:
 		s := strings.TrimSpace(t)
-		if strings.HasSuffix(s, "%") {
-			pct, err := strconv.ParseFloat(strings.TrimSpace(strings.TrimSuffix(s, "%")), 64)
-			if err != nil {
-				return 0
-			}
-			if base <= 0 {
-				return pct
-			}
-			return base * (pct / 100.0)
-		}
 		f, err := strconv.ParseFloat(s, 64)
 		if err != nil {
 			return 0
@@ -563,66 +550,3 @@ func CreateDiagram(code string) (string, error) {
 
 	return svg, nil
 }
-
-// // CreateDiagramWithSize generates an SVG diagram and returns the SVG along with the computed canvas size.
-// func CreateDiagramWithSize(code string) (string, int, int, error) {
-// 	return RenderToSVGWithSize(code)
-// }
-
-// // RenderToSVG renders diagram DSL input into SVG.
-// func RenderToSVG(code string) (string, error) {
-// 	svg, _, _, err := RenderToSVGWithSize(code)
-// 	return svg, err
-// }
-
-// // RenderToSVGWithSize renders a diagram and returns SVG with computed canvas size.
-// func RenderToSVGWithSize(code string) (string, int, int, error) {
-// 	tokens := tokenizer.Tokenize(code)
-// 	ast, err := parser.Parse(tokens)
-// 	if err != nil {
-// 		return "", 0, 0, fmt.Errorf("parse error: %w", err)
-// 	}
-
-// 	const defaultCanvasWidth, defaultCanvasHeight = 800.0, 400.0
-// 	l := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
-
-// 	canvasWidth := normalizedCanvasDimension(l.Bounds.Width, defaultCanvasWidth)
-// 	canvasHeight := normalizedCanvasDimension(l.Bounds.Height, defaultCanvasHeight)
-// 	svg := renderer.Render(l, canvasWidth, canvasHeight)
-
-// 	return svg, canvasWidth, canvasHeight, nil
-// }
-
-// // RenderToSVGWithDebug renders a diagram and includes parser/layout debug output.
-// func RenderToSVGWithDebug(code string) (string, error) {
-// 	fmt.Printf("Input code:\n%s\n", code)
-
-// 	tokens := tokenizer.Tokenize(code)
-// 	fmt.Printf("Tokens: %+v\n", tokens)
-
-// 	ast, err := parser.Parse(tokens)
-// 	if err != nil {
-// 		return "", fmt.Errorf("parse error: %w", err)
-// 	}
-
-// 	fmt.Printf("AST: \n%+v\n", ast)
-
-// 	const defaultCanvasWidth, defaultCanvasHeight = 800.0, 400.0
-// 	l := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
-// 	fmt.Printf("Layout: \n%+v\n", l)
-
-// 	canvasWidth := normalizedCanvasDimension(l.Bounds.Width, defaultCanvasWidth)
-// 	canvasHeight := normalizedCanvasDimension(l.Bounds.Height, defaultCanvasHeight)
-// 	svg := renderer.Render(l, canvasWidth, canvasHeight)
-// 	fmt.Println(svg)
-
-// 	return svg, nil
-// }
-
-// func normalizedCanvasDimension(calculated, fallback float64) int {
-// 	dim := int(calculated)
-// 	if dim == 0 {
-// 		dim = int(fallback)
-// 	}
-// 	return dim
-// }
