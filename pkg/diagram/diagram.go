@@ -2,6 +2,7 @@ package diagram
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -608,4 +609,34 @@ func CreateDiagram(code string) (string, error) {
 	fmt.Println(svg)
 
 	return svg, nil
+}
+
+// CreateDiagramWithSize generates an SVG diagram and returns it along with
+// the computed canvas size in pixels.
+func CreateDiagramWithSize(code string) (string, int, int, error) {
+	diagram, err := ParseDiagram(code)
+	if err != nil {
+		return "", 0, 0, err
+	}
+
+	w, h := diagram.Layout.Bounds.Width, diagram.Layout.Bounds.Height
+	renderTree := diagram.BuildRenderTree()
+	componentsSVG := diagram.RenderTreeChildren(renderTree)
+	componentsSVG += renderArrowComponents(diagram.Layout.Children)
+
+	svg := fmt.Sprintf("<svg viewBox=\"0 0 %.6f %.6f\"  xmlns=\"http://www.w3.org/2000/svg\">\n"+
+		"<!-- Background -->\n"+
+		"<rect width=\"%.6f\" height=\"%.6f\" fill=\"#ccc\"></rect>\n"+
+		"%s"+
+		"</svg>", w, h, w, h, componentsSVG)
+
+	return svg, normalizedCanvasDimension(w, 800), normalizedCanvasDimension(h, 400), nil
+}
+
+func normalizedCanvasDimension(calculated float64, fallback int) int {
+	dim := int(math.Ceil(calculated))
+	if dim <= 0 {
+		dim = fallback
+	}
+	return dim
 }
