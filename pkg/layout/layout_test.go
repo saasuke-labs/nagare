@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
+	diagramserver "github.com/saasuke-labs/nagare/pkg/diagram/components/server"
+	diagramvm "github.com/saasuke-labs/nagare/pkg/diagram/components/vm"
 	"github.com/saasuke-labs/nagare/pkg/parser"
 	"github.com/saasuke-labs/nagare/pkg/tokenizer"
 )
@@ -265,9 +267,9 @@ vps:VM@ubuntu {
 
 	layout := Calculate(ast, 800, 400)
 
-	var vm *components.VM
+	var vm *diagramvm.Legacy
 	for _, child := range layout.Children {
-		if candidate, ok := child.(*components.VM); ok {
+		if candidate, ok := child.(*diagramvm.Legacy); ok {
 			vm = candidate
 			break
 		}
@@ -283,7 +285,7 @@ vps:VM@ubuntu {
 	}
 
 	for _, child := range vm.Children {
-		server, ok := child.(*components.Server)
+		server, ok := child.(*diagramserver.Legacy)
 		if !ok {
 			continue
 		}
@@ -293,8 +295,8 @@ vps:VM@ubuntu {
 			continue
 		}
 
-		if !floatsNearlyEqual(server.Y, expectedY) {
-			t.Fatalf("expected %s relative Y to be %.2f, got %.2f", server.Text, expectedY, server.Y)
+		if !floatsNearlyEqual(server.Comp.Box.Y, expectedY) {
+			t.Fatalf("expected %s relative Y to be %.2f, got %.2f", server.Text, expectedY, server.Comp.Box.Y)
 		}
 	}
 }

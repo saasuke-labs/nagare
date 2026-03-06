@@ -6,10 +6,7 @@ import (
 	"strings"
 
 	"github.com/saasuke-labs/nagare/pkg/chart"
-	"github.com/saasuke-labs/nagare/pkg/layout"
-	"github.com/saasuke-labs/nagare/pkg/parser"
-	"github.com/saasuke-labs/nagare/pkg/renderer"
-	"github.com/saasuke-labs/nagare/pkg/tokenizer"
+	"github.com/saasuke-labs/nagare/pkg/diagram"
 )
 
 // RenderToSVG takes nagare DSL code as a string and returns the rendered SVG as a string.
@@ -27,71 +24,17 @@ func RenderToSVG(code string) (string, error) {
 		return c.RenderSVG(), nil
 	}
 
-	// Default: render as diagram
-	// Pipeline:
-	// 1. Tokenize
-	tokens := tokenizer.Tokenize(code)
-
-	// 2. Parse
-	ast, err := parser.Parse(tokens)
-	if err != nil {
-		return "", fmt.Errorf("parse error: %w", err)
-	}
-
-	// 3. Layout
-	const defaultCanvasWidth, defaultCanvasHeight = 800.0, 400.0
-	l := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
-
-	// 4. Render using the computed layout dimensions
-	canvasWidth := int(l.Bounds.Width)
-	canvasHeight := int(l.Bounds.Height)
-	if canvasWidth == 0 {
-		canvasWidth = int(defaultCanvasWidth)
-	}
-	if canvasHeight == 0 {
-		canvasHeight = int(defaultCanvasHeight)
-	}
-
-	svg := renderer.Render(l, canvasWidth, canvasHeight)
-	return svg, nil
+	return diagram.RenderToSVG(code)
 }
 
 // RenderToSVGWithDebug is like RenderToSVG but prints debug information to stdout.
 func RenderToSVGWithDebug(code string) (string, error) {
-	fmt.Printf("Input code:\n%s\n", code)
-
-	// Pipeline:
-	// 1. Tokenize
-	tokens := tokenizer.Tokenize(code)
-	fmt.Printf("Tokens: %+v\n", tokens)
-
-	// 2. Parse
-	ast, err := parser.Parse(tokens)
-	if err != nil {
-		return "", fmt.Errorf("parse error: %w", err)
+	input := strings.TrimSpace(code)
+	if strings.HasPrefix(input, "chart") {
+		return RenderToSVG(code)
 	}
 
-	fmt.Printf("AST: \n%+v\n", ast)
-
-	// 3. Layout
-	const defaultCanvasWidth, defaultCanvasHeight = 800.0, 400.0
-	l := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
-
-	fmt.Printf("Layout: \n%+v\n", l)
-
-	// 4. Render using the computed layout dimensions
-	canvasWidth := int(l.Bounds.Width)
-	canvasHeight := int(l.Bounds.Height)
-	if canvasWidth == 0 {
-		canvasWidth = int(defaultCanvasWidth)
-	}
-	if canvasHeight == 0 {
-		canvasHeight = int(defaultCanvasHeight)
-	}
-
-	svg := renderer.Render(l, canvasWidth, canvasHeight)
-	fmt.Println(svg)
-	return svg, nil
+	return diagram.RenderToSVGWithDebug(code)
 }
 
 // RenderFileToFile reads a nagare file from inputPath and writes the SVG output to outputPath.

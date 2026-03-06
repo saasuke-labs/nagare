@@ -6,3 +6,8 @@ node_modules
 nagare-server
 nagare
 main
+
+# Development tools
+tmp/
+build-errors.log
+coverage.out

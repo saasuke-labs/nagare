@@ -44,30 +44,40 @@ func NewDatabase(id string) *Database {
 }
 
 type DatabaseTemplateData struct {
-	X      float64
-	Y      float64
-	Width  float64
-	Height float64
-	Props  DatabaseProps
-	Text   string
+	X               float64
+	Y               float64
+	Width           float64
+	Height          float64
+	Props           DatabaseProps
+	Text            string
+	BackgroundColor string
+	ForegroundColor string
+	AccentColor     string
 }
 
 func (d *Database) templateData() DatabaseTemplateData {
 	return DatabaseTemplateData{
-		X:      d.X,
-		Y:      d.Y,
-		Width:  d.Width,
-		Height: d.Height,
-		Props:  d.Props,
-		Text:   d.Text,
+		X:               d.X,
+		Y:               d.Y,
+		Width:           d.Width,
+		Height:          d.Height,
+		Props:           d.Props,
+		Text:            d.Text,
+		BackgroundColor: d.Props.BackgroundColor,
+		ForegroundColor: d.Props.ForegroundColor,
+		AccentColor:     d.Props.AccentColor,
 	}
 }
 
 func (d *Database) Draw() string {
+	fmt.Println("Rendering database: ", d, d.templateData())
 	result, err := RenderTemplate("database", d.templateData())
 	if err != nil {
+		fmt.Println(err)
 		return fmt.Sprintf("<!-- Error rendering database template: %v -->", err)
 	}
+
+	fmt.Println("Result:", result)
 	return result
 }
 

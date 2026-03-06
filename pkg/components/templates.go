@@ -3,6 +3,7 @@ package components
 import (
 	"bytes"
 	"embed"
+	"fmt"
 	"html/template"
 )
 
@@ -31,10 +32,12 @@ func init() {
 
 func RenderTemplate(name string, data interface{}) (string, error) {
 	var buf bytes.Buffer
-
+	fmt.Println("Rendering template: ", name, data)
 	err := templates.ExecuteTemplate(&buf, name, data)
 	if err != nil {
+		fmt.Println("Error executing template: ", err)
 		return "", err
 	}
+	fmt.Println("Returning result", buf.String())
 	return buf.String(), nil
 }
