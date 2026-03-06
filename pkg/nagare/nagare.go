@@ -24,18 +24,18 @@ func RenderToSVG(code string) (string, error) {
 		return c.RenderSVG(), nil
 	}
 
-	return diagram.RenderToSVG(code)
+	return diagram.CreateDiagram(code)
 }
 
 // RenderToSVGWithDebug is like RenderToSVG but prints debug information to stdout.
-func RenderToSVGWithDebug(code string) (string, error) {
-	input := strings.TrimSpace(code)
-	if strings.HasPrefix(input, "chart") {
-		return RenderToSVG(code)
-	}
+// func RenderToSVGWithDebug(code string) (string, error) {
+// 	input := strings.TrimSpace(code)
+// 	if strings.HasPrefix(input, "chart") {
+// 		return RenderToSVG(code)
+// 	}
 
-	return diagram.RenderToSVGWithDebug(code)
-}
+// 	return diagram.RenderToSVGWithDebug(code)
+// }
 
 // RenderFileToFile reads a nagare file from inputPath and writes the SVG output to outputPath.
 func RenderFileToFile(inputPath, outputPath string) error {

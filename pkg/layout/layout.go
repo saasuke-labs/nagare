@@ -3,6 +3,7 @@ package layout
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
@@ -109,8 +110,8 @@ type Arrow struct {
 type geometryProps struct {
 	X      interface{} `prop:"x"`
 	Y      interface{} `prop:"y"`
-	Width  *int        `prop:"w"`
-	Height *int        `prop:"h"`
+	Width  interface{} `prop:"w"`
+	Height interface{} `prop:"h"`
 }
 
 type propertyParser interface {
@@ -129,11 +130,11 @@ func parseGeometryProps(def string) (geometryProps, error) {
 }
 
 func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex map[string]components.Shape) {
-	if geom.Width != nil {
-		shape.Width = float64(*geom.Width)
+	if w, ok := parseNumericValue(geom.Width); ok {
+		shape.Width = w
 	}
-	if geom.Height != nil {
-		shape.Height = float64(*geom.Height)
+	if h, ok := parseNumericValue(geom.Height); ok {
+		shape.Height = h
 	}
 	if geom.X != nil {
 		if intVal, ok := geom.X.(int); ok {
@@ -153,7 +154,11 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 					shape.AlignmentRefs = make(map[string]string)
 				}
 				shape.AlignmentRefs["x_string"] = strVal
+			} else if x, ok := parseNumericValue(strVal); ok {
+				shape.X = x
 			}
+		} else if x, ok := parseNumericValue(geom.X); ok {
+			shape.X = x
 		}
 	}
 	if geom.Y != nil {
@@ -174,8 +179,37 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 					shape.AlignmentRefs = make(map[string]string)
 				}
 				shape.AlignmentRefs["y_string"] = strVal
+			} else if y, ok := parseNumericValue(strVal); ok {
+				shape.Y = y
 			}
+		} else if y, ok := parseNumericValue(geom.Y); ok {
+			shape.Y = y
 		}
+	}
+}
+
+func parseNumericValue(v interface{}) (float64, bool) {
+	if v == nil {
+		return 0, false
+	}
+
+	switch t := v.(type) {
+	case int:
+		return float64(t), true
+	case float64:
+		return t, true
+	case string:
+		s := strings.TrimSpace(t)
+		if s == "" {
+			return 0, false
+		}
+		n, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return 0, false
+		}
+		return n, true
+	default:
+		return 0, false
 	}
 }
 
@@ -477,11 +511,11 @@ func calculateCanvasBounds(node parser.Node, defaultWidth, defaultHeight float64
 		return boundsWidth, boundsHeight
 	}
 
-	if geometry.Width != nil {
-		boundsWidth = float64(*geometry.Width)
+	if w, ok := parseNumericValue(geometry.Width); ok {
+		boundsWidth = w
 	}
-	if geometry.Height != nil {
-		boundsHeight = float64(*geometry.Height)
+	if h, ok := parseNumericValue(geometry.Height); ok {
+		boundsHeight = h
 	}
 
 	return boundsWidth, boundsHeight

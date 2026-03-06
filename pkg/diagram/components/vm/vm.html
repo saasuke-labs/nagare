@@ -3,7 +3,7 @@
         <g class="ns" filter="url(#softShadow)">
                 <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
                 <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .TopBarHeight}}" rx="{{printf "%.6f" .CornerRadius}}" ry="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
-                <rect x="{{printf "%.6f" .ContentAreaX}}" y="{{printf "%.6f" .ContentAreaY}}" width="{{printf "%.6f" .ContentAreaWidth}}" height="{{printf "%.6f" .ContentAreaHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="{{.ContentBackgroundColor}}" stroke="{{.ForegroundColor}}" opacity="0.9"/>
+                <rect x="{{printf "%.6f" .ContentAreaX}}" y="{{printf "%.6f" .ContentAreaY}}" width="{{printf "%.6f" .ContentAreaWidth}}" height="{{printf "%.6f" .ContentAreaHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="{{.ContentBackgroundColor}}" stroke="{{.ForegroundColor}}"/>
         </g>    
         
         <!-- Title text positioned after controls -->

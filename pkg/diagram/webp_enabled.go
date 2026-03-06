@@ -13,6 +13,7 @@ import (
 	"image/draw"
 	"io"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -42,7 +43,7 @@ func CreateDiagramWebP(code string) ([]byte, error) {
 }
 
 func rasterizeSVGToWebP(svg string, width, height int) ([]byte, error) {
-	icon, err := oksvg.ReadIconStream(strings.NewReader(svg))
+	icon, err := oksvg.ReadIconStream(strings.NewReader(stripAnimationElements(svg)))
 	if err != nil {
 		return nil, fmt.Errorf("parse svg: %w", err)
 	}
@@ -82,6 +83,20 @@ func rasterizeSVGToWebP(svg string, width, height int) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+var (
+	reAnimateSelfClosing = regexp.MustCompile(`(?is)<animate(?:Motion|Transform)?\b[^>]*/>`)
+	reAnimateBlock       = regexp.MustCompile(`(?is)<animate(?:Motion|Transform)?\b[^>]*>.*?</animate(?:Motion|Transform)?>`)
+)
+
+// stripAnimationElements removes SMIL animation tags for static rasterization.
+// WebP snapshots are static images, so this preserves visual output while avoiding
+// parser incompatibilities with animation-specific attributes.
+func stripAnimationElements(svg string) string {
+	out := reAnimateSelfClosing.ReplaceAllString(svg, "")
+	out = reAnimateBlock.ReplaceAllString(out, "")
+	return out
 }
 
 type textElement struct {
