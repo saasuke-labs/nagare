@@ -33,10 +33,17 @@ func main() {
 
 	// HTTP server mode: if no CLI args provided, start the server
 	if *inputFile == "" && *outputFile == "" {
+		// Playground UI
+		http.HandleFunc("GET /", handlePlayground)
+		http.HandleFunc("POST /api/render", handleAPIRender)
+
+		// Legacy endpoints (backward compatibility)
 		http.HandleFunc("POST /render", handleRender)
 		http.HandleFunc("POST /render-webp", handleRenderWebP)
 		http.HandleFunc("GET /test", handleTest)
+
 		log.Printf("Server starting on http://localhost:%s", *port)
+		log.Printf("Playground UI available at http://localhost:%s/", *port)
 		log.Fatal(http.ListenAndServe(":"+*port, nil))
 		return
 	}
@@ -81,6 +88,36 @@ nginx.e --> app.w
 	// Send response
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(html))
+}
+
+func handlePlayground(w http.ResponseWriter, r *http.Request) {
+	// Serve the playground HTML file
+	http.ServeFile(w, r, "static/playground.html")
+}
+
+func handleAPIRender(w http.ResponseWriter, r *http.Request) {
+	// Read the form data
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
+
+	code := r.FormValue("code")
+	if code == "" {
+		http.Error(w, "No code provided", http.StatusBadRequest)
+		return
+	}
+
+	// Render to SVG
+	svg, err := nagare.RenderToSVG(code)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Send just the SVG
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Write([]byte(svg))
 }
 
 func handleRender(w http.ResponseWriter, r *http.Request) {

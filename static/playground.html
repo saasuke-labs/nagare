@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nagare Playground</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: #f5f5f7;
+        color: #1d1d1f;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .header {
+        background: #fff;
+        border-bottom: 1px solid #d2d2d7;
+        padding: 1rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+
+      .header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1d1d1f;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 0.5rem 1.25rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: inherit;
+      }
+
+      .btn-primary {
+        background: #0071e3;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #0077ed;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .btn-secondary {
+        background: #e8e8ed;
+        color: #1d1d1f;
+      }
+
+      .btn-secondary:hover {
+        background: #d2d2d7;
+      }
+
+      .container {
+        display: flex;
+        height: calc(100vh - 65px);
+        padding: 1.5rem;
+        gap: 1.5rem;
+      }
+
+      .panel {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .editor-panel {
+        flex: 1;
+        min-width: 400px;
+      }
+
+      .preview-panel {
+        flex: 1;
+        min-width: 400px;
+      }
+
+      .panel-header {
+        background: #f5f5f7;
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid #d2d2d7;
+        font-weight: 500;
+        font-size: 0.9rem;
+        color: #6e6e73;
+      }
+
+      .panel-content {
+        flex: 1;
+        padding: 1.25rem;
+        overflow: auto;
+      }
+
+      textarea {
+        width: 100%;
+        height: 100%;
+        border: none;
+        resize: none;
+        font-family: "Monaco", "Menlo", "Consolas", monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        outline: none;
+        background: #fafafa;
+        padding: 1rem;
+        border-radius: 6px;
+        color: #1d1d1f;
+      }
+
+      textarea:focus {
+        background: #fff;
+      }
+
+      #preview {
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fafafa;
+        border-radius: 6px;
+        padding: 1rem;
+      }
+
+      #preview.empty {
+        color: #86868b;
+        font-size: 0.9rem;
+      }
+
+      #preview svg {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .loading {
+        color: #0071e3;
+        font-size: 0.9rem;
+      }
+
+      .error {
+        color: #ff3b30;
+        padding: 1rem;
+        background: #fff5f5;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+
+      .version {
+        color: #86868b;
+        font-size: 0.85rem;
+      }
+
+      .htmx-request .btn-primary {
+        opacity: 0.7;
+        cursor: wait;
+      }
+
+      @media (max-width: 1024px) {
+        .container {
+          flex-direction: column;
+        }
+
+        .editor-panel,
+        .preview-panel {
+          min-width: unset;
+          height: 50%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🌊 Nagare Playground</h1>
+      <div class="header-actions">
+        <span class="version">v0.1.0</span>
+        <button class="btn btn-secondary" onclick="loadExample()">
+          Load Example
+        </button>
+        <button
+          class="btn btn-primary"
+          hx-post="/api/render"
+          hx-target="#preview"
+          hx-include="[name='code']"
+          hx-indicator=".loading"
+        >
+          Render
+        </button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="panel editor-panel">
+        <div class="panel-header">Editor</div>
+        <div class="panel-content">
+          <textarea
+            name="code"
+            id="code"
+            placeholder='Enter your Nagare diagram code here...
+
+Example:
+@layout(w:800,h:400)
+
+browser:Browser@home
+server:Server@api
+
+browser.e --> server.w
+
+@browser(x:50,y:100,w:200,h:150)
+@home(url: "https://example.com", bg: "#e6f3ff", fg: "#333")
+
+@server(x:400,y:100,w:200,h:50, title: "API", port: 8080)
+'
+          >
+@layout(w:950,h:400)
+
+browser:Browser@home
+vps:VM@ubuntu {
+nginx:Server@nginx
+app:Server@app
+}
+
+browser.e --> nginx.w
+nginx.e --> app.w
+
+@browser(x:50,y:100,w:200,h:150)
+@home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
+
+@vps(x:300,y:&browser.c,w:600,h:300)
+@ubuntu(title: "home@ubuntu", bg: "#333", fg: "#ccc", text: "Ubuntu")
+
+@nginx(x:50,y:&browser.c,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
+@app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
+</textarea
+          >
+        </div>
+      </div>
+
+      <div class="panel preview-panel">
+        <div class="panel-header">Preview</div>
+        <div class="panel-content">
+          <div id="preview" class="empty">
+            <span class="loading htmx-indicator">Rendering...</span>
+            <span>Click "Render" to see your diagram</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Keyboard shortcut: Cmd/Ctrl + Enter to render
+      document.getElementById("code").addEventListener("keydown", function (e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault()
+          document.querySelector(".btn-primary").click()
+        }
+      })
+
+      // Load example diagram
+      function loadExample() {
+        const example = `@layout(w:950,h:400)
+
+browser:Browser@home
+vps:VM@ubuntu {
+nginx:Server@nginx
+app:Server@app
+}
+
+browser.e --> nginx.w
+nginx.e --> app.w
+
+@browser(x:50,y:100,w:200,h:150)
+@home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
+
+@vps(x:300,y:&browser.c,w:600,h:300)
+@ubuntu(title: "home@ubuntu", bg: "#333", fg: "#ccc", text: "Ubuntu")
+
+@nginx(x:50,y:&browser.c,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
+@app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")`
+        document.getElementById("code").value = example
+      }
+
+      // Initialize with empty state
+      document.body.addEventListener("htmx:afterSwap", function (evt) {
+        if (evt.detail.target.id === "preview") {
+          const preview = document.getElementById("preview")
+          preview.classList.remove("empty")
+        }
+      })
+
+      // Handle errors
+      document.body.addEventListener("htmx:responseError", function (evt) {
+        const preview = document.getElementById("preview")
+        preview.innerHTML =
+          '<div class="error">Error: ' + evt.detail.xhr.responseText + "</div>"
+        preview.classList.remove("empty")
+      })
+    </script>
+  </body>
+</html>

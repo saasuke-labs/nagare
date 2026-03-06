@@ -1,0 +1,16 @@
+{{define "background-worker"}}
+<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+    <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" (mul .Height 0.2)}}" ry="{{printf "%.6f" (mul .Height 0.2)}}" fill="{{.Props.BackgroundColor}}"/>
+    {{$centerX := mul .Width 0.5}}
+    {{$centerY := mul .Height 0.4}}
+    {{$gearRadius := mul .Height 0.18}}
+    <circle cx="{{printf "%.6f" $centerX}}" cy="{{printf "%.6f" $centerY}}" r="{{printf "%.6f" $gearRadius}}" fill="{{.Props.AccentColor}}" opacity="0.9"/>
+    <circle cx="{{printf "%.6f" $centerX}}" cy="{{printf "%.6f" $centerY}}" r="{{printf "%.6f" (mul $gearRadius 0.45)}}" fill="{{.Props.BackgroundColor}}"/>
+    <rect x="{{printf "%.6f" (sub $centerX (mul $gearRadius 0.15))}}" y="{{printf "%.6f" (sub $centerY (mul $gearRadius 1.1))}}" width="{{printf "%.6f" (mul $gearRadius 0.3)}}" height="{{printf "%.6f" (mul $gearRadius 0.5)}}" fill="{{.Props.AccentColor}}"/>
+    <rect x="{{printf "%.6f" (sub $centerX (mul $gearRadius 0.15))}}" y="{{printf "%.6f" (add $centerY (mul $gearRadius 0.6))}}" width="{{printf "%.6f" (mul $gearRadius 0.3)}}" height="{{printf "%.6f" (mul $gearRadius 0.5)}}" fill="{{.Props.AccentColor}}"/>
+    <rect x="{{printf "%.6f" (sub $centerX (mul $gearRadius 1.1))}}" y="{{printf "%.6f" (sub $centerY (mul $gearRadius 0.15))}}" width="{{printf "%.6f" (mul $gearRadius 0.5)}}" height="{{printf "%.6f" (mul $gearRadius 0.3)}}" fill="{{.Props.AccentColor}}"/>
+    <rect x="{{printf "%.6f" (add $centerX (mul $gearRadius 0.6))}}" y="{{printf "%.6f" (sub $centerY (mul $gearRadius 0.15))}}" width="{{printf "%.6f" (mul $gearRadius 0.5)}}" height="{{printf "%.6f" (mul $gearRadius 0.3)}}" fill="{{.Props.AccentColor}}"/>
+    <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (mul .Height 0.85)}}" text-anchor="middle" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.16)}}" fill="{{.Props.ForegroundColor}}">{{.Props.Title}}</text>
+    <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (mul .Height 0.95)}}" text-anchor="middle" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.12)}}" fill="{{.Props.ForegroundColor}}" opacity="0.8">{{.Props.Job}} • {{.Props.Schedule}}</text>
+</g>
+{{end}}

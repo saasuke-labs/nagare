@@ -1,0 +1,21 @@
+{{define "arrow"}}
+<g class="connector">
+    {{- if or .MarkerStart .MarkerEnd }}
+    <defs>
+        <marker id="{{.MarkerID}}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="{{.StrokeColor}}"/>
+        </marker>
+    </defs>
+    {{- end }}
+    <polyline
+        points="{{- range $index, $point := .Points}}{{if $index}} {{end}}{{printf "%.2f,%.2f" $point.X $point.Y}}{{end -}}"
+        {{- if .HasStyle }} style="{{.Style}}"
+        {{- else }} stroke="{{.StrokeColor}}" stroke-width="{{printf "%.2f" .StrokeWidth}}" fill="none" stroke-linecap="round" stroke-linejoin="round"
+        {{- end }}
+        {{- if .MarkerStart }} marker-start="url(#{{.MarkerID}})"
+        {{- end }}
+        {{- if .MarkerEnd }} marker-end="url(#{{.MarkerID}})"
+        {{- end }}
+    />
+</g>
+{{end}}

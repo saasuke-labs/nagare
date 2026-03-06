@@ -145,22 +145,8 @@ pkg/
     renderer/       # SVG rendering engine
     tokenizer/      # DSL tokenizer
     version/        # Version information
-```
-
-## Development
-
-```bash
-# Clone the repository
-git clone https://github.com/saasuke-labs/nagare.git
-
-# Build
-go build ./cmd/main.go
-
-# Test
-go test ./...
-
-# Run locally
-go run ./cmd/main.go
+static/
+    playground.html  # Interactive diagram editor UI
 ```
 
 ## License
@@ -172,11 +158,95 @@ MIT
 
 ## Development
 
-The Go module under `nagare/` powers the HTTP server and static rendering pipeline. Format and test Go code before sending a pull request:
+The Go module under `nagare/` powers the HTTP server and static rendering pipeline. Format and test Go code before sending a pull request.
+
+### Quick Start with Just
+
+This project uses [Just](https://github.com/casey/just) as a command runner. Install it first:
 
 ```bash
-cd nagare
+# macOS
+brew install just
+
+# Or download from https://github.com/casey/just
+```
+
+Available commands:
+
+```bash
+# Start the server
+just start
+
+# Start with hot reload (auto-restarts on code changes)
+just start-watch
+
+# Build the binary
+just build
+
+# Generate SVG from a .nagare file
+just gen input.nagare output.svg
+
+# Run tests
+just test
+
+# Run tests with coverage
+just test-coverage
+
+# Format code
+just fmt
+
+# Install development tools (air, goreleaser)
+just install-tools
+
+# Clean build artifacts
+just clean
+```
+
+### Playground UI
+
+Start the server and visit http://localhost:8080 to access the interactive playground. Features:
+
+- Live diagram editor with syntax highlighting
+- Instant preview rendering
+- Keyboard shortcut: Cmd/Ctrl + Enter to render
+- Example diagrams to get started
+
+### Watch Mode
+
+The watch mode uses [Air](https://github.com/air-verse/air) for hot reloading. It automatically restarts the server when:
+
+- Go source files change (excluding tests)
+- Component template files (.html) change
+
+Install Air first:
+
+```bash
+just install-tools
+# or manually: go install github.com/air-verse/air@latest
+```
+
+Then start with watch mode:
+
+```bash
+just start-watch
+```
+
+### Manual Development
+
+If you prefer not to use Just:
+
+```bash
+# Clone the repository
+git clone https://github.com/saasuke-labs/nagare.git
+
+# Build
+go build -o nagare ./cmd/main.go
+
+# Test
 go test ./...
+
+# Run locally
+go run ./cmd/main.go
 ```
 
 The layout unit tests describe how connection routing, geometry inheritance, and canvas bounds interact.

@@ -1,0 +1,21 @@
+{{ define "vm" }}
+<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+        <g class="ns" filter="url(#softShadow)">
+                <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .Height}}" rx="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
+                <rect x="0" y="0" width="{{printf "%.6f" .Width}}" height="{{printf "%.6f" .TopBarHeight}}" rx="{{printf "%.6f" .CornerRadius}}" ry="{{printf "%.6f" .CornerRadius}}" fill="{{.BackgroundColor}}" stroke="{{.ForegroundColor}}"/>
+                <rect x="{{printf "%.6f" .ContentAreaX}}" y="{{printf "%.6f" .ContentAreaY}}" width="{{printf "%.6f" .ContentAreaWidth}}" height="{{printf "%.6f" .ContentAreaHeight}}" rx="{{printf "%.6f" (mul .CornerRadius 0.6)}}" fill="{{.ContentBackgroundColor}}" stroke="{{.ForegroundColor}}" opacity="0.9"/>
+        </g>    
+        
+        <!-- Title text positioned after controls -->
+        <text x="{{printf "%.6f" .TitleBarX}}" 
+                y="{{printf "%.6f" .TitleBarY}}" 
+                text-anchor="start" 
+                dominant-baseline="middle"
+                font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+                font-size="{{.FontSize}}" 
+                fill="{{.ForegroundColor}}">{{.Title}}</text>
+        {{template "header-controls" .HeaderControlProps }}
+
+        {{ .ChildrenContent }}
+</g>
+{{ end }}

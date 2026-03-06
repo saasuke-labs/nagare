@@ -1,0 +1,9 @@
+{{define "api-gateway"}}
+<g transform="translate({{printf "%.6f" .X}},{{printf "%.6f" .Y}})">
+    {{$halfWidth := mul .Width 0.5}}
+    {{$quarterHeight := mul .Height 0.25}}
+    <path d="M0 {{printf "%.6f" $quarterHeight}} L{{printf "%.6f" $halfWidth}} 0 L{{printf "%.6f" .Width}} {{printf "%.6f" $quarterHeight}} L{{printf "%.6f" .Width}} {{printf "%.6f" (sub .Height $quarterHeight)}} L{{printf "%.6f" $halfWidth}} {{printf "%.6f" .Height}} L0 {{printf "%.6f" (sub .Height $quarterHeight)}} Z" fill="{{.Props.BackgroundColor}}" stroke="{{.Props.AccentColor}}" stroke-width="2"/>
+    <text x="{{printf "%.6f" $halfWidth}}" y="{{printf "%.6f" (mul .Height 0.45)}}" text-anchor="middle" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.2)}}" fill="{{.Props.ForegroundColor}}">{{.Props.Title}}</text>
+    <text x="{{printf "%.6f" $halfWidth}}" y="{{printf "%.6f" (mul .Height 0.7)}}" text-anchor="middle" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.14)}}" fill="{{.Props.ForegroundColor}}" opacity="0.85">{{.Props.Method}} {{.Props.Route}}</text>
+</g>
+{{end}}

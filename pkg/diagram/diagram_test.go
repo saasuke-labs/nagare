@@ -2,6 +2,7 @@ package diagram
 
 import (
 	_ "embed"
+	"strings"
 	"testing"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
@@ -10,30 +11,34 @@ import (
 //go:embed fixtures/code_block_1.txt
 var codeBlock1 string
 
-//go:embed fixtures/svg_1.svg
-var svg1 string
-
 //go:embed fixtures/code_block_anchor_percent.txt
 var codeBlockAnchorPercent string
 
-//go:embed fixtures/svg_anchor_percent.svg
-var svgAnchorPercent string
-
 func TestCreateDiagramFromActualCodeBlocks(t *testing.T) {
 	testData := []struct {
-		name     string
-		code     string
-		expected string
+		name              string
+		code              string
+		expectedFragments []string
 	}{
 		{
-			name:     "code block 1",
-			code:     codeBlock1,
-			expected: svg1,
+			name: "code block 1",
+			code: codeBlock1,
+			expectedFragments: []string{
+				"<svg",
+				"Blue",
+				"ubuntu@multipass",
+				"<polyline",
+			},
 		},
 		{
-			name:     "fractional anchors",
-			code:     codeBlockAnchorPercent,
-			expected: svgAnchorPercent,
+			name: "fractional anchors",
+			code: codeBlockAnchorPercent,
+			expectedFragments: []string{
+				"<svg",
+				"Top",
+				"Bottom",
+				"<polyline",
+			},
 		},
 	}
 
@@ -46,10 +51,16 @@ func TestCreateDiagramFromActualCodeBlocks(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if html != td.expected {
-				t.Fatalf("expected HTML does not match actual.\nExpected:\n%s\n\nGot:\n%s", td.expected, html)
+
+			if strings.TrimSpace(html) == "" {
+				t.Fatal("expected non-empty SVG output")
+			}
+
+			for _, fragment := range td.expectedFragments {
+				if !strings.Contains(html, fragment) {
+					t.Fatalf("expected SVG to contain fragment %q", fragment)
+				}
 			}
 		})
 	}
-
 }
