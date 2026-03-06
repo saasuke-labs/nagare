@@ -4,9 +4,9 @@
     {{$segmentHeight := mul .Height 0.18}}
     {{$segmentMargin := mul .Height 0.08}}
     {{$segmentWidth := mul .Width 0.75}}
-    <rect x="{{printf "%.6f" (mul .Width 0.15)}}" y="{{printf "%.6f" $segmentMargin}}" width="{{printf "%.6f" $segmentWidth}}" height="{{printf "%.6f" $segmentHeight}}" rx="{{printf "%.6f" (mul $segmentHeight 0.3)}}" fill="{{.Props.AccentColor}}" opacity="0.9"/>
-    <rect x="{{printf "%.6f" (mul .Width 0.15)}}" y="{{printf "%.6f" (add (mul $segmentMargin 2.0) $segmentHeight)}}" width="{{printf "%.6f" $segmentWidth}}" height="{{printf "%.6f" $segmentHeight}}" rx="{{printf "%.6f" (mul $segmentHeight 0.3)}}" fill="{{.Props.AccentColor}}" opacity="0.7"/>
-    <rect x="{{printf "%.6f" (mul .Width 0.15)}}" y="{{printf "%.6f" (add (mul $segmentMargin 3.0) (mul $segmentHeight 2.0))}}" width="{{printf "%.6f" $segmentWidth}}" height="{{printf "%.6f" $segmentHeight}}" rx="{{printf "%.6f" (mul $segmentHeight 0.3)}}" fill="{{.Props.AccentColor}}" opacity="0.5"/>
+    <rect x="{{printf "%.6f" (mul .Width 0.15)}}" y="{{printf "%.6f" $segmentMargin}}" width="{{printf "%.6f" $segmentWidth}}" height="{{printf "%.6f" $segmentHeight}}" rx="{{printf "%.6f" (mul $segmentHeight 0.3)}}" fill="{{.Props.AccentColor}}"/>
+    <rect x="{{printf "%.6f" (mul .Width 0.15)}}" y="{{printf "%.6f" (add (mul $segmentMargin 2.0) $segmentHeight)}}" width="{{printf "%.6f" $segmentWidth}}" height="{{printf "%.6f" $segmentHeight}}" rx="{{printf "%.6f" (mul $segmentHeight 0.3)}}" fill="{{.Props.AccentColor}}"/>
+    <rect x="{{printf "%.6f" (mul .Width 0.15)}}" y="{{printf "%.6f" (add (mul $segmentMargin 3.0) (mul $segmentHeight 2.0))}}" width="{{printf "%.6f" $segmentWidth}}" height="{{printf "%.6f" $segmentHeight}}" rx="{{printf "%.6f" (mul $segmentHeight 0.3)}}" fill="{{.Props.AccentColor}}"/>
     <text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (mul .Height 0.85)}}" text-anchor="middle" font-family="Arial" font-size="{{printf "%.6f" (mul .Height 0.16)}}" fill="{{.Props.ForegroundColor}}">{{.Props.Title}} • {{.Props.Kind}}</text>
 </g>
 {{end}}

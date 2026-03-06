@@ -70,6 +70,7 @@ func (d *Database) templateData() DatabaseTemplateData {
 }
 
 func (d *Database) Draw() string {
+	fmt.Println("------------------------")
 	fmt.Println("Rendering database: ", d, d.templateData())
 	result, err := RenderTemplate("database", d.templateData())
 	if err != nil {

@@ -265,15 +265,23 @@ func (p *Parser) parse(depth int) (Node, error) {
 			// Check for state declaration with @
 			var stateName string
 			if p.current < len(p.tokens) && p.tokens[p.current].Type == tokenizer.AT {
-				p.current++ // Move past @
-				if p.current >= len(p.tokens) {
-					return Node{}, errors.New("unexpected end of input after @")
+				// Disambiguate inline state reference (node:Type@state) from
+				// standalone state definition (@state(...)).
+				// If we see @IDENTIFIER( then this belongs to the top-level
+				// state-definition parser and must not be consumed here.
+				if !(p.current+2 < len(p.tokens) &&
+					p.tokens[p.current+1].Type == tokenizer.IDENTIFIER &&
+					p.tokens[p.current+2].Type == tokenizer.LEFT_PAREN) {
+					p.current++ // Move past @
+					if p.current >= len(p.tokens) {
+						return Node{}, errors.New("unexpected end of input after @")
+					}
+					if p.tokens[p.current].Type != tokenizer.IDENTIFIER {
+						return Node{}, errors.New("expected state name after @")
+					}
+					stateName = p.tokens[p.current].Value
+					p.current++ // Move past state name
 				}
-				if p.tokens[p.current].Type != tokenizer.IDENTIFIER {
-					return Node{}, errors.New("expected state name after @")
-				}
-				stateName = p.tokens[p.current].Value
-				p.current++ // Move past state name
 			}
 
 			// Check if it's a container (has braces)
