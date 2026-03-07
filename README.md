@@ -34,18 +34,15 @@ curl -X POST http://localhost:8080/render \
 
 ### 2. CLI Mode
 
-Render a diagram file directly to SVG or WebP:
+Render a diagram file directly to SVG:
 
 ```bash
 # Render to SVG (format auto-detected from extension)
 nagare -input diagram.nagare -output diagram.svg
 
-# Render to WebP (format auto-detected from extension)
-nagare -input diagram.nagare -output diagram.webp
 
 # Explicitly specify format
 nagare -input diagram.nagare -output output.file -format svg
-nagare -input diagram.nagare -output output.file -format webp
 ```
 
 ### 3. Library Mode
@@ -208,6 +205,10 @@ just install-tools
 # Clean build artifacts
 just clean
 ```
+
+### CI Visual Previews
+
+Nagare core is SVG-only. CI preview workflows publish SVG artifacts directly from Nagare output and do not perform WebP conversion in this repository.
 
 ### Playground UI
 

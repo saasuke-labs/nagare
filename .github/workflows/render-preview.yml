@@ -26,7 +26,7 @@ jobs:
         run: go mod download
 
       - name: Build Nagare CLI
-        run: go build -tags webp -o nagare ./cmd
+        run: go build -o nagare ./cmd
 
       - name: Render regression diagrams via CLI
         run: |
@@ -41,9 +41,8 @@ jobs:
 
           for nagare_file in "${diagrams[@]}"; do
             base_name=$(basename "$nagare_file" .nagare)
-            echo "Rendering $nagare_file to SVG and WebP"
+            echo "Rendering $nagare_file to SVG"
             ./nagare -input "$nagare_file" -output "${base_name}.svg"
-            ./nagare -input "$nagare_file" -output "${base_name}.webp"
           done
 
       - name: Upload rendered diagrams to repository and create PR comment
@@ -68,7 +67,7 @@ jobs:
           mkdir -p .github/pr-images/pr-$PR_NUMBER
 
           shopt -s nullglob
-          files=(./*.svg ./*.webp)
+          files=(./*.svg)
           if [ ${#files[@]} -eq 0 ]; then
             echo "No rendered files found to upload"
             exit 0
@@ -116,40 +115,20 @@ jobs:
             nagare_name=$(basename "$nagare_file")
             base_name=${nagare_name%.nagare}
             svg_file=.github/pr-images/pr-$PR_NUMBER/${base_name}.svg
-            webp_file=.github/pr-images/pr-$PR_NUMBER/${base_name}.webp
 
-            if [ ! -f "$svg_file" ] && [ ! -f "$webp_file" ]; then
-              echo "Skipping $nagare_name because neither SVG nor WebP outputs are available" >&2
+            if [ ! -f "$svg_file" ]; then
+              echo "Skipping $nagare_name because SVG output is not available" >&2
               continue
             fi
 
             svg_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/pr-images/pr-$PR_NUMBER/${base_name}.svg?raw=1"
-            webp_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/pr-images/pr-$PR_NUMBER/${base_name}.webp?raw=1"
             nagare_url="https://github.com/$REPO/blob/$CURRENT_SHA/.github/testdiagrams/$nagare_name"
 
             COMMENT_BODY+="### ${nagare_name}\n"
-            if [ -f "$svg_file" ]; then
-              COMMENT_BODY+=$(printf '![%s - SVG](%s)\n\n' "$nagare_name" "$svg_url")
-            fi
-            if [ -f "$webp_file" ]; then
-              COMMENT_BODY+=$(printf '![%s - WebP](%s)\n\n' "$nagare_name" "$webp_url")
-            fi
+            COMMENT_BODY+=$(printf '![%s - SVG](%s)\n\n' "$nagare_name" "$svg_url")
 
             COMMENT_BODY+="<details><summary>View sources</summary>\n\n"
-            sources=""
-            if [ -f "$svg_file" ]; then
-              sources+=$(printf '[`%s`](%s)' "${base_name}.svg" "$svg_url")
-            fi
-            if [ -f "$webp_file" ]; then
-              if [ -n "$sources" ]; then
-                sources+=" · "
-              fi
-              sources+=$(printf '[`%s`](%s)' "${base_name}.webp" "$webp_url")
-            fi
-            if [ -n "$sources" ]; then
-              sources+=" · "
-            fi
-            sources+=$(printf '[`%s`](%s)' "$nagare_name" "$nagare_url")
+            sources=$(printf '[`%s`](%s) · [`%s`](%s)' "${base_name}.svg" "$svg_url" "$nagare_name" "$nagare_url")
             COMMENT_BODY+="$sources\n\n"
             COMMENT_BODY+="</details>\n\n"
           done

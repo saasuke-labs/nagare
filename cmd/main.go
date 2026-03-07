@@ -17,8 +17,8 @@ import (
 func main() {
 	// Define CLI flags
 	inputFile := flag.String("input", "", "Input .nagare file path")
-	outputFile := flag.String("output", "", "Output file path (e.g., diagram.svg or diagram.webp)")
-	format := flag.String("format", "", "Output format: svg or webp (auto-detected from output file extension if not specified)")
+	outputFile := flag.String("output", "", "Output file path (e.g., diagram.svg)")
+	format := flag.String("format", "", "Output format: svg (auto-detected from output file extension if not specified)")
 	port := flag.String("port", "8080", "HTTP server port")
 	flag.Parse()
 
@@ -39,7 +39,6 @@ func main() {
 
 		// Legacy endpoints (backward compatibility)
 		http.HandleFunc("POST /render", handleRender)
-		http.HandleFunc("POST /render-webp", handleRenderWebP)
 		http.HandleFunc("GET /test", handleTest)
 
 		log.Printf("Server starting on http://localhost:%s", *port)
@@ -51,7 +50,7 @@ func main() {
 	// Invalid usage
 	fmt.Fprintln(os.Stderr, "Error: Both -input and -output flags must be provided together for CLI mode")
 	fmt.Fprintln(os.Stderr, "\nUsage:")
-	fmt.Fprintln(os.Stderr, "  CLI mode:    nagare -input diagram.nagare -output diagram.svg [-format svg|webp]")
+	fmt.Fprintln(os.Stderr, "  CLI mode:    nagare -input diagram.nagare -output diagram.svg [-format svg]")
 	fmt.Fprintln(os.Stderr, "  Server mode: nagare [-port 8080]")
 	os.Exit(1)
 }
@@ -154,33 +153,12 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(html))
 }
 
-func handleRenderWebP(w http.ResponseWriter, r *http.Request) {
-	code, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
-		return
-	}
-
-	data, err := diagram.CreateDiagramWebP(string(code))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "image/webp")
-	w.Write(data)
-}
-
 // renderFile renders an input file to an output file in the specified format.
-// Format can be "svg" or "webp". If format is empty, it's auto-detected from the output file extension.
+// Format can only be "svg". If format is empty, it's auto-detected from the output file extension.
 func renderFile(inputPath, outputPath, format string) error {
 	// Auto-detect format from file extension if not specified
 	if format == "" {
-		if strings.HasSuffix(strings.ToLower(outputPath), ".webp") {
-			format = "webp"
-		} else {
-			format = "svg"
-		}
+		format = "svg"
 	}
 
 	// Read input file
@@ -192,10 +170,8 @@ func renderFile(inputPath, outputPath, format string) error {
 	switch strings.ToLower(format) {
 	case "svg":
 		return renderToSVGFile(string(code), outputPath)
-	case "webp":
-		return renderToWebPFile(string(code), outputPath)
 	default:
-		return fmt.Errorf("unsupported format: %s (use 'svg' or 'webp')", format)
+		return fmt.Errorf("unsupported format: %s (use 'svg')", format)
 	}
 }
 
@@ -207,20 +183,6 @@ func renderToSVGFile(code, outputPath string) error {
 	}
 
 	if err := os.WriteFile(outputPath, []byte(svg), 0644); err != nil {
-		return fmt.Errorf("failed to write output file: %w", err)
-	}
-
-	return nil
-}
-
-// renderToWebPFile renders code to a WebP file
-func renderToWebPFile(code, outputPath string) error {
-	data, err := diagram.CreateDiagramWebP(code)
-	if err != nil {
-		return fmt.Errorf("failed to render diagram: %w", err)
-	}
-
-	if err := os.WriteFile(outputPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write output file: %w", err)
 	}
 
