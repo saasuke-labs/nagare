@@ -1,0 +1,34 @@
+{{define "cylinder"}}
+<g transform="translate({{ .X }}, {{ .Y }})">
+  <defs>
+    <linearGradient id="{{ .ID }}@cylinder" x1="0%" x2="100%" y1="0%" y2="0%">
+      <stop offset="0%" stop-color="{{ .Props.BackgroundColor }}" />
+      <stop offset="100%" stop-color="{{ .Props.AccentColor }}" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="{{ .Width }}" height="{{ .Height }}" fill="url(#{{ .ID }}@cylinder)"></rect>
+  <ellipse cx="{{ div .Width 2 }}" cy="0" rx="{{ div .Width 2 }}" ry="15" fill="{{ .Props.AccentColor }}"></ellipse>
+  <ellipse cx="{{ div .Width 2 }}" cy="{{ .Height }}" rx="{{ div .Width 2 }}" ry="15" fill="url(#{{ .ID }}@cylinder)"></ellipse>
+
+  <text
+    x="{{ div .Width 2 }}"
+    y="{{ div .Height 2 }}"
+    text-anchor="middle"
+    font-family="Arial"
+    font-size="24"
+    fill="{{ .Props.ForegroundColor }}"
+  >{{ .Props.Title }}</text>
+
+  {{ if .Props.Subtitle }}
+  <text
+    x="{{ div .Width 2 }}"
+    y="{{ div .Height 1.5 }}"
+    text-anchor="middle"
+    font-family="Arial"
+    font-size="22"
+    fill="{{ .Props.ForegroundColor }}"
+  >{{ .Props.Subtitle }}</text>
+  {{ end }}
+</g>
+{{end}}

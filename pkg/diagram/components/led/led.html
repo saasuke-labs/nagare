@@ -1,0 +1,32 @@
+{{define "led"}}
+<g transform="translate({{ .X }}, {{ .Y }})">
+  <ellipse cx="{{ div .Width 2 }}" cy="{{ div .Height 2 }}" rx="{{ div .Width 2 }}" ry="{{ div .Height 2 }}" fill="{{ .BaseColor }}" opacity="{{ .InactiveOpacity }}">
+    {{ range $animation := index .Actions "blink"}}
+    <animate
+      attributeName="opacity"
+      begin="{{ index $animation "begin" }}"
+      dur="{{ index $animation "dur" }}"
+      values="0;0.35;0.1;0.8;0.15;0.6;0"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    {{ end }}
+  </ellipse>
+
+  {{ $data := . }}
+  <ellipse cx="{{ div .Width 2 }}" cy="{{ div .Height 2 }}" rx="{{ div .Width 2 }}" ry="{{ div .Height 2 }}" fill="{{ .BaseColor }}">
+    {{ range $animation := index .Actions "blink"}}
+    <animate
+      attributeName="fill"
+      begin="{{ index $animation "begin" }}"
+      dur="{{ index $animation "dur" }}"
+      values="{{ $data.PulseColors }}"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    {{ end }}
+  </ellipse>
+</g>
+{{end}}
