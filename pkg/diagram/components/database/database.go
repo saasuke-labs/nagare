@@ -1,13 +1,12 @@
 package database
 
 import (
-	"bytes"
-	"embed"
 	"fmt"
-	"html/template"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/cylinder"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/led"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
@@ -17,16 +16,6 @@ const (
 	DefaultWidth  = 200.0
 	DefaultHeight = 200.0
 )
-
-//go:embed database.html
-var templateFile embed.FS
-
-var tmpl = template.Must(template.New("database").Funcs(template.FuncMap{
-	"add": func(a, b float64) float64 { return a + b },
-	"div": func(a, b float64) float64 { return a / b },
-	"mul": func(a, b float64) float64 { return a * b },
-	"sub": func(a, b float64) float64 { return a - b },
-}).ParseFS(templateFile, "database.html"))
 
 type Props struct {
 	Title           string `prop:"title"`
@@ -59,30 +48,11 @@ type Legacy struct {
 }
 
 func NewLegacy(id string) *Legacy {
-
 	return &Legacy{Text: id, Props: DefaultProps(), Actions: make(map[string][]map[string]any)}
 }
 
-type templateData struct {
-	X       float64
-	Y       float64
-	Width   float64
-	Height  float64
-	Props   Props
-	Text    string
-	Actions map[string][]map[string]any
-}
-
-func (l *Legacy) data() templateData {
-	return templateData{X: l.X, Y: l.Y, Width: l.Width, Height: l.Height, Props: l.Props, Text: l.Text, Actions: l.Actions}
-}
-
 func (l *Legacy) Draw() string {
-	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "database", l.data()); err != nil {
-		return fmt.Sprintf("<!-- Error rendering database template: %v -->", err)
-	}
-	return buf.String()
+	return drawComposite(l.Text, l.Shape, l.Props, l.Actions)
 }
 
 func (l *Legacy) SetShape(shape components.Shape) { l.Shape = shape }
@@ -98,6 +68,56 @@ func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 	_ = comp.Props.Parse(propsRaw(nodeProps))
 	comp.Actions = actionMapFromAny(nodeProps["actions"])
 	return comp.Draw()
+}
+
+func drawComposite(id string, shape components.Shape, p Props, actions map[string][]map[string]any) string {
+	cylinderPropsRaw := fmt.Sprintf("title:%q,subtitle:%q,bg:%q,fg:%q,accent:%q", p.Title, p.Engine, p.BackgroundColor, p.ForegroundColor, p.AccentColor)
+	cylinderSVG := cylinder.DrawFromRenderNode(id+"-body", map[string]any{
+		"x":         shape.X,
+		"y":         shape.Y,
+		"w":         shape.Width,
+		"h":         shape.Height,
+		"_rawProps": cylinderPropsRaw,
+	})
+
+	writeLedSVG := led.DrawFromRenderNode(id+"-write", map[string]any{
+		"x":         shape.X + shape.Width,
+		"y":         shape.Y + 20,
+		"w":         20.0,
+		"h":         20.0,
+		"_rawProps": `mode:"red"`,
+		"actions": map[string][]map[string]any{
+			"blink": cloneActionList(actions["write"]),
+		},
+	})
+
+	readLedSVG := led.DrawFromRenderNode(id+"-read", map[string]any{
+		"x":         shape.X + shape.Width + 50,
+		"y":         shape.Y + 20,
+		"w":         20.0,
+		"h":         20.0,
+		"_rawProps": `mode:"green"`,
+		"actions": map[string][]map[string]any{
+			"blink": cloneActionList(actions["read"]),
+		},
+	})
+
+	return cylinderSVG + writeLedSVG + readLedSVG
+}
+
+func cloneActionList(items []map[string]any) []map[string]any {
+	if len(items) == 0 {
+		return nil
+	}
+	copied := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		dup := make(map[string]any, len(item))
+		for key, val := range item {
+			dup[key] = val
+		}
+		copied = append(copied, dup)
+	}
+	return copied
 }
 
 func BuildLegacy(id string, parent *components.Shape) *Legacy {
