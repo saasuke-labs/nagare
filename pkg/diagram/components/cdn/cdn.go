@@ -7,6 +7,7 @@ import (
 	"html/template"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
@@ -80,4 +81,18 @@ func (l *Legacy) SetShape(shape components.Shape) { l.Shape = shape }
 func (l *Legacy) Offset(dx, dy float64) {
 	l.X -= dx
 	l.Y -= dy
+}
+
+const (
+	DefaultWidth  = 200.0
+	DefaultHeight = 160.0
+)
+
+func DrawFromRenderNode(id string, nodeProps map[string]any) string {
+	comp := NewLegacy(id)
+	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
+	if raw, ok := nodeProps["_rawProps"].(string); ok {
+		_ = comp.Props.Parse(raw)
+	}
+	return comp.Draw()
 }

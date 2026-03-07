@@ -132,6 +132,12 @@ nginx.e --> app.w
 @app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
 ```
 
+
+### Component Rendering Ownership
+
+The `pkg/diagram/components/*` packages now own per-component render-node translation.
+Each component exposes `DrawFromRenderNode(id, props)` and resolves its own fallback geometry (`x`, `y`, `w`, `h`) from render props, which keeps `pkg/diagram/diagram.go` focused on tree traversal instead of per-type box defaults.
+
 ## Project Structure
 
 ```

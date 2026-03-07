@@ -7,10 +7,16 @@ import (
 	"html/template"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
 const AllowedActions = "read,write"
+
+const (
+	DefaultWidth  = 200.0
+	DefaultHeight = 200.0
+)
 
 //go:embed database.html
 var templateFile embed.FS
@@ -84,4 +90,49 @@ func (l *Legacy) SetShape(shape components.Shape) { l.Shape = shape }
 func (l *Legacy) Offset(dx, dy float64) {
 	l.X -= dx
 	l.Y -= dy
+}
+
+func DrawFromRenderNode(id string, nodeProps map[string]any) string {
+	comp := NewLegacy(id)
+	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
+	_ = comp.Props.Parse(propsRaw(nodeProps))
+	comp.Actions = actionMapFromAny(nodeProps["actions"])
+	return comp.Draw()
+}
+
+func BuildLegacy(id string, parent *components.Shape) *Legacy {
+	comp := NewLegacy(id)
+	comp.Shape = components.Shape{Width: DefaultWidth, Height: DefaultHeight}
+	if parent != nil {
+		comp.Shape.X = parent.X + comp.Shape.X
+		comp.Shape.Y = parent.Y + comp.Shape.Y
+	}
+	return comp
+}
+
+func propsRaw(nodeProps map[string]any) string {
+	if v, ok := nodeProps["_rawProps"].(string); ok {
+		return v
+	}
+	return ""
+}
+
+func actionMapFromAny(v any) map[string][]map[string]any {
+	out := make(map[string][]map[string]any)
+	typed, ok := v.(map[string][]map[string]any)
+	if !ok {
+		return out
+	}
+	for k, items := range typed {
+		copied := make([]map[string]any, 0, len(items))
+		for _, item := range items {
+			dup := make(map[string]any, len(item))
+			for key, val := range item {
+				dup[key] = val
+			}
+			copied = append(copied, dup)
+		}
+		out[k] = copied
+	}
+	return out
 }
