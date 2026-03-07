@@ -13,7 +13,9 @@ import (
 	diagrambrowser "github.com/saasuke-labs/nagare/pkg/diagram/components/browser"
 	diagramcdn "github.com/saasuke-labs/nagare/pkg/diagram/components/cdn"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
+	diagramcylinder "github.com/saasuke-labs/nagare/pkg/diagram/components/cylinder"
 	diagramdatabase "github.com/saasuke-labs/nagare/pkg/diagram/components/database"
+	diagramled "github.com/saasuke-labs/nagare/pkg/diagram/components/led"
 	diagrammessagequeue "github.com/saasuke-labs/nagare/pkg/diagram/components/messagequeue"
 	diagrampackage "github.com/saasuke-labs/nagare/pkg/diagram/components/packagecomponent"
 	diagramrectangle "github.com/saasuke-labs/nagare/pkg/diagram/components/rectangle"
@@ -35,6 +37,10 @@ const (
 	defaultTerminalHeight    = 220.0
 	defaultDatabaseWidth     = 200.0
 	defaultDatabaseHeight    = 200.0
+	defaultCylinderWidth     = 200.0
+	defaultCylinderHeight    = 200.0
+	defaultLedWidth          = 20.0
+	defaultLedHeight         = 20.0
 	defaultQueueWidth        = 220.0
 	defaultQueueHeight       = 180.0
 	defaultCDNWidth          = 200.0
@@ -60,6 +66,8 @@ const (
 	componentTypeRectangle        = "Rectangle"
 	componentTypeTerminal         = "Terminal"
 	componentTypeDatabase         = "Database"
+	componentTypeCylinder         = "Cylinder"
+	componentTypeLed              = "Led"
 	componentTypeMessageQueue     = "MessageQueue"
 	componentTypeQueue            = "Queue"
 	componentTypeCDN              = "CDN"
@@ -328,6 +336,14 @@ func syncComponentGeometry(children []components.Component, nodeIndex map[string
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
+		case *diagramcylinder.Legacy:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
+		case *diagramled.Legacy:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+			}
 		case *diagrammessagequeue.Legacy:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
@@ -408,6 +424,18 @@ func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.S
 				comp.Offset(contentOriginX, contentOriginY)
 			}
 		case *diagramdatabase.Legacy:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *diagramcylinder.Legacy:
+			if shape, ok := nodeIndex[comp.Text]; ok {
+				applyResolvedShape(&comp.Shape, shape)
+				comp.X -= contentOriginX
+				comp.Y -= contentOriginY
+			}
+		case *diagramled.Legacy:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
@@ -533,6 +561,10 @@ func buildComponentTree(node parser.Node, nodeIndex map[string]components.Shape)
 		return []components.Component{buildTerminal(node, nil, nodeIndex)}
 	case componentTypeDatabase:
 		return []components.Component{buildDatabase(node, nil, nodeIndex)}
+	case componentTypeCylinder:
+		return []components.Component{buildCylinder(node, nil, nodeIndex)}
+	case componentTypeLed:
+		return []components.Component{buildLed(node, nil, nodeIndex)}
 	case componentTypeMessageQueue, componentTypeQueue:
 		return []components.Component{buildMessageQueue(node, nil, nodeIndex)}
 	case componentTypeCDN, componentTypeEdge:
@@ -603,6 +635,12 @@ func layoutVMChildren(parent parser.Node, vm *diagramvm.Legacy, nodeIndex map[st
 		case componentTypeDatabase:
 			database := buildDatabase(child, vm, nodeIndex)
 			vm.AddChild(database)
+		case componentTypeCylinder:
+			cylinder := buildCylinder(child, vm, nodeIndex)
+			vm.AddChild(cylinder)
+		case componentTypeLed:
+			led := buildLed(child, vm, nodeIndex)
+			vm.AddChild(led)
 		case componentTypeMessageQueue, componentTypeQueue:
 			queue := buildMessageQueue(child, vm, nodeIndex)
 			vm.AddChild(queue)
@@ -685,6 +723,54 @@ func buildTerminal(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	nodeIndex[node.Text] = absShape
 
 	return terminal
+}
+
+func buildCylinder(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramcylinder.Legacy {
+	cylinder := diagramcylinder.NewLegacy(node.Text)
+	cylinder.Shape = components.Shape{
+		Width:  defaultCylinderWidth,
+		Height: defaultCylinderHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &cylinder.Shape, &cylinder.Props, node.Text)
+	_ = applyNamedStateProperties(node, &cylinder.Shape, &cylinder.Props, true)
+
+	absShape := cylinder.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * diagramvm.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * diagramvm.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return cylinder
+}
+
+func buildLed(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramled.Legacy {
+	led := diagramled.NewLegacy(node.Text)
+	led.Shape = components.Shape{
+		Width:  defaultLedWidth,
+		Height: defaultLedHeight,
+		X:      defaultComponentX,
+		Y:      defaultComponentY,
+	}
+
+	applyIDStateProperties(node, &led.Shape, &led.Props, node.Text)
+	_ = applyNamedStateProperties(node, &led.Shape, &led.Props, true)
+
+	absShape := led.Shape
+	if vm != nil {
+		contentOffsetX := vm.Shape.Width * diagramvm.VMContentAreaXRatio
+		contentOffsetY := vm.Shape.Height * diagramvm.VMContentAreaYRatio
+		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
+		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
+	}
+	nodeIndex[node.Text] = absShape
+
+	return led
 }
 
 func buildDatabase(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramdatabase.Legacy {

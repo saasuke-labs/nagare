@@ -12,7 +12,9 @@ import (
 	diagrambackgroundworker "github.com/saasuke-labs/nagare/pkg/diagram/components/backgroundworker"
 	diagrambrowser "github.com/saasuke-labs/nagare/pkg/diagram/components/browser"
 	diagramcdn "github.com/saasuke-labs/nagare/pkg/diagram/components/cdn"
+	diagramcylinder "github.com/saasuke-labs/nagare/pkg/diagram/components/cylinder"
 	diagramdatabase "github.com/saasuke-labs/nagare/pkg/diagram/components/database"
+	diagramled "github.com/saasuke-labs/nagare/pkg/diagram/components/led"
 	diagrammessagequeue "github.com/saasuke-labs/nagare/pkg/diagram/components/messagequeue"
 	diagrampackage "github.com/saasuke-labs/nagare/pkg/diagram/components/packagecomponent"
 	diagramrectangle "github.com/saasuke-labs/nagare/pkg/diagram/components/rectangle"
@@ -429,6 +431,10 @@ func (d *Diagram) drawNode(node *RenderNode, shape components.Shape) string {
 		return diagramterminal.DrawFromRenderNode(node.ID, localProps)
 	case "database":
 		return diagramdatabase.DrawFromRenderNode(node.ID, localProps)
+	case "cylinder":
+		return diagramcylinder.DrawFromRenderNode(node.ID, localProps)
+	case "led":
+		return diagramled.DrawFromRenderNode(node.ID, localProps)
 	case "messagequeue":
 		return diagrammessagequeue.DrawFromRenderNode(node.ID, localProps)
 	case "cdn":

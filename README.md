@@ -130,6 +130,25 @@ nginx.e --> app.w
 ```
 
 
+### Composable Infrastructure Primitives
+
+The infrastructure palette now supports primitive components that can be used directly in diagrams:
+
+- `Cylinder` (base cylinder shell with title/subtitle)
+- `Led` (mode-driven indicator with `mode:"green"` or `mode:"red"`)
+
+`Led` currently supports one action: `blink` via state names like `@myLed.blink(begin:"0s",dur:"1s")`.
+
+`Database` is now rendered as a composition of those primitives:
+
+- 1 `Cylinder` for body + labels
+- 1 red `Led` child (maps `write -> blink`)
+- 1 green `Led` child (maps `read -> blink`)
+
+So existing database actions still work (`@db.read(...)`, `@db.write(...)`), while the same visual primitives are available for custom higher-level components.
+
+The composed database LEDs are positioned relative to the database width/height and scale proportionally with the database size, so resizing the database keeps indicator placement and sizing visually consistent.
+
 ### Component Rendering Ownership
 
 The `pkg/diagram/components/*` packages now own per-component render-node translation.
