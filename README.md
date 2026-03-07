@@ -142,7 +142,8 @@ Render-tree recursion already applies parent/child `<g transform="translate(...)
 cmd/
     main.go          # HTTP server and main entry point
 pkg/
-    components/      # SVG component definitions
+    components/      # Shared SVG template/runtime primitives
+    diagram/         # Diagram orchestration + component render-node translation
     layout/         # Layout engine and geometry calculations
     parser/         # DSL parser and AST builder
     props/          # Property parsing helpers
@@ -157,8 +158,6 @@ static/
 
 MIT
 ![Browser and VM](static/examples/example2.svg)
-
-(grid is there to help me why developing)
 
 ## Development
 
