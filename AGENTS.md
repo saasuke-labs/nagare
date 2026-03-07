@@ -7,6 +7,8 @@
 
 ## Architecture Overview
 
+Nagare focuses on **text-to-SVG** rendering in this repository. WebP/image export is intentionally out of scope and handled externally.
+
 The project follows a pipeline architecture with four main stages:
 
 1. **Tokenization** (`pkg/tokenizer/`)
@@ -62,6 +64,11 @@ goreleaser build --snapshot --clean
 # Add CI/pr diagrams
 # Create `.nagare` files under `.github/testdiagrams/`
 ```
+
+### CI Rendering Notes
+
+- Keep Nagare runtime output focused on SVG.
+- CI preview artifacts should stay SVG-only; do not add WebP conversion steps or WebP rendering logic back into this repository.
 
 ## Known Limitations
 
