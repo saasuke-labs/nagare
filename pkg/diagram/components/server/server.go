@@ -124,3 +124,17 @@ func (l *Legacy) Offset(dx, dy float64) {
 	box.Y -= dy
 	l.Comp.SetBoundingBox(box)
 }
+
+const (
+	DefaultWidth  = 200.0
+	DefaultHeight = 140.0
+)
+
+func DrawFromRenderNode(id string, nodeProps map[string]any) string {
+	comp := NewLegacy(id)
+	comp.SetShape(core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight))
+	if raw, ok := nodeProps["_rawProps"].(string); ok {
+		_ = comp.Comp.ApplyProps(raw)
+	}
+	return comp.Draw()
+}

@@ -44,6 +44,9 @@ The project follows a pipeline architecture with four main stages:
 - Reuse prop parsing helpers in `props/`; avoid duplicating parsing logic inside components.
 - In the `layout/` package, leverage helpers like `applyIDStateProperties`, `applyNamedStateProperties`, and `routeArrowPoints` when adding new component types or connection rules so geometry/state handling remains consistent.
 
+- When adding or refactoring diagram components under `pkg/diagram/components/`, keep component-specific render-node conversion in that package (for example, `DrawFromRenderNode`) so `pkg/diagram/diagram.go` stays orchestration-only.
+- Render-node conversion must treat component drawing coordinates as local to the render-tree group transform (set `x/y` to local origin and let recursive `<g transform>` handle placement) to avoid doubled offsets.
+
 ## Development Workflow
 
 ```bash

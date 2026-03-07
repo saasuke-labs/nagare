@@ -64,3 +64,23 @@ func TestCreateDiagramFromActualCodeBlocks(t *testing.T) {
 		})
 	}
 }
+
+func TestDatabaseCoordinatesAreNotAppliedTwice(t *testing.T) {
+	code := `
+db:Database
+@db(x:100,y:50,w:200,h:120)
+`
+
+	html, err := CreateDiagram(code)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(html, `transform="translate(100.000000,50.000000)"`) {
+		t.Fatalf("expected outer render-tree translation for database node")
+	}
+
+	if !strings.Contains(html, `transform="translate(0, 0)"`) {
+		t.Fatalf("expected database component template to render in local coordinates")
+	}
+}

@@ -410,76 +410,53 @@ func (d *Diagram) renderNodeRecursive(node *RenderNode, parentAbsX, parentAbsY f
 }
 
 func (d *Diagram) drawNode(node *RenderNode, shape components.Shape) string {
-	raw := rawPropsFromNode(node)
-	localShape := shape
-	localShape.X = 0
-	localShape.Y = 0
+	localProps := cloneProps(node.Props)
+	// RenderTree recursion already wraps each node in a translated <g>, so
+	// component templates must render at local origin to avoid applying X/Y twice.
+	localProps["x"] = 0.0
+	localProps["y"] = 0.0
+	localProps["w"] = shape.Width
+	localProps["h"] = shape.Height
 
 	switch node.Type {
 	case "browser":
-		comp := diagrambrowser.NewLegacy(node.ID)
-		comp.Shape = localShape
-		_ = comp.Props.Parse(raw)
-		return comp.Draw()
+		return diagrambrowser.DrawFromRenderNode(node.ID, localProps)
 	case "vm":
-		comp := diagramvm.NewLegacy(node.ID)
-		comp.Shape = localShape
-		_ = comp.Props.Parse(raw)
-		return comp.Draw()
+		return diagramvm.DrawFromRenderNode(node.ID, localProps)
 	case "server":
-		comp := diagramserver.NewLegacy(node.ID)
-		comp.SetShape(localShape)
-		_ = comp.Comp.ApplyProps(raw)
-		return comp.Draw()
+		return diagramserver.DrawFromRenderNode(node.ID, localProps)
 	case "terminal":
-		comp := diagramterminal.NewLegacy(node.ID)
-		comp.SetShape(localShape)
-		_ = comp.Comp.ApplyProps(raw)
-		return comp.Draw()
+		return diagramterminal.DrawFromRenderNode(node.ID, localProps)
 	case "database":
-		comp := diagramdatabase.NewLegacy(node.ID)
-		comp.Shape = localShape
-		_ = comp.Props.Parse(raw)
-		comp.Actions = actionMapFromAny(node.Props["actions"])
-		return comp.Draw()
+		return diagramdatabase.DrawFromRenderNode(node.ID, localProps)
 	case "messagequeue":
-		comp := diagrammessagequeue.NewLegacy(node.ID)
-		comp.Shape = localShape
-		_ = comp.Props.Parse(raw)
-		return comp.Draw()
+		return diagrammessagequeue.DrawFromRenderNode(node.ID, localProps)
 	case "cdn":
-		comp := diagramcdn.NewLegacy(node.ID)
-		comp.Shape = localShape
-		_ = comp.Props.Parse(raw)
-		return comp.Draw()
+		return diagramcdn.DrawFromRenderNode(node.ID, localProps)
 	case "apigateway":
-		comp := diagramapigateway.NewLegacy(node.ID)
-		comp.Shape = localShape
-		_ = comp.Props.Parse(raw)
-		return comp.Draw()
+		return diagramapigateway.DrawFromRenderNode(node.ID, localProps)
 	case "backgroundworker":
-		comp := diagrambackgroundworker.NewLegacy(node.ID)
-		comp.Shape = localShape
-		_ = comp.Props.Parse(raw)
-		return comp.Draw()
+		return diagrambackgroundworker.DrawFromRenderNode(node.ID, localProps)
 	case "package":
-		comp := diagrampackage.NewLegacy(node.ID)
-		comp.Shape = localShape
-		_ = comp.Props.Parse(raw)
-		return comp.Draw()
+		return diagrampackage.DrawFromRenderNode(node.ID, localProps)
 	case "artifact":
-		comp := diagramartifact.NewLegacy(node.ID)
-		comp.Shape = localShape
-		_ = comp.Props.Parse(raw)
-		return comp.Draw()
+		return diagramartifact.DrawFromRenderNode(node.ID, localProps)
 	case "rectangle":
-		comp := diagramrectangle.NewLegacy(node.ID)
-		comp.SetShape(localShape)
-		_ = comp.Comp.ApplyProps(raw)
-		return comp.Draw()
+		return diagramrectangle.DrawFromRenderNode(node.ID, localProps)
 	default:
 		return ""
 	}
+}
+
+func cloneProps(src map[string]any) map[string]any {
+	if src == nil {
+		return map[string]any{}
+	}
+	out := make(map[string]any, len(src))
+	for k, v := range src {
+		out[k] = v
+	}
+	return out
 }
 
 func shapeFromNode(node *RenderNode) components.Shape {
