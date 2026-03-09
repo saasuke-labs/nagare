@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
@@ -10,13 +11,8 @@ type Component interface {
 	Draw() string
 }
 
-type Shape struct {
-	Width         float64
-	Height        float64
-	X             float64
-	Y             float64
-	AlignmentRefs map[string]string // Store alignment references for later resolution
-}
+// Shape is the canonical positioned rectangle type, aliased from core.
+type Shape = core.Shape
 
 type RectangleProps struct {
 	Title           string `prop:"title"`

@@ -95,21 +95,15 @@ type Layout struct {
 	Connections []Arrow
 }
 
-// Point represents a 2D coordinate in canvas space.
-type Point struct {
-	X float64
-	Y float64
-}
-
 // Arrow contains the resolved geometry for a parsed connection.
 type Arrow struct {
 	FromID      string
 	ToID        string
 	FromAnchor  string
 	ToAnchor    string
-	Start       Point
-	End         Point
-	BendPoints  []Point
+	Start       core.Point
+	End         core.Point
+	BendPoints  []core.Point
 	Style       string
 	MarkerStart bool
 	MarkerEnd   bool
@@ -149,7 +143,6 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 			shape.X = float64(intVal)
 		} else if strVal, ok := geom.X.(string); ok && strings.HasPrefix(strVal, "&") {
 			// Handle alignment reference - store for later resolution
-			fmt.Printf("Alignment reference detected for X: %s (deferred)\n", strVal)
 			if shape.AlignmentRefs == nil {
 				shape.AlignmentRefs = make(map[string]string)
 			}
@@ -157,7 +150,6 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 		} else if strVal, ok := geom.X.(string); ok {
 			// Check if this looks like a broken alignment reference (e.g., "browser  c")
 			if strings.Contains(strVal, "  ") {
-				fmt.Printf("Possible broken alignment reference detected for X: %s (deferred)\n", strVal)
 				if shape.AlignmentRefs == nil {
 					shape.AlignmentRefs = make(map[string]string)
 				}
@@ -174,7 +166,6 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 			shape.Y = float64(intVal)
 		} else if strVal, ok := geom.Y.(string); ok && strings.HasPrefix(strVal, "&") {
 			// Handle alignment reference - store for later resolution
-			fmt.Printf("Alignment reference detected for Y: %s (deferred)\n", strVal)
 			if shape.AlignmentRefs == nil {
 				shape.AlignmentRefs = make(map[string]string)
 			}
@@ -182,7 +173,6 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 		} else if strVal, ok := geom.Y.(string); ok {
 			// Check if this looks like a broken alignment reference (e.g., "browser  c")
 			if strings.Contains(strVal, "  ") {
-				fmt.Printf("Possible broken alignment reference detected for Y: %s (deferred)\n", strVal)
 				if shape.AlignmentRefs == nil {
 					shape.AlignmentRefs = make(map[string]string)
 				}
@@ -268,7 +258,7 @@ func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
 			for axis, ref := range shape.AlignmentRefs {
 				resolved, err := resolveAlignmentReference(ref, nodeIndex, &shape)
 				if err != nil {
-					fmt.Printf("Failed to resolve alignment reference %s for %s: %v\n", ref, componentName, err)
+					// silently ignore unresolvable alignment references
 					continue
 				}
 
@@ -276,11 +266,9 @@ func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
 				case "x":
 					shape.X = resolved
 					updated = true
-					fmt.Printf("Resolved X alignment for %s: %s -> %f\n", componentName, ref, resolved)
 				case "y":
 					shape.Y = resolved
 					updated = true
-					fmt.Printf("Resolved Y alignment for %s: %s -> %f\n", componentName, ref, resolved)
 				}
 			}
 		}
@@ -294,11 +282,10 @@ func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
 
 			resolved, err := resolveAlignmentReference(reconstructed, nodeIndex, &shape)
 			if err != nil {
-				fmt.Printf("Failed to resolve reconstructed alignment reference %s for %s: %v\n", reconstructed, componentName, err)
+				// silently ignore unresolvable reconstructed alignment references
 			} else {
 				shape.Y = resolved
 				updated = true
-				fmt.Printf("Resolved Y alignment (reconstructed) for %s: %s -> %f\n", componentName, reconstructed, resolved)
 			}
 		}
 
@@ -312,7 +299,7 @@ func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
 func syncComponentGeometry(children []components.Component, nodeIndex map[string]components.Shape) {
 	for _, child := range children {
 		switch comp := child.(type) {
-		case *diagrambrowser.Legacy:
+		case *diagrambrowser.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
@@ -320,7 +307,7 @@ func syncComponentGeometry(children []components.Component, nodeIndex map[string
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramserver.Legacy:
+		case *diagramserver.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 			}
@@ -328,47 +315,47 @@ func syncComponentGeometry(children []components.Component, nodeIndex map[string
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramterminal.Legacy:
+		case *diagramterminal.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 			}
-		case *diagramdatabase.Legacy:
+		case *diagramdatabase.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramcylinder.Legacy:
+		case *diagramcylinder.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramled.Legacy:
+		case *diagramled.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagrammessagequeue.Legacy:
+		case *diagrammessagequeue.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramcdn.Legacy:
+		case *diagramcdn.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramapigateway.Legacy:
+		case *diagramapigateway.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagrambackgroundworker.Legacy:
+		case *diagrambackgroundworker.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagrampackage.Legacy:
+		case *diagrampackage.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramartifact.Legacy:
+		case *diagramartifact.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramvm.Legacy:
+		case *diagramvm.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
@@ -377,7 +364,7 @@ func syncComponentGeometry(children []components.Component, nodeIndex map[string
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramrectangle.Legacy:
+		case *diagramrectangle.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 			}
@@ -395,7 +382,7 @@ func applyResolvedShape(target *components.Shape, resolved components.Shape) {
 	target.Height = resolved.Height
 }
 
-func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) {
+func syncVMChildGeometry(vm *diagramvm.Component, nodeIndex map[string]components.Shape) {
 	contentOriginX := vm.Shape.X + vm.Shape.Width*diagramvm.VMContentAreaXRatio
 	contentOriginY := vm.Shape.Y + vm.Shape.Height*diagramvm.VMContentAreaYRatio
 
@@ -407,7 +394,7 @@ func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.S
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramserver.Legacy:
+		case *diagramserver.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 				comp.Offset(contentOriginX, contentOriginY)
@@ -418,60 +405,60 @@ func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.S
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramterminal.Legacy:
+		case *diagramterminal.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 				comp.Offset(contentOriginX, contentOriginY)
 			}
-		case *diagramdatabase.Legacy:
+		case *diagramdatabase.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramcylinder.Legacy:
+		case *diagramcylinder.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramled.Legacy:
+		case *diagramled.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagrammessagequeue.Legacy:
+		case *diagrammessagequeue.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramcdn.Legacy:
+		case *diagramcdn.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramapigateway.Legacy:
+		case *diagramapigateway.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagrambackgroundworker.Legacy:
+		case *diagrambackgroundworker.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagrampackage.Legacy:
+		case *diagrampackage.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramartifact.Legacy:
+		case *diagramartifact.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
@@ -483,7 +470,7 @@ func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.S
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramrectangle.Legacy:
+		case *diagramrectangle.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 				comp.Offset(contentOriginX, contentOriginY)
@@ -493,7 +480,7 @@ func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.S
 }
 
 // Calculate computes the layout for an AST
-func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
+func Calculate(node parser.Node, canvasWidth, canvasHeight float64) (Layout, error) {
 	boundsWidth, boundsHeight := calculateCanvasBounds(node, canvasWidth, canvasHeight)
 	nodeIndex := make(map[string]components.Shape)
 
@@ -521,7 +508,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 		Children:    children,
 		NodeIndex:   nodeIndex,
 		Connections: arrows,
-	}
+	}, nil
 }
 
 func calculateCanvasBounds(node parser.Node, defaultWidth, defaultHeight float64) (float64, float64) {
@@ -535,7 +522,6 @@ func calculateCanvasBounds(node parser.Node, defaultWidth, defaultHeight float64
 
 	geometry, err := parseGeometryProps(layoutState.PropsDef)
 	if err != nil {
-		fmt.Printf("failed to parse @layout props: %v\n", err)
 		return boundsWidth, boundsHeight
 	}
 
@@ -585,7 +571,7 @@ func buildComponentTree(node parser.Node, nodeIndex map[string]components.Shape)
 }
 
 func buildBrowser(node parser.Node, nodeIndex map[string]components.Shape) components.Component {
-	browser := diagrambrowser.NewLegacy(node.Text)
+	browser := diagrambrowser.New(node.Text)
 	browser.Shape = components.Shape{
 		Width:  defaultBrowserWidth,
 		Height: defaultBrowserHeight,
@@ -597,12 +583,11 @@ func buildBrowser(node parser.Node, nodeIndex map[string]components.Shape) compo
 	browser.State = applyNamedStateProperties(node, &browser.Shape, &browser.Props, false)
 
 	nodeIndex[node.Text] = browser.Shape
-	fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
 	return browser
 }
 
 func buildVM(node parser.Node, nodeIndex map[string]components.Shape) components.Component {
-	vm := diagramvm.NewLegacy(node.Text)
+	vm := diagramvm.New(node.Text)
 	vm.Shape = components.Shape{
 		Width:  defaultVMWidth,
 		Height: defaultVMHeight,
@@ -615,11 +600,10 @@ func buildVM(node parser.Node, nodeIndex map[string]components.Shape) components
 
 	layoutVMChildren(node, vm, nodeIndex)
 	nodeIndex[node.Text] = vm.Shape
-	fmt.Printf("State: %s, Props: %+v\n", vm.State, vm.Props)
 	return vm
 }
 
-func layoutVMChildren(parent parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) {
+func layoutVMChildren(parent parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) {
 	if len(parent.Children) == 0 {
 		return
 	}
@@ -668,13 +652,13 @@ func layoutVMChildren(parent parser.Node, vm *diagramvm.Legacy, nodeIndex map[st
 				vm.AddChild(rect)
 				continue
 			}
-			fmt.Printf("Unknown child type: %s\n", child.Type)
+			// silently ignore unknown child types
 		}
 	}
 }
 
-func buildServer(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramserver.Legacy {
-	server := diagramserver.NewLegacy(node.Text)
+func buildServer(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramserver.Adapter {
+	server := diagramserver.NewAdapter(node.Text)
 	shape := components.Shape{
 		Width:  defaultServerWidth,
 		Height: defaultServerHeight,
@@ -689,7 +673,7 @@ func buildServer(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]co
 	if vm != nil {
 		contentOffsetX := vm.Shape.Width * diagramvm.VMContentAreaXRatio
 		contentOffsetY := vm.Shape.Height * diagramvm.VMContentAreaYRatio
-		server.Comp.SetContainer(coreBoundingBox(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
+		server.Comp.SetContainer(coreShape(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
 		absServerShape.X = vm.Shape.X + contentOffsetX + absServerShape.X
 		absServerShape.Y = vm.Shape.Y + contentOffsetY + absServerShape.Y
 	}
@@ -699,8 +683,8 @@ func buildServer(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]co
 	return server
 }
 
-func buildTerminal(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramterminal.Legacy {
-	terminal := diagramterminal.NewLegacy(node.Text)
+func buildTerminal(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramterminal.Adapter {
+	terminal := diagramterminal.NewAdapter(node.Text)
 	shape := components.Shape{
 		Width:  defaultTerminalWidth,
 		Height: defaultTerminalHeight,
@@ -715,7 +699,7 @@ func buildTerminal(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	if vm != nil {
 		contentOffsetX := vm.Shape.Width * diagramvm.VMContentAreaXRatio
 		contentOffsetY := vm.Shape.Height * diagramvm.VMContentAreaYRatio
-		terminal.Comp.SetContainer(coreBoundingBox(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
+		terminal.Comp.SetContainer(coreShape(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
 		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
 		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
 	}
@@ -725,8 +709,8 @@ func buildTerminal(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	return terminal
 }
 
-func buildCylinder(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramcylinder.Legacy {
-	cylinder := diagramcylinder.NewLegacy(node.Text)
+func buildCylinder(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramcylinder.Component {
+	cylinder := diagramcylinder.New(node.Text)
 	cylinder.Shape = components.Shape{
 		Width:  defaultCylinderWidth,
 		Height: defaultCylinderHeight,
@@ -749,8 +733,8 @@ func buildCylinder(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	return cylinder
 }
 
-func buildLed(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramled.Legacy {
-	led := diagramled.NewLegacy(node.Text)
+func buildLed(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramled.Component {
+	led := diagramled.New(node.Text)
 	led.Shape = components.Shape{
 		Width:  defaultLedWidth,
 		Height: defaultLedHeight,
@@ -773,8 +757,8 @@ func buildLed(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]compo
 	return led
 }
 
-func buildDatabase(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramdatabase.Legacy {
-	database := diagramdatabase.NewLegacy(node.Text)
+func buildDatabase(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramdatabase.Component {
+	database := diagramdatabase.New(node.Text)
 	database.Shape = components.Shape{
 		Width:  defaultDatabaseWidth,
 		Height: defaultDatabaseHeight,
@@ -797,8 +781,8 @@ func buildDatabase(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	return database
 }
 
-func buildMessageQueue(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagrammessagequeue.Legacy {
-	queue := diagrammessagequeue.NewLegacy(node.Text)
+func buildMessageQueue(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagrammessagequeue.Component {
+	queue := diagrammessagequeue.New(node.Text)
 	queue.Shape = components.Shape{
 		Width:  defaultQueueWidth,
 		Height: defaultQueueHeight,
@@ -821,8 +805,8 @@ func buildMessageQueue(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[str
 	return queue
 }
 
-func buildCDN(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramcdn.Legacy {
-	cdn := diagramcdn.NewLegacy(node.Text)
+func buildCDN(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramcdn.Component {
+	cdn := diagramcdn.New(node.Text)
 	cdn.Shape = components.Shape{
 		Width:  defaultCDNWidth,
 		Height: defaultCDNHeight,
@@ -845,8 +829,8 @@ func buildCDN(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]compo
 	return cdn
 }
 
-func buildAPIGateway(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramapigateway.Legacy {
-	gateway := diagramapigateway.NewLegacy(node.Text)
+func buildAPIGateway(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramapigateway.Component {
+	gateway := diagramapigateway.New(node.Text)
 	gateway.Shape = components.Shape{
 		Width:  defaultAPIGatewayWidth,
 		Height: defaultAPIGatewayHeight,
@@ -869,8 +853,8 @@ func buildAPIGateway(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[strin
 	return gateway
 }
 
-func buildBackgroundWorker(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagrambackgroundworker.Legacy {
-	worker := diagrambackgroundworker.NewLegacy(node.Text)
+func buildBackgroundWorker(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagrambackgroundworker.Component {
+	worker := diagrambackgroundworker.New(node.Text)
 	worker.Shape = components.Shape{
 		Width:  defaultBackgroundWorkerW,
 		Height: defaultBackgroundWorkerH,
@@ -893,8 +877,8 @@ func buildBackgroundWorker(node parser.Node, vm *diagramvm.Legacy, nodeIndex map
 	return worker
 }
 
-func buildPackage(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagrampackage.Legacy {
-	pkg := diagrampackage.NewLegacy(node.Text)
+func buildPackage(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagrampackage.Component {
+	pkg := diagrampackage.New(node.Text)
 	pkg.Shape = components.Shape{
 		Width:  defaultPackageWidth,
 		Height: defaultPackageHeight,
@@ -917,8 +901,8 @@ func buildPackage(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]c
 	return pkg
 }
 
-func buildArtifact(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramartifact.Legacy {
-	artifact := diagramartifact.NewLegacy(node.Text)
+func buildArtifact(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramartifact.Component {
+	artifact := diagramartifact.New(node.Text)
 	artifact.Shape = components.Shape{
 		Width:  defaultArtifactWidth,
 		Height: defaultArtifactHeight,
@@ -941,8 +925,8 @@ func buildArtifact(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	return artifact
 }
 
-func buildRectangle(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramrectangle.Legacy {
-	rect := diagramrectangle.NewLegacy(node.Text)
+func buildRectangle(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramrectangle.Adapter {
+	rect := diagramrectangle.NewAdapter(node.Text)
 	shape := components.Shape{
 		Width:  defaultServerWidth,
 		Height: defaultServerHeight,
@@ -957,7 +941,7 @@ func buildRectangle(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string
 	if vm != nil {
 		contentOffsetX := vm.Shape.Width * diagramvm.VMContentAreaXRatio
 		contentOffsetY := vm.Shape.Height * diagramvm.VMContentAreaYRatio
-		rect.Comp.SetContainer(coreBoundingBox(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
+		rect.Comp.SetContainer(coreShape(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
 		absRectShape.X = vm.Shape.X + contentOffsetX + absRectShape.X
 		absRectShape.Y = vm.Shape.Y + contentOffsetY + absRectShape.Y
 	}
@@ -967,8 +951,8 @@ func buildRectangle(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string
 	return rect
 }
 
-func coreBoundingBox(x, y, width, height float64) core.BoundingBox {
-	return core.BoundingBox{X: x, Y: y, Width: width, Height: height}
+func coreShape(x, y, width, height float64) core.Shape {
+	return core.Shape{X: x, Y: y, Width: width, Height: height}
 }
 
 func applyIDStateProperties(node parser.Node, shape *components.Shape, props propertyParser, componentID string) {
@@ -1005,7 +989,6 @@ func applyGeometryDefinition(target string, shape *components.Shape, propsDef st
 
 	geometry, err := parseGeometryProps(propsDef)
 	if err != nil {
-		fmt.Printf("failed to parse geometry for %s: %v\n", target, err)
 		return
 	}
 	// Pass empty nodeIndex for now - alignment resolution will happen later
@@ -1016,9 +999,7 @@ func parseComponentProps(target string, parser propertyParser, propsDef string) 
 	if parser == nil {
 		return
 	}
-	if err := parser.Parse(propsDef); err != nil {
-		fmt.Printf("failed to parse props for %s: %v\n", target, err)
-	}
+	_ = parser.Parse(propsDef)
 }
 
 func buildArrowComponents(arrows []Arrow) []components.Component {
@@ -1046,7 +1027,6 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 		fromShape, okFrom := nodeIndex[conn.FromID]
 		toShape, okTo := nodeIndex[conn.ToID]
 		if !okFrom || !okTo {
-			fmt.Printf("connection skipped: missing endpoint %s -> %s\n", conn.FromID, conn.ToID)
 			continue
 		}
 
@@ -1056,7 +1036,7 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 		end := computeAnchorPoint(toShape, toAnchor)
 
 		points := routeArrowPoints(start, end, fromAnchor, toAnchor)
-		bendPoints := make([]Point, 0)
+		bendPoints := make([]core.Point, 0)
 		if len(points) > 2 {
 			bendPoints = append(bendPoints, points[1:len(points)-1]...)
 		}
@@ -1109,10 +1089,10 @@ func normalizeAnchor(anchor parser.AnchorDescriptor) parser.AnchorDescriptor {
 	return normalized
 }
 
-func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) Point {
+func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) core.Point {
 	centerX := shape.X + shape.Width*0.5
 	centerY := shape.Y + shape.Height*0.5
-	point := Point{X: centerX, Y: centerY}
+	point := core.Point{X: centerX, Y: centerY}
 
 	directions := anchorDirections(anchor)
 	if len(directions) == 0 {
@@ -1163,8 +1143,8 @@ func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) 
 	return point
 }
 
-func routeArrowPoints(start, end Point, fromAnchor, toAnchor parser.AnchorDescriptor) []Point {
-	points := []Point{start}
+func routeArrowPoints(start, end core.Point, fromAnchor, toAnchor parser.AnchorDescriptor) []core.Point {
+	points := []core.Point{start}
 
 	if floatsNearlyEqual(start.X, end.X) || floatsNearlyEqual(start.Y, end.Y) {
 		points = append(points, end)
@@ -1176,13 +1156,13 @@ func routeArrowPoints(start, end Point, fromAnchor, toAnchor parser.AnchorDescri
 	if horizontalFirst {
 		direction := resolveAxisDirection(fromAnchor.Horizontal, toAnchor.Horizontal)
 		elbowX := start.X + direction*arrowElbowPadding
-		points = append(points, Point{X: elbowX, Y: start.Y})
-		points = append(points, Point{X: elbowX, Y: end.Y})
+		points = append(points, core.Point{X: elbowX, Y: start.Y})
+		points = append(points, core.Point{X: elbowX, Y: end.Y})
 	} else {
 		direction := resolveAxisDirection(fromAnchor.Vertical, toAnchor.Vertical)
 		elbowY := start.Y + direction*arrowElbowPadding
-		points = append(points, Point{X: start.X, Y: elbowY})
-		points = append(points, Point{X: end.X, Y: elbowY})
+		points = append(points, core.Point{X: start.X, Y: elbowY})
+		points = append(points, core.Point{X: end.X, Y: elbowY})
 	}
 
 	points = append(points, end)

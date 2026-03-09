@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 	"sync/atomic"
+
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
 )
 
-type Point struct {
-	X float64
-	Y float64
-}
+// Point is the canonical 2D coordinate type, aliased from core.
+type Point = core.Point
 
 type Arrow struct {
 	Points      []Point

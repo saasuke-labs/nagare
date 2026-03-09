@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
 	diagramserver "github.com/saasuke-labs/nagare/pkg/diagram/components/server"
 	diagramvm "github.com/saasuke-labs/nagare/pkg/diagram/components/vm"
 	"github.com/saasuke-labs/nagare/pkg/parser"
@@ -70,7 +71,7 @@ func TestCalculateStoresAbsoluteShapesAndConnections(t *testing.T) {
 		},
 	}
 
-	result := Calculate(root, 1024, 768)
+	result, _ := Calculate(root, 1024, 768)
 
 	if len(result.Children) != len(root.Children)+len(root.Connections) {
 		expected := len(root.Children) + len(root.Connections)
@@ -206,7 +207,7 @@ func TestCalculateUsesLayoutGlobalOverrides(t *testing.T) {
 		},
 	}
 
-	result := Calculate(root, 1024, 768)
+	result, _ := Calculate(root, 1024, 768)
 
 	if result.Bounds.Width != 800 {
 		t.Fatalf("expected bounds width 800, got %f", result.Bounds.Width)
@@ -217,14 +218,14 @@ func TestCalculateUsesLayoutGlobalOverrides(t *testing.T) {
 }
 
 func TestRouteArrowPointsRespectsAnchorPriority(t *testing.T) {
-	start := Point{X: 10, Y: 10}
-	end := Point{X: 110, Y: 80}
+	start := core.Point{X: 10, Y: 10}
+	end := core.Point{X: 110, Y: 80}
 	fromAnchor := parser.AnchorDescriptor{Horizontal: 1}
 	toAnchor := parser.AnchorDescriptor{Vertical: 1}
 
 	points := routeArrowPoints(start, end, fromAnchor, toAnchor)
 
-	expected := []Point{
+	expected := []core.Point{
 		start,
 		{X: start.X + arrowElbowPadding, Y: start.Y},
 		{X: start.X + arrowElbowPadding, Y: end.Y},
@@ -265,11 +266,11 @@ vps:VM@ubuntu {
 		t.Fatalf("parse error: %v", err)
 	}
 
-	layout := Calculate(ast, 800, 400)
+	layout, _ := Calculate(ast, 800, 400)
 
-	var vm *diagramvm.Legacy
+	var vm *diagramvm.Component
 	for _, child := range layout.Children {
-		if candidate, ok := child.(*diagramvm.Legacy); ok {
+		if candidate, ok := child.(*diagramvm.Component); ok {
 			vm = candidate
 			break
 		}
@@ -285,7 +286,7 @@ vps:VM@ubuntu {
 	}
 
 	for _, child := range vm.Children {
-		server, ok := child.(*diagramserver.Legacy)
+		server, ok := child.(*diagramserver.Adapter)
 		if !ok {
 			continue
 		}

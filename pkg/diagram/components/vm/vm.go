@@ -14,22 +14,22 @@ const (
 	DefaultHeight            = 420.0
 )
 
-type Legacy struct {
+type Component struct {
 	*components.VM
 }
 
-func NewLegacy(id string) *Legacy {
+func New(id string) *Component {
 	v := components.NewVM()
 	v.Text = id
-	return &Legacy{VM: v}
+	return &Component{VM: v}
 }
 
-func (l *Legacy) SetShape(shape components.Shape) {
+func (l *Component) SetShape(shape components.Shape) {
 	l.Shape = shape
 }
 
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
-	comp := NewLegacy(id)
+	comp := New(id)
 	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
 	if raw, ok := nodeProps["_rawProps"].(string); ok {
 		_ = comp.Props.Parse(raw)

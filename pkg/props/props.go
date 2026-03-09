@@ -7,6 +7,93 @@ import (
 	"strings"
 )
 
+// ParseToMap parses a raw props string into a map[string]any,
+// coercing numeric values where possible.
+func ParseToMap(raw string) map[string]any {
+	out := make(map[string]any)
+	for _, part := range splitProps(raw) {
+		kv := strings.SplitN(part, ":", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(kv[0])
+		if key == "" {
+			continue
+		}
+		out[key] = coercePropValue(strings.TrimSpace(kv[1]))
+	}
+	return out
+}
+
+func splitProps(raw string) []string {
+	parts := []string{}
+	if strings.TrimSpace(raw) == "" {
+		return parts
+	}
+
+	var buf strings.Builder
+	inQuotes := false
+	quoteChar := byte(0)
+	parenDepth := 0
+
+	for i := 0; i < len(raw); i++ {
+		c := raw[i]
+
+		if (c == '"' || c == '\'') && (i == 0 || raw[i-1] != '\\') {
+			if inQuotes && c == quoteChar {
+				inQuotes = false
+				quoteChar = 0
+			} else if !inQuotes {
+				inQuotes = true
+				quoteChar = c
+			}
+			buf.WriteByte(c)
+			continue
+		}
+
+		if !inQuotes {
+			switch c {
+			case '(':
+				parenDepth++
+			case ')':
+				if parenDepth > 0 {
+					parenDepth--
+				}
+			case ',':
+				if parenDepth == 0 {
+					part := strings.TrimSpace(buf.String())
+					if part != "" {
+						parts = append(parts, part)
+					}
+					buf.Reset()
+					continue
+				}
+			}
+		}
+
+		buf.WriteByte(c)
+	}
+
+	if tail := strings.TrimSpace(buf.String()); tail != "" {
+		parts = append(parts, tail)
+	}
+
+	return parts
+}
+
+func coercePropValue(v string) any {
+	v = strings.TrimSpace(v)
+	v = strings.Trim(v, "\"")
+	v = strings.Trim(v, "'")
+	if v == "" {
+		return ""
+	}
+	if n, err := strconv.ParseFloat(v, 64); err == nil {
+		return n
+	}
+	return v
+}
+
 // Props is the interface that all component props must implement
 type Props interface {
 	Parse(input string) error
@@ -73,9 +160,6 @@ func ParseProps(input string, target interface{}) error {
 		key := strings.TrimSpace(pair[:colonIndex])
 		value := strings.TrimSpace(pair[colonIndex+1:])
 
-		// Debug output
-		fmt.Printf("Parsing prop key=%q value=%q\n", key, value)
-
 		// Clean up any unwanted spaces in the value
 		value = strings.TrimPrefix(value, " ")
 		value = strings.TrimSuffix(value, " ")
@@ -85,9 +169,6 @@ func ParseProps(input string, target interface{}) error {
 			value = strings.Trim(value, `"`)
 		}
 
-		// Debug after cleanup
-		fmt.Printf("After cleanup: key=%q value=%q\n", key, value)
-
 		// Use reflection to find matching field
 		v := reflect.ValueOf(target).Elem()
 		t := v.Type()
@@ -96,7 +177,6 @@ func ParseProps(input string, target interface{}) error {
 		for i := 0; i < t.NumField(); i++ {
 			field := t.Field(i)
 			if prop := field.Tag.Get("prop"); prop == key {
-				fmt.Printf("Setting field %s with tag %q to %q\n", field.Name, prop, value)
 				fieldValue := v.Field(i)
 
 				// Handle different field types
@@ -139,7 +219,7 @@ func ParseProps(input string, target interface{}) error {
 			}
 		}
 		if !found {
-			fmt.Printf("Warning: no field found with prop tag %q\n", key)
+			// unrecognised prop key — silently ignore
 		}
 	}
 

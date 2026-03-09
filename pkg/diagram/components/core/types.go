@@ -8,61 +8,59 @@ type Point struct {
 	Y float64
 }
 
-// BoundingBox represents an absolute rectangle in diagram canvas space.
-type BoundingBox struct {
-	X      float64
-	Y      float64
-	Width  float64
-	Height float64
+// Shape represents an absolute rectangle in diagram canvas space.
+type Shape struct {
+	X, Y, Width, Height float64
+	AlignmentRefs       map[string]string // deferred alignment resolution
 }
 
 // Component defines the target interface for diagram components.
 // Implementations own rendering, geometry, and port resolution behavior.
 type Component interface {
 	Draw() (string, error)
-	BoundingBox() BoundingBox
+	Shape() Shape
 	Port(name string) (Point, error)
 }
 
 // ConfigurableComponent extends Component with initialization hooks used by layout orchestration.
 type ConfigurableComponent interface {
 	Component
-	SetContainer(BoundingBox)
-	SetBoundingBox(BoundingBox)
+	SetContainer(Shape)
+	SetShape(Shape)
 	ApplyProps(raw string) error
 }
 
-// LegacyDrawer is compatible with the current component contract in pkg/components.
-type LegacyDrawer interface {
+// SVGDrawer is compatible with the current component contract in pkg/components.
+type SVGDrawer interface {
 	Draw() string
 }
 
-// LegacyAdapter bridges legacy components into the new core.Component contract.
-type LegacyAdapter struct {
+// DrawerAdapter bridges legacy components into the new core.Component contract.
+type DrawerAdapter struct {
 	ID     string
-	Box    BoundingBox
-	Legacy LegacyDrawer
+	Box    Shape
+	Drawer SVGDrawer
 	Ports  map[string]Point
-	Parent BoundingBox
+	Parent Shape
 }
 
-func (a *LegacyAdapter) Draw() (string, error) {
-	if a == nil || a.Legacy == nil {
-		return "", fmt.Errorf("legacy adapter has no component")
+func (a *DrawerAdapter) Draw() (string, error) {
+	if a == nil || a.Drawer == nil {
+		return "", fmt.Errorf("drawer adapter has no component")
 	}
-	return a.Legacy.Draw(), nil
+	return a.Drawer.Draw(), nil
 }
 
-func (a *LegacyAdapter) BoundingBox() BoundingBox {
+func (a *DrawerAdapter) Shape() Shape {
 	if a == nil {
-		return BoundingBox{}
+		return Shape{}
 	}
 	return a.Box
 }
 
-func (a *LegacyAdapter) Port(name string) (Point, error) {
+func (a *DrawerAdapter) Port(name string) (Point, error) {
 	if a == nil {
-		return Point{}, fmt.Errorf("legacy adapter is nil")
+		return Point{}, fmt.Errorf("drawer adapter is nil")
 	}
 	if len(a.Ports) > 0 {
 		if p, ok := a.Ports[name]; ok {
@@ -72,21 +70,21 @@ func (a *LegacyAdapter) Port(name string) (Point, error) {
 	return Point{}, fmt.Errorf("port %q not found", name)
 }
 
-func (a *LegacyAdapter) SetContainer(box BoundingBox) {
+func (a *DrawerAdapter) SetContainer(box Shape) {
 	if a == nil {
 		return
 	}
 	a.Parent = box
 }
 
-func (a *LegacyAdapter) SetBoundingBox(box BoundingBox) {
+func (a *DrawerAdapter) SetShape(box Shape) {
 	if a == nil {
 		return
 	}
 	a.Box = box
 }
 
-func (a *LegacyAdapter) ApplyProps(raw string) error {
+func (a *DrawerAdapter) ApplyProps(raw string) error {
 	_ = raw
 	return nil
 }
