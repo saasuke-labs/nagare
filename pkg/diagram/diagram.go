@@ -12,6 +12,7 @@ import (
 	diagrambackgroundworker "github.com/saasuke-labs/nagare/pkg/diagram/components/backgroundworker"
 	diagrambrowser "github.com/saasuke-labs/nagare/pkg/diagram/components/browser"
 	diagramcdn "github.com/saasuke-labs/nagare/pkg/diagram/components/cdn"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
 	diagramcylinder "github.com/saasuke-labs/nagare/pkg/diagram/components/cylinder"
 	diagramdatabase "github.com/saasuke-labs/nagare/pkg/diagram/components/database"
 	diagramled "github.com/saasuke-labs/nagare/pkg/diagram/components/led"
@@ -23,6 +24,7 @@ import (
 	diagramvm "github.com/saasuke-labs/nagare/pkg/diagram/components/vm"
 	"github.com/saasuke-labs/nagare/pkg/layout"
 	"github.com/saasuke-labs/nagare/pkg/parser"
+	nagareprops "github.com/saasuke-labs/nagare/pkg/props"
 	"github.com/saasuke-labs/nagare/pkg/tokenizer"
 )
 
@@ -173,7 +175,7 @@ func (d *Diagram) BuildRenderTree() *RenderNode {
 	root := &RenderNode{
 		Type:     "layout",
 		ID:       "layout",
-		Props:    parsePropsDefSafe(layoutPropsDef(d.AST)),
+		Props:    nagareprops.ParseToMap(layoutPropsDef(d.AST)),
 		Children: make([]*RenderNode, 0, len(d.AST.Children)),
 	}
 
@@ -190,49 +192,49 @@ func (d *Diagram) BuildRenderTreeMap() map[string]any {
 }
 
 func (d *Diagram) buildRenderNode(node parser.Node) *RenderNode {
-	props := make(map[string]any)
+	nodeProps := make(map[string]any)
 	rawDefs := make([]string, 0, 2)
 
 	// Merge ID-based state (@db(...)) first.
 	if s, ok := d.AST.Globals[node.Text]; ok {
 		rawDefs = append(rawDefs, s.PropsDef)
-		mergeProps(props, parsePropsDefSafe(s.PropsDef))
+		mergeProps(nodeProps, nagareprops.ParseToMap(s.PropsDef))
 	}
 
 	// Merge named state (@nginx(...)) referenced in declaration: db:Database@nginx
 	if node.State != "" {
 		if s, ok := d.AST.Globals[node.State]; ok {
 			rawDefs = append(rawDefs, s.PropsDef)
-			mergeProps(props, parsePropsDefSafe(s.PropsDef))
+			mergeProps(nodeProps, nagareprops.ParseToMap(s.PropsDef))
 		}
 	}
 
 	if actions := collectActionsForNode(d.AST, node.Text); len(actions) > 0 {
-		props["actions"] = actions
+		nodeProps["actions"] = actions
 	}
 
-	props["_rawProps"] = strings.Join(rawDefs, ",")
+	nodeProps["_rawProps"] = strings.Join(rawDefs, ",")
 
 	// Include resolved geometry as numeric props when available.
 	if shape, ok := d.Layout.NodeIndex[node.Text]; ok {
-		if _, exists := props["x"]; !exists {
-			props["x"] = shape.X
+		if _, exists := nodeProps["x"]; !exists {
+			nodeProps["x"] = shape.X
 		}
-		if _, exists := props["y"]; !exists {
-			props["y"] = shape.Y
+		if _, exists := nodeProps["y"]; !exists {
+			nodeProps["y"] = shape.Y
 		}
-		if _, exists := props["w"]; !exists {
-			props["w"] = shape.Width
+		if _, exists := nodeProps["w"]; !exists {
+			nodeProps["w"] = shape.Width
 		}
-		if _, exists := props["h"]; !exists {
-			props["h"] = shape.Height
+		if _, exists := nodeProps["h"]; !exists {
+			nodeProps["h"] = shape.Height
 		}
 	}
 
 	renderNode := &RenderNode{
 		Type:     strings.ToLower(string(node.Type)),
 		ID:       node.Text,
-		Props:    props,
+		Props:    nodeProps,
 		Children: make([]*RenderNode, 0, len(node.Children)),
 	}
 
@@ -264,7 +266,7 @@ func collectActionsForNode(ast parser.Node, nodeID string) map[string][]map[stri
 		if actionName == "" {
 			continue
 		}
-		actions[actionName] = append(actions[actionName], parsePropsDefSafe(state.PropsDef))
+		actions[actionName] = append(actions[actionName], nagareprops.ParseToMap(state.PropsDef))
 	}
 
 	return actions
@@ -284,94 +286,6 @@ func mergeProps(dst map[string]any, src map[string]any) {
 	for k, v := range src {
 		dst[k] = v
 	}
-}
-
-func parsePropsDefSafe(raw string) map[string]any {
-	out := make(map[string]any)
-	for _, part := range splitProps(raw) {
-		kv := strings.SplitN(part, ":", 2)
-		if len(kv) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(kv[0])
-		if key == "" {
-			continue
-		}
-		out[key] = coerceValue(strings.TrimSpace(kv[1]))
-	}
-	return out
-}
-
-func splitProps(raw string) []string {
-	parts := []string{}
-	if strings.TrimSpace(raw) == "" {
-		return parts
-	}
-
-	var buf strings.Builder
-	inQuotes := false
-	quoteChar := byte(0)
-	parenDepth := 0
-
-	for i := 0; i < len(raw); i++ {
-		c := raw[i]
-
-		if (c == '"' || c == '\'') && (i == 0 || raw[i-1] != '\\') {
-			if inQuotes && c == quoteChar {
-				inQuotes = false
-				quoteChar = 0
-			} else if !inQuotes {
-				inQuotes = true
-				quoteChar = c
-			}
-			buf.WriteByte(c)
-			continue
-		}
-
-		if !inQuotes {
-			switch c {
-			case '(':
-				parenDepth++
-			case ')':
-				if parenDepth > 0 {
-					parenDepth--
-				}
-			case ',':
-				if parenDepth == 0 {
-					part := strings.TrimSpace(buf.String())
-					if part != "" {
-						parts = append(parts, part)
-					}
-					buf.Reset()
-					continue
-				}
-			}
-		}
-
-		buf.WriteByte(c)
-	}
-
-	if tail := strings.TrimSpace(buf.String()); tail != "" {
-		parts = append(parts, tail)
-	}
-
-	return parts
-}
-
-func coerceValue(v string) any {
-	v = strings.TrimSpace(v)
-	v = strings.Trim(v, "\"")
-	v = strings.Trim(v, "'")
-	if v == "" {
-		return ""
-	}
-
-	if n, err := strconv.ParseFloat(v, 64); err == nil {
-		return n
-	}
-
-	// Keep alignment refs/symbolic strings as-is.
-	return v
 }
 
 // RenderTreeChildren recursively renders all descendants of a node.
@@ -467,10 +381,10 @@ func cloneProps(src map[string]any) map[string]any {
 
 func shapeFromNode(node *RenderNode) components.Shape {
 	return components.Shape{
-		X:      floatProp(node.Props, "x"),
-		Y:      floatProp(node.Props, "y"),
-		Width:  floatProp(node.Props, "w"),
-		Height: floatProp(node.Props, "h"),
+		X:      core.FloatProp(node.Props, "x", 0),
+		Y:      core.FloatProp(node.Props, "y", 0),
+		Width:  core.FloatProp(node.Props, "w", 0),
+		Height: core.FloatProp(node.Props, "h", 0),
 	}
 }
 
@@ -506,55 +420,6 @@ func serializePropValue(v any) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
-}
-
-func floatProp(props map[string]any, key string) float64 {
-	v, ok := props[key]
-	if !ok {
-		return 0
-	}
-
-	switch t := v.(type) {
-	case float64:
-		return t
-	case int:
-		return float64(t)
-	case string:
-		s := strings.TrimSpace(t)
-		f, err := strconv.ParseFloat(s, 64)
-		if err != nil {
-			return 0
-		}
-		return f
-	default:
-		return 0
-	}
-}
-
-func actionMapFromAny(v any) map[string][]map[string]any {
-	out := make(map[string][]map[string]any)
-	if v == nil {
-		return out
-	}
-
-	typed, ok := v.(map[string][]map[string]any)
-	if !ok {
-		return out
-	}
-
-	for key, entries := range typed {
-		copied := make([]map[string]any, 0, len(entries))
-		for _, entry := range entries {
-			item := make(map[string]any, len(entry))
-			for k, val := range entry {
-				item[k] = val
-			}
-			copied = append(copied, item)
-		}
-		out[key] = copied
-	}
-
-	return out
 }
 
 func renderArrowComponents(children []components.Component) string {

@@ -67,7 +67,7 @@ func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 	comp := New(id)
 	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
 	_ = comp.Props.Parse(propsRaw(nodeProps))
-	comp.Actions = actionMapFromAny(nodeProps["actions"])
+	comp.Actions = core.ActionMapFromAny(nodeProps["actions"])
 	return comp.Draw()
 }
 
@@ -156,24 +156,4 @@ func propsRaw(nodeProps map[string]any) string {
 		return v
 	}
 	return ""
-}
-
-func actionMapFromAny(v any) map[string][]map[string]any {
-	out := make(map[string][]map[string]any)
-	typed, ok := v.(map[string][]map[string]any)
-	if !ok {
-		return out
-	}
-	for k, items := range typed {
-		copied := make([]map[string]any, 0, len(items))
-		for _, item := range items {
-			dup := make(map[string]any, len(item))
-			for key, val := range item {
-				dup[key] = val
-			}
-			copied = append(copied, dup)
-		}
-		out[k] = copied
-	}
-	return out
 }
