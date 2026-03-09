@@ -480,7 +480,7 @@ func syncVMChildGeometry(vm *diagramvm.Component, nodeIndex map[string]component
 }
 
 // Calculate computes the layout for an AST
-func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
+func Calculate(node parser.Node, canvasWidth, canvasHeight float64) (Layout, error) {
 	boundsWidth, boundsHeight := calculateCanvasBounds(node, canvasWidth, canvasHeight)
 	nodeIndex := make(map[string]components.Shape)
 
@@ -508,7 +508,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) Layout {
 		Children:    children,
 		NodeIndex:   nodeIndex,
 		Connections: arrows,
-	}
+	}, nil
 }
 
 func calculateCanvasBounds(node parser.Node, defaultWidth, defaultHeight float64) (float64, float64) {

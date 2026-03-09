@@ -43,7 +43,7 @@ func TestRenderIncludesStraightArrow(t *testing.T) {
 		},
 	}
 
-	l := layout.Calculate(root, 1000, 600)
+	l, _ := layout.Calculate(root, 1000, 600)
 	svg := Render(l, 1000, 600)
 
 	if !strings.Contains(svg, "points=\"300.00,160.00 500.00,160.00\"") {
@@ -86,7 +86,7 @@ func TestRenderIncludesElbowArrow(t *testing.T) {
 		},
 	}
 
-	l := layout.Calculate(root, 1200, 800)
+	l, _ := layout.Calculate(root, 1200, 800)
 	svg := Render(l, 1200, 800)
 
 	expectedPoints := "points=\"400.00,400.00 400.00,376.00 800.00,376.00 800.00,250.00\""

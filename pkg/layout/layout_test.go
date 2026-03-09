@@ -71,7 +71,7 @@ func TestCalculateStoresAbsoluteShapesAndConnections(t *testing.T) {
 		},
 	}
 
-	result := Calculate(root, 1024, 768)
+	result, _ := Calculate(root, 1024, 768)
 
 	if len(result.Children) != len(root.Children)+len(root.Connections) {
 		expected := len(root.Children) + len(root.Connections)
@@ -207,7 +207,7 @@ func TestCalculateUsesLayoutGlobalOverrides(t *testing.T) {
 		},
 	}
 
-	result := Calculate(root, 1024, 768)
+	result, _ := Calculate(root, 1024, 768)
 
 	if result.Bounds.Width != 800 {
 		t.Fatalf("expected bounds width 800, got %f", result.Bounds.Width)
@@ -266,7 +266,7 @@ vps:VM@ubuntu {
 		t.Fatalf("parse error: %v", err)
 	}
 
-	layout := Calculate(ast, 800, 400)
+	layout, _ := Calculate(ast, 800, 400)
 
 	var vm *diagramvm.Component
 	for _, child := range layout.Children {

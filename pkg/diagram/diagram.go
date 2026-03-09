@@ -86,7 +86,10 @@ func ParseDiagram(code string) (*Diagram, error) {
 	}
 
 	const defaultCanvasWidth, defaultCanvasHeight = 800.0, 400.0
-	l := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
+	l, err := layout.Calculate(ast, defaultCanvasWidth, defaultCanvasHeight)
+	if err != nil {
+		return nil, fmt.Errorf("layout error: %w", err)
+	}
 
 	diagram := &Diagram{
 		AST:     ast,
