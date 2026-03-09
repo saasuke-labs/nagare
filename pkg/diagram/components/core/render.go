@@ -3,8 +3,6 @@ package core
 import (
 	"strconv"
 	"strings"
-
-	"github.com/saasuke-labs/nagare/pkg/components"
 )
 
 func FloatProp(props map[string]any, key string, fallback float64) float64 {
@@ -27,8 +25,8 @@ func FloatProp(props map[string]any, key string, fallback float64) float64 {
 	}
 }
 
-func ShapeFromProps(props map[string]any, defaultWidth, defaultHeight float64) components.Shape {
-	return components.Shape{
+func ShapeFromProps(props map[string]any, defaultWidth, defaultHeight float64) Shape {
+	return Shape{
 		X:      FloatProp(props, "x", 0),
 		Y:      FloatProp(props, "y", 0),
 		Width:  FloatProp(props, "w", defaultWidth),

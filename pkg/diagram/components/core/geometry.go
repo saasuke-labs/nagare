@@ -9,28 +9,28 @@ func NearlyEqual(a, b float64) bool {
 }
 
 // GetX resolves an X coordinate from a percentage within a container.
-func GetX(container BoundingBox, percent float64) float64 {
+func GetX(container Shape, percent float64) float64 {
 	return container.X + (container.Width * clampPercent(percent))
 }
 
 // GetY resolves a Y coordinate from a percentage within a container.
-func GetY(container BoundingBox, percent float64) float64 {
+func GetY(container Shape, percent float64) float64 {
 	return container.Y + (container.Height * clampPercent(percent))
 }
 
 // GetWidth resolves width from a percentage of the container width.
-func GetWidth(container BoundingBox, percent float64) float64 {
+func GetWidth(container Shape, percent float64) float64 {
 	return container.Width * clampPercent(percent)
 }
 
 // GetHeight resolves height from a percentage of the container height.
-func GetHeight(container BoundingBox, percent float64) float64 {
+func GetHeight(container Shape, percent float64) float64 {
 	return container.Height * clampPercent(percent)
 }
 
 // InnerBox returns a child box relative to its parent box using percentage values.
-func InnerBox(container BoundingBox, xPercent, yPercent, widthPercent, heightPercent float64) BoundingBox {
-	return BoundingBox{
+func InnerBox(container Shape, xPercent, yPercent, widthPercent, heightPercent float64) Shape {
+	return Shape{
 		X:      GetX(container, xPercent),
 		Y:      GetY(container, yPercent),
 		Width:  GetWidth(container, widthPercent),

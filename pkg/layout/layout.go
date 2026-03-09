@@ -95,21 +95,15 @@ type Layout struct {
 	Connections []Arrow
 }
 
-// Point represents a 2D coordinate in canvas space.
-type Point struct {
-	X float64
-	Y float64
-}
-
 // Arrow contains the resolved geometry for a parsed connection.
 type Arrow struct {
 	FromID      string
 	ToID        string
 	FromAnchor  string
 	ToAnchor    string
-	Start       Point
-	End         Point
-	BendPoints  []Point
+	Start       core.Point
+	End         core.Point
+	BendPoints  []core.Point
 	Style       string
 	MarkerStart bool
 	MarkerEnd   bool
@@ -679,7 +673,7 @@ func buildServer(node parser.Node, vm *diagramvm.Component, nodeIndex map[string
 	if vm != nil {
 		contentOffsetX := vm.Shape.Width * diagramvm.VMContentAreaXRatio
 		contentOffsetY := vm.Shape.Height * diagramvm.VMContentAreaYRatio
-		server.Comp.SetContainer(coreBoundingBox(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
+		server.Comp.SetContainer(coreShape(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
 		absServerShape.X = vm.Shape.X + contentOffsetX + absServerShape.X
 		absServerShape.Y = vm.Shape.Y + contentOffsetY + absServerShape.Y
 	}
@@ -705,7 +699,7 @@ func buildTerminal(node parser.Node, vm *diagramvm.Component, nodeIndex map[stri
 	if vm != nil {
 		contentOffsetX := vm.Shape.Width * diagramvm.VMContentAreaXRatio
 		contentOffsetY := vm.Shape.Height * diagramvm.VMContentAreaYRatio
-		terminal.Comp.SetContainer(coreBoundingBox(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
+		terminal.Comp.SetContainer(coreShape(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
 		absShape.X = vm.Shape.X + contentOffsetX + absShape.X
 		absShape.Y = vm.Shape.Y + contentOffsetY + absShape.Y
 	}
@@ -947,7 +941,7 @@ func buildRectangle(node parser.Node, vm *diagramvm.Component, nodeIndex map[str
 	if vm != nil {
 		contentOffsetX := vm.Shape.Width * diagramvm.VMContentAreaXRatio
 		contentOffsetY := vm.Shape.Height * diagramvm.VMContentAreaYRatio
-		rect.Comp.SetContainer(coreBoundingBox(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
+		rect.Comp.SetContainer(coreShape(vm.Shape.X+contentOffsetX, vm.Shape.Y+contentOffsetY, vm.Shape.Width*diagramvm.VMContentAreaWidthRatio, vm.Shape.Height*diagramvm.VMContentAreaHeightRatio))
 		absRectShape.X = vm.Shape.X + contentOffsetX + absRectShape.X
 		absRectShape.Y = vm.Shape.Y + contentOffsetY + absRectShape.Y
 	}
@@ -957,8 +951,8 @@ func buildRectangle(node parser.Node, vm *diagramvm.Component, nodeIndex map[str
 	return rect
 }
 
-func coreBoundingBox(x, y, width, height float64) core.BoundingBox {
-	return core.BoundingBox{X: x, Y: y, Width: width, Height: height}
+func coreShape(x, y, width, height float64) core.Shape {
+	return core.Shape{X: x, Y: y, Width: width, Height: height}
 }
 
 func applyIDStateProperties(node parser.Node, shape *components.Shape, props propertyParser, componentID string) {
@@ -1042,7 +1036,7 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 		end := computeAnchorPoint(toShape, toAnchor)
 
 		points := routeArrowPoints(start, end, fromAnchor, toAnchor)
-		bendPoints := make([]Point, 0)
+		bendPoints := make([]core.Point, 0)
 		if len(points) > 2 {
 			bendPoints = append(bendPoints, points[1:len(points)-1]...)
 		}
@@ -1095,10 +1089,10 @@ func normalizeAnchor(anchor parser.AnchorDescriptor) parser.AnchorDescriptor {
 	return normalized
 }
 
-func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) Point {
+func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) core.Point {
 	centerX := shape.X + shape.Width*0.5
 	centerY := shape.Y + shape.Height*0.5
-	point := Point{X: centerX, Y: centerY}
+	point := core.Point{X: centerX, Y: centerY}
 
 	directions := anchorDirections(anchor)
 	if len(directions) == 0 {
@@ -1149,8 +1143,8 @@ func computeAnchorPoint(shape components.Shape, anchor parser.AnchorDescriptor) 
 	return point
 }
 
-func routeArrowPoints(start, end Point, fromAnchor, toAnchor parser.AnchorDescriptor) []Point {
-	points := []Point{start}
+func routeArrowPoints(start, end core.Point, fromAnchor, toAnchor parser.AnchorDescriptor) []core.Point {
+	points := []core.Point{start}
 
 	if floatsNearlyEqual(start.X, end.X) || floatsNearlyEqual(start.Y, end.Y) {
 		points = append(points, end)
@@ -1162,13 +1156,13 @@ func routeArrowPoints(start, end Point, fromAnchor, toAnchor parser.AnchorDescri
 	if horizontalFirst {
 		direction := resolveAxisDirection(fromAnchor.Horizontal, toAnchor.Horizontal)
 		elbowX := start.X + direction*arrowElbowPadding
-		points = append(points, Point{X: elbowX, Y: start.Y})
-		points = append(points, Point{X: elbowX, Y: end.Y})
+		points = append(points, core.Point{X: elbowX, Y: start.Y})
+		points = append(points, core.Point{X: elbowX, Y: end.Y})
 	} else {
 		direction := resolveAxisDirection(fromAnchor.Vertical, toAnchor.Vertical)
 		elbowY := start.Y + direction*arrowElbowPadding
-		points = append(points, Point{X: start.X, Y: elbowY})
-		points = append(points, Point{X: end.X, Y: elbowY})
+		points = append(points, core.Point{X: start.X, Y: elbowY})
+		points = append(points, core.Point{X: end.X, Y: elbowY})
 	}
 
 	points = append(points, end)

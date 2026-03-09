@@ -39,8 +39,8 @@ func DefaultProps() Props {
 
 type Component struct {
 	IDVal     string
-	Box       core.BoundingBox
-	Container core.BoundingBox
+	Box       core.Shape
+	Container core.Shape
 	Props     Props
 }
 
@@ -52,15 +52,15 @@ func (c *Component) ApplyProps(raw string) error {
 	return c.Props.Parse(raw)
 }
 
-func (c *Component) SetContainer(box core.BoundingBox) {
+func (c *Component) SetContainer(box core.Shape) {
 	c.Container = box
 }
 
-func (c *Component) SetBoundingBox(box core.BoundingBox) {
+func (c *Component) SetShape(box core.Shape) {
 	c.Box = box
 }
 
-func (c *Component) BoundingBox() core.BoundingBox {
+func (c *Component) Shape() core.Shape {
 	return c.Box
 }
 
@@ -122,14 +122,14 @@ func (l *Adapter) Draw() string {
 }
 
 func (l *Adapter) SetShape(shape components.Shape) {
-	l.Comp.SetBoundingBox(core.BoundingBox{X: shape.X, Y: shape.Y, Width: shape.Width, Height: shape.Height})
+	l.Comp.SetShape(shape)
 }
 
 func (l *Adapter) Offset(dx, dy float64) {
-	box := l.Comp.BoundingBox()
+	box := l.Comp.Shape()
 	box.X -= dx
 	box.Y -= dy
-	l.Comp.SetBoundingBox(box)
+	l.Comp.SetShape(box)
 }
 
 const (

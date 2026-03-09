@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
 	diagramserver "github.com/saasuke-labs/nagare/pkg/diagram/components/server"
 	diagramvm "github.com/saasuke-labs/nagare/pkg/diagram/components/vm"
 	"github.com/saasuke-labs/nagare/pkg/parser"
@@ -217,14 +218,14 @@ func TestCalculateUsesLayoutGlobalOverrides(t *testing.T) {
 }
 
 func TestRouteArrowPointsRespectsAnchorPriority(t *testing.T) {
-	start := Point{X: 10, Y: 10}
-	end := Point{X: 110, Y: 80}
+	start := core.Point{X: 10, Y: 10}
+	end := core.Point{X: 110, Y: 80}
 	fromAnchor := parser.AnchorDescriptor{Horizontal: 1}
 	toAnchor := parser.AnchorDescriptor{Vertical: 1}
 
 	points := routeArrowPoints(start, end, fromAnchor, toAnchor)
 
-	expected := []Point{
+	expected := []core.Point{
 		start,
 		{X: start.X + arrowElbowPadding, Y: start.Y},
 		{X: start.X + arrowElbowPadding, Y: end.Y},

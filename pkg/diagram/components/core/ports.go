@@ -11,7 +11,7 @@ const (
 )
 
 // RectPort returns common rectangle ports for a bounding box.
-func RectPort(box BoundingBox, name string) (Point, error) {
+func RectPort(box Shape, name string) (Point, error) {
 	switch name {
 	case PortNorth:
 		return Point{X: box.X + box.Width/2, Y: box.Y}, nil
