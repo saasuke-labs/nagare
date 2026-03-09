@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/saasuke-labs/nagare/pkg/chart"
-	"github.com/saasuke-labs/nagare/pkg/diagram"
 	"github.com/saasuke-labs/nagare/pkg/nagare"
 )
 
@@ -78,7 +76,7 @@ nginx.e --> app.w
 @nginx(x:50,y:&browser.c,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
 @app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
 `
-	html, err := diagram.CreateDiagram(code)
+	html, err := nagare.RenderToSVG(code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -128,24 +126,10 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 	}
 
 	input := strings.TrimSpace(string(code))
-	var html string
-
-	// Check first line to determine type
-	if strings.HasPrefix(input, "chart") {
-		// Parse and render chart
-		c, err := chart.Parse(input)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		html = c.RenderHTML()
-	} else {
-		// Default to diagram
-		html, err = diagram.CreateDiagram(input)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+	html, err := nagare.RenderToHTML(input)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// Send response

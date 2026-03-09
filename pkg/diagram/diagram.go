@@ -569,6 +569,7 @@ func renderArrowComponents(children []components.Component) string {
 }
 
 // CreateDiagram generates an SVG diagram from the provided code and returns it as a string.
+// Internal helper: prefer calling pkg/nagare.RenderToSVG() from outside this module.
 func CreateDiagram(code string) (string, error) {
 	diagram, err := ParseDiagram(code)
 	if err != nil {
@@ -589,13 +590,12 @@ func CreateDiagram(code string) (string, error) {
 		"%s"+
 		"</svg>", w, h, w, h, componentsSVG)
 
-	fmt.Println(svg)
-
 	return svg, nil
 }
 
 // CreateDiagramWithSize generates an SVG diagram and returns it along with
 // the computed canvas size in pixels.
+// Internal helper: prefer calling pkg/nagare.CreateDiagramWithSize() from outside this module.
 func CreateDiagramWithSize(code string) (string, int, int, error) {
 	diagram, err := ParseDiagram(code)
 	if err != nil {

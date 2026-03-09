@@ -27,15 +27,28 @@ func RenderToSVG(code string) (string, error) {
 	return diagram.CreateDiagram(code)
 }
 
-// RenderToSVGWithDebug is like RenderToSVG but prints debug information to stdout.
-// func RenderToSVGWithDebug(code string) (string, error) {
-// 	input := strings.TrimSpace(code)
-// 	if strings.HasPrefix(input, "chart") {
-// 		return RenderToSVG(code)
-// 	}
+// RenderToHTML is the legacy endpoint helper used by the HTTP server.
+// For diagrams it returns the SVG; for charts it returns the full HTML page.
+func RenderToHTML(code string) (string, error) {
+	input := strings.TrimSpace(code)
 
-// 	return diagram.RenderToSVGWithDebug(code)
-// }
+	if strings.HasPrefix(input, "chart") {
+		c, err := chart.Parse(input)
+		if err != nil {
+			return "", fmt.Errorf("chart parse error: %w", err)
+		}
+		return c.RenderHTML(), nil
+	}
+
+	return diagram.CreateDiagram(input)
+}
+
+// CreateDiagramWithSize generates an SVG diagram and returns it along with
+// the computed canvas size in pixels. This is a package-level wrapper so callers
+// needing the canvas size do not have to import pkg/diagram directly.
+func CreateDiagramWithSize(code string) (string, int, int, error) {
+	return diagram.CreateDiagramWithSize(code)
+}
 
 // RenderFileToFile reads a nagare file from inputPath and writes the SVG output to outputPath.
 func RenderFileToFile(inputPath, outputPath string) error {

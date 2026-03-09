@@ -70,8 +70,6 @@ type BrowserTemplateData struct {
 }
 
 func (r *Browser) Draw() string {
-	fmt.Println("Drawing browser at", r.X, r.Y, "size", r.Width, r.Height)
-
 	actualWidth := r.Width
 	actualHeight := r.Height
 
@@ -118,8 +116,7 @@ func (r *Browser) Draw() string {
 	result, err := RenderTemplate("browser", data)
 
 	if err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
-		return ""
+		return fmt.Sprintf("<!-- Error rendering browser template: %v -->", err)
 	}
 
 	return result

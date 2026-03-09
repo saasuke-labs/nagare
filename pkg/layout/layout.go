@@ -149,7 +149,6 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 			shape.X = float64(intVal)
 		} else if strVal, ok := geom.X.(string); ok && strings.HasPrefix(strVal, "&") {
 			// Handle alignment reference - store for later resolution
-			fmt.Printf("Alignment reference detected for X: %s (deferred)\n", strVal)
 			if shape.AlignmentRefs == nil {
 				shape.AlignmentRefs = make(map[string]string)
 			}
@@ -157,7 +156,6 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 		} else if strVal, ok := geom.X.(string); ok {
 			// Check if this looks like a broken alignment reference (e.g., "browser  c")
 			if strings.Contains(strVal, "  ") {
-				fmt.Printf("Possible broken alignment reference detected for X: %s (deferred)\n", strVal)
 				if shape.AlignmentRefs == nil {
 					shape.AlignmentRefs = make(map[string]string)
 				}
@@ -174,7 +172,6 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 			shape.Y = float64(intVal)
 		} else if strVal, ok := geom.Y.(string); ok && strings.HasPrefix(strVal, "&") {
 			// Handle alignment reference - store for later resolution
-			fmt.Printf("Alignment reference detected for Y: %s (deferred)\n", strVal)
 			if shape.AlignmentRefs == nil {
 				shape.AlignmentRefs = make(map[string]string)
 			}
@@ -182,7 +179,6 @@ func applyGeometryProps(shape *components.Shape, geom geometryProps, nodeIndex m
 		} else if strVal, ok := geom.Y.(string); ok {
 			// Check if this looks like a broken alignment reference (e.g., "browser  c")
 			if strings.Contains(strVal, "  ") {
-				fmt.Printf("Possible broken alignment reference detected for Y: %s (deferred)\n", strVal)
 				if shape.AlignmentRefs == nil {
 					shape.AlignmentRefs = make(map[string]string)
 				}
@@ -268,7 +264,7 @@ func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
 			for axis, ref := range shape.AlignmentRefs {
 				resolved, err := resolveAlignmentReference(ref, nodeIndex, &shape)
 				if err != nil {
-					fmt.Printf("Failed to resolve alignment reference %s for %s: %v\n", ref, componentName, err)
+					// silently ignore unresolvable alignment references
 					continue
 				}
 
@@ -276,11 +272,9 @@ func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
 				case "x":
 					shape.X = resolved
 					updated = true
-					fmt.Printf("Resolved X alignment for %s: %s -> %f\n", componentName, ref, resolved)
 				case "y":
 					shape.Y = resolved
 					updated = true
-					fmt.Printf("Resolved Y alignment for %s: %s -> %f\n", componentName, ref, resolved)
 				}
 			}
 		}
@@ -294,11 +288,10 @@ func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
 
 			resolved, err := resolveAlignmentReference(reconstructed, nodeIndex, &shape)
 			if err != nil {
-				fmt.Printf("Failed to resolve reconstructed alignment reference %s for %s: %v\n", reconstructed, componentName, err)
+				// silently ignore unresolvable reconstructed alignment references
 			} else {
 				shape.Y = resolved
 				updated = true
-				fmt.Printf("Resolved Y alignment (reconstructed) for %s: %s -> %f\n", componentName, reconstructed, resolved)
 			}
 		}
 
@@ -535,7 +528,6 @@ func calculateCanvasBounds(node parser.Node, defaultWidth, defaultHeight float64
 
 	geometry, err := parseGeometryProps(layoutState.PropsDef)
 	if err != nil {
-		fmt.Printf("failed to parse @layout props: %v\n", err)
 		return boundsWidth, boundsHeight
 	}
 
@@ -597,7 +589,6 @@ func buildBrowser(node parser.Node, nodeIndex map[string]components.Shape) compo
 	browser.State = applyNamedStateProperties(node, &browser.Shape, &browser.Props, false)
 
 	nodeIndex[node.Text] = browser.Shape
-	fmt.Printf("State: %s, Props: %+v\n", browser.State, browser.Props)
 	return browser
 }
 
@@ -615,7 +606,6 @@ func buildVM(node parser.Node, nodeIndex map[string]components.Shape) components
 
 	layoutVMChildren(node, vm, nodeIndex)
 	nodeIndex[node.Text] = vm.Shape
-	fmt.Printf("State: %s, Props: %+v\n", vm.State, vm.Props)
 	return vm
 }
 
@@ -668,7 +658,7 @@ func layoutVMChildren(parent parser.Node, vm *diagramvm.Legacy, nodeIndex map[st
 				vm.AddChild(rect)
 				continue
 			}
-			fmt.Printf("Unknown child type: %s\n", child.Type)
+			// silently ignore unknown child types
 		}
 	}
 }
@@ -1005,7 +995,6 @@ func applyGeometryDefinition(target string, shape *components.Shape, propsDef st
 
 	geometry, err := parseGeometryProps(propsDef)
 	if err != nil {
-		fmt.Printf("failed to parse geometry for %s: %v\n", target, err)
 		return
 	}
 	// Pass empty nodeIndex for now - alignment resolution will happen later
@@ -1016,9 +1005,7 @@ func parseComponentProps(target string, parser propertyParser, propsDef string) 
 	if parser == nil {
 		return
 	}
-	if err := parser.Parse(propsDef); err != nil {
-		fmt.Printf("failed to parse props for %s: %v\n", target, err)
-	}
+	_ = parser.Parse(propsDef)
 }
 
 func buildArrowComponents(arrows []Arrow) []components.Component {
@@ -1046,7 +1033,6 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 		fromShape, okFrom := nodeIndex[conn.FromID]
 		toShape, okTo := nodeIndex[conn.ToID]
 		if !okFrom || !okTo {
-			fmt.Printf("connection skipped: missing endpoint %s -> %s\n", conn.FromID, conn.ToID)
 			continue
 		}
 
