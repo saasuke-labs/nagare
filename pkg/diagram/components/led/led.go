@@ -38,15 +38,15 @@ func DefaultProps() Props {
 	return Props{Mode: "green"}
 }
 
-type Legacy struct {
+type Component struct {
 	components.Shape
 	Text    string
 	Props   Props
 	Actions map[string][]map[string]any
 }
 
-func NewLegacy(id string) *Legacy {
-	return &Legacy{Text: id, Props: DefaultProps(), Actions: map[string][]map[string]any{}}
+func New(id string) *Component {
+	return &Component{Text: id, Props: DefaultProps(), Actions: map[string][]map[string]any{}}
 }
 
 type templateData struct {
@@ -60,7 +60,7 @@ type templateData struct {
 	Actions         map[string][]map[string]any
 }
 
-func (l *Legacy) data() templateData {
+func (l *Component) data() templateData {
 	baseColor, pulseColors, inactiveOpacity := palette(l.Props.Mode)
 	return templateData{
 		X:               l.X,
@@ -74,7 +74,7 @@ func (l *Legacy) data() templateData {
 	}
 }
 
-func (l *Legacy) Draw() string {
+func (l *Component) Draw() string {
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, "led", l.data()); err != nil {
 		return fmt.Sprintf("<!-- Error rendering led template: %v -->", err)
@@ -82,15 +82,15 @@ func (l *Legacy) Draw() string {
 	return buf.String()
 }
 
-func (l *Legacy) SetShape(shape components.Shape) { l.Shape = shape }
+func (l *Component) SetShape(shape components.Shape) { l.Shape = shape }
 
-func (l *Legacy) Offset(dx, dy float64) {
+func (l *Component) Offset(dx, dy float64) {
 	l.X -= dx
 	l.Y -= dy
 }
 
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
-	comp := NewLegacy(id)
+	comp := New(id)
 	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
 	if raw, ok := nodeProps["_rawProps"].(string); ok {
 		_ = comp.Props.Parse(raw)

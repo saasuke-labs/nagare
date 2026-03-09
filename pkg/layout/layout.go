@@ -305,7 +305,7 @@ func resolveAlignmentReferences(nodeIndex map[string]components.Shape) {
 func syncComponentGeometry(children []components.Component, nodeIndex map[string]components.Shape) {
 	for _, child := range children {
 		switch comp := child.(type) {
-		case *diagrambrowser.Legacy:
+		case *diagrambrowser.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
@@ -313,7 +313,7 @@ func syncComponentGeometry(children []components.Component, nodeIndex map[string
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramserver.Legacy:
+		case *diagramserver.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 			}
@@ -321,47 +321,47 @@ func syncComponentGeometry(children []components.Component, nodeIndex map[string
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramterminal.Legacy:
+		case *diagramterminal.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 			}
-		case *diagramdatabase.Legacy:
+		case *diagramdatabase.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramcylinder.Legacy:
+		case *diagramcylinder.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramled.Legacy:
+		case *diagramled.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagrammessagequeue.Legacy:
+		case *diagrammessagequeue.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramcdn.Legacy:
+		case *diagramcdn.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramapigateway.Legacy:
+		case *diagramapigateway.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagrambackgroundworker.Legacy:
+		case *diagrambackgroundworker.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagrampackage.Legacy:
+		case *diagrampackage.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramartifact.Legacy:
+		case *diagramartifact.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramvm.Legacy:
+		case *diagramvm.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
@@ -370,7 +370,7 @@ func syncComponentGeometry(children []components.Component, nodeIndex map[string
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 			}
-		case *diagramrectangle.Legacy:
+		case *diagramrectangle.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 			}
@@ -388,7 +388,7 @@ func applyResolvedShape(target *components.Shape, resolved components.Shape) {
 	target.Height = resolved.Height
 }
 
-func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) {
+func syncVMChildGeometry(vm *diagramvm.Component, nodeIndex map[string]components.Shape) {
 	contentOriginX := vm.Shape.X + vm.Shape.Width*diagramvm.VMContentAreaXRatio
 	contentOriginY := vm.Shape.Y + vm.Shape.Height*diagramvm.VMContentAreaYRatio
 
@@ -400,7 +400,7 @@ func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.S
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramserver.Legacy:
+		case *diagramserver.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 				comp.Offset(contentOriginX, contentOriginY)
@@ -411,60 +411,60 @@ func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.S
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramterminal.Legacy:
+		case *diagramterminal.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 				comp.Offset(contentOriginX, contentOriginY)
 			}
-		case *diagramdatabase.Legacy:
+		case *diagramdatabase.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramcylinder.Legacy:
+		case *diagramcylinder.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramled.Legacy:
+		case *diagramled.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagrammessagequeue.Legacy:
+		case *diagrammessagequeue.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramcdn.Legacy:
+		case *diagramcdn.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramapigateway.Legacy:
+		case *diagramapigateway.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagrambackgroundworker.Legacy:
+		case *diagrambackgroundworker.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagrampackage.Legacy:
+		case *diagrampackage.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramartifact.Legacy:
+		case *diagramartifact.Component:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				applyResolvedShape(&comp.Shape, shape)
 				comp.X -= contentOriginX
@@ -476,7 +476,7 @@ func syncVMChildGeometry(vm *diagramvm.Legacy, nodeIndex map[string]components.S
 				comp.X -= contentOriginX
 				comp.Y -= contentOriginY
 			}
-		case *diagramrectangle.Legacy:
+		case *diagramrectangle.Adapter:
 			if shape, ok := nodeIndex[comp.Text]; ok {
 				comp.SetShape(shape)
 				comp.Offset(contentOriginX, contentOriginY)
@@ -577,7 +577,7 @@ func buildComponentTree(node parser.Node, nodeIndex map[string]components.Shape)
 }
 
 func buildBrowser(node parser.Node, nodeIndex map[string]components.Shape) components.Component {
-	browser := diagrambrowser.NewLegacy(node.Text)
+	browser := diagrambrowser.New(node.Text)
 	browser.Shape = components.Shape{
 		Width:  defaultBrowserWidth,
 		Height: defaultBrowserHeight,
@@ -593,7 +593,7 @@ func buildBrowser(node parser.Node, nodeIndex map[string]components.Shape) compo
 }
 
 func buildVM(node parser.Node, nodeIndex map[string]components.Shape) components.Component {
-	vm := diagramvm.NewLegacy(node.Text)
+	vm := diagramvm.New(node.Text)
 	vm.Shape = components.Shape{
 		Width:  defaultVMWidth,
 		Height: defaultVMHeight,
@@ -609,7 +609,7 @@ func buildVM(node parser.Node, nodeIndex map[string]components.Shape) components
 	return vm
 }
 
-func layoutVMChildren(parent parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) {
+func layoutVMChildren(parent parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) {
 	if len(parent.Children) == 0 {
 		return
 	}
@@ -663,8 +663,8 @@ func layoutVMChildren(parent parser.Node, vm *diagramvm.Legacy, nodeIndex map[st
 	}
 }
 
-func buildServer(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramserver.Legacy {
-	server := diagramserver.NewLegacy(node.Text)
+func buildServer(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramserver.Adapter {
+	server := diagramserver.NewAdapter(node.Text)
 	shape := components.Shape{
 		Width:  defaultServerWidth,
 		Height: defaultServerHeight,
@@ -689,8 +689,8 @@ func buildServer(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]co
 	return server
 }
 
-func buildTerminal(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramterminal.Legacy {
-	terminal := diagramterminal.NewLegacy(node.Text)
+func buildTerminal(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramterminal.Adapter {
+	terminal := diagramterminal.NewAdapter(node.Text)
 	shape := components.Shape{
 		Width:  defaultTerminalWidth,
 		Height: defaultTerminalHeight,
@@ -715,8 +715,8 @@ func buildTerminal(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	return terminal
 }
 
-func buildCylinder(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramcylinder.Legacy {
-	cylinder := diagramcylinder.NewLegacy(node.Text)
+func buildCylinder(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramcylinder.Component {
+	cylinder := diagramcylinder.New(node.Text)
 	cylinder.Shape = components.Shape{
 		Width:  defaultCylinderWidth,
 		Height: defaultCylinderHeight,
@@ -739,8 +739,8 @@ func buildCylinder(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	return cylinder
 }
 
-func buildLed(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramled.Legacy {
-	led := diagramled.NewLegacy(node.Text)
+func buildLed(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramled.Component {
+	led := diagramled.New(node.Text)
 	led.Shape = components.Shape{
 		Width:  defaultLedWidth,
 		Height: defaultLedHeight,
@@ -763,8 +763,8 @@ func buildLed(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]compo
 	return led
 }
 
-func buildDatabase(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramdatabase.Legacy {
-	database := diagramdatabase.NewLegacy(node.Text)
+func buildDatabase(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramdatabase.Component {
+	database := diagramdatabase.New(node.Text)
 	database.Shape = components.Shape{
 		Width:  defaultDatabaseWidth,
 		Height: defaultDatabaseHeight,
@@ -787,8 +787,8 @@ func buildDatabase(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	return database
 }
 
-func buildMessageQueue(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagrammessagequeue.Legacy {
-	queue := diagrammessagequeue.NewLegacy(node.Text)
+func buildMessageQueue(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagrammessagequeue.Component {
+	queue := diagrammessagequeue.New(node.Text)
 	queue.Shape = components.Shape{
 		Width:  defaultQueueWidth,
 		Height: defaultQueueHeight,
@@ -811,8 +811,8 @@ func buildMessageQueue(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[str
 	return queue
 }
 
-func buildCDN(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramcdn.Legacy {
-	cdn := diagramcdn.NewLegacy(node.Text)
+func buildCDN(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramcdn.Component {
+	cdn := diagramcdn.New(node.Text)
 	cdn.Shape = components.Shape{
 		Width:  defaultCDNWidth,
 		Height: defaultCDNHeight,
@@ -835,8 +835,8 @@ func buildCDN(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]compo
 	return cdn
 }
 
-func buildAPIGateway(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramapigateway.Legacy {
-	gateway := diagramapigateway.NewLegacy(node.Text)
+func buildAPIGateway(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramapigateway.Component {
+	gateway := diagramapigateway.New(node.Text)
 	gateway.Shape = components.Shape{
 		Width:  defaultAPIGatewayWidth,
 		Height: defaultAPIGatewayHeight,
@@ -859,8 +859,8 @@ func buildAPIGateway(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[strin
 	return gateway
 }
 
-func buildBackgroundWorker(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagrambackgroundworker.Legacy {
-	worker := diagrambackgroundworker.NewLegacy(node.Text)
+func buildBackgroundWorker(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagrambackgroundworker.Component {
+	worker := diagrambackgroundworker.New(node.Text)
 	worker.Shape = components.Shape{
 		Width:  defaultBackgroundWorkerW,
 		Height: defaultBackgroundWorkerH,
@@ -883,8 +883,8 @@ func buildBackgroundWorker(node parser.Node, vm *diagramvm.Legacy, nodeIndex map
 	return worker
 }
 
-func buildPackage(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagrampackage.Legacy {
-	pkg := diagrampackage.NewLegacy(node.Text)
+func buildPackage(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagrampackage.Component {
+	pkg := diagrampackage.New(node.Text)
 	pkg.Shape = components.Shape{
 		Width:  defaultPackageWidth,
 		Height: defaultPackageHeight,
@@ -907,8 +907,8 @@ func buildPackage(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]c
 	return pkg
 }
 
-func buildArtifact(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramartifact.Legacy {
-	artifact := diagramartifact.NewLegacy(node.Text)
+func buildArtifact(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramartifact.Component {
+	artifact := diagramartifact.New(node.Text)
 	artifact.Shape = components.Shape{
 		Width:  defaultArtifactWidth,
 		Height: defaultArtifactHeight,
@@ -931,8 +931,8 @@ func buildArtifact(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]
 	return artifact
 }
 
-func buildRectangle(node parser.Node, vm *diagramvm.Legacy, nodeIndex map[string]components.Shape) *diagramrectangle.Legacy {
-	rect := diagramrectangle.NewLegacy(node.Text)
+func buildRectangle(node parser.Node, vm *diagramvm.Component, nodeIndex map[string]components.Shape) *diagramrectangle.Adapter {
+	rect := diagramrectangle.NewAdapter(node.Text)
 	shape := components.Shape{
 		Width:  defaultServerWidth,
 		Height: defaultServerHeight,

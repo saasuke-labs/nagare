@@ -96,17 +96,17 @@ func (c *Component) Draw() (string, error) {
 	return buf.String(), nil
 }
 
-type Legacy struct {
+type Adapter struct {
 	Text  string
 	Comp  *Component
 	State string
 }
 
-func NewLegacy(id string) *Legacy {
-	return &Legacy{Text: id, Comp: New(id)}
+func NewAdapter(id string) *Adapter {
+	return &Adapter{Text: id, Comp: New(id)}
 }
 
-func (l *Legacy) Draw() string {
+func (l *Adapter) Draw() string {
 	result, err := l.Comp.Draw()
 	if err != nil {
 		return fmt.Sprintf("<!-- Error rendering server template: %v -->", err)
@@ -114,11 +114,11 @@ func (l *Legacy) Draw() string {
 	return result
 }
 
-func (l *Legacy) SetShape(shape components.Shape) {
+func (l *Adapter) SetShape(shape components.Shape) {
 	l.Comp.SetBoundingBox(core.BoundingBox{X: shape.X, Y: shape.Y, Width: shape.Width, Height: shape.Height})
 }
 
-func (l *Legacy) Offset(dx, dy float64) {
+func (l *Adapter) Offset(dx, dy float64) {
 	box := l.Comp.BoundingBox()
 	box.X -= dx
 	box.Y -= dy
@@ -131,7 +131,7 @@ const (
 )
 
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
-	comp := NewLegacy(id)
+	comp := NewAdapter(id)
 	comp.SetShape(core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight))
 	if raw, ok := nodeProps["_rawProps"].(string); ok {
 		_ = comp.Comp.ApplyProps(raw)

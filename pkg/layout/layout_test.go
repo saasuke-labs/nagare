@@ -267,9 +267,9 @@ vps:VM@ubuntu {
 
 	layout := Calculate(ast, 800, 400)
 
-	var vm *diagramvm.Legacy
+	var vm *diagramvm.Component
 	for _, child := range layout.Children {
-		if candidate, ok := child.(*diagramvm.Legacy); ok {
+		if candidate, ok := child.(*diagramvm.Component); ok {
 			vm = candidate
 			break
 		}
@@ -285,7 +285,7 @@ vps:VM@ubuntu {
 	}
 
 	for _, child := range vm.Children {
-		server, ok := child.(*diagramserver.Legacy)
+		server, ok := child.(*diagramserver.Adapter)
 		if !ok {
 			continue
 		}

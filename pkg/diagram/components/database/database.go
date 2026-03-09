@@ -40,7 +40,7 @@ func DefaultProps() Props {
 	}
 }
 
-type Legacy struct {
+type Component struct {
 	components.Shape
 	Text    string
 	Props   Props
@@ -48,23 +48,23 @@ type Legacy struct {
 	Actions map[string][]map[string]any
 }
 
-func NewLegacy(id string) *Legacy {
-	return &Legacy{Text: id, Props: DefaultProps(), Actions: make(map[string][]map[string]any)}
+func New(id string) *Component {
+	return &Component{Text: id, Props: DefaultProps(), Actions: make(map[string][]map[string]any)}
 }
 
-func (l *Legacy) Draw() string {
+func (l *Component) Draw() string {
 	return drawComposite(l.Text, l.Shape, l.Props, l.Actions)
 }
 
-func (l *Legacy) SetShape(shape components.Shape) { l.Shape = shape }
+func (l *Component) SetShape(shape components.Shape) { l.Shape = shape }
 
-func (l *Legacy) Offset(dx, dy float64) {
+func (l *Component) Offset(dx, dy float64) {
 	l.X -= dx
 	l.Y -= dy
 }
 
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
-	comp := NewLegacy(id)
+	comp := New(id)
 	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
 	_ = comp.Props.Parse(propsRaw(nodeProps))
 	comp.Actions = actionMapFromAny(nodeProps["actions"])
@@ -141,8 +141,8 @@ func cloneActionList(items []map[string]any) []map[string]any {
 	return copied
 }
 
-func BuildLegacy(id string, parent *components.Shape) *Legacy {
-	comp := NewLegacy(id)
+func BuildComponent(id string, parent *components.Shape) *Component {
+	comp := New(id)
 	comp.Shape = components.Shape{Width: DefaultWidth, Height: DefaultHeight}
 	if parent != nil {
 		comp.Shape.X = parent.X + comp.Shape.X

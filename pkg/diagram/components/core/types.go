@@ -32,37 +32,37 @@ type ConfigurableComponent interface {
 	ApplyProps(raw string) error
 }
 
-// LegacyDrawer is compatible with the current component contract in pkg/components.
-type LegacyDrawer interface {
+// SVGDrawer is compatible with the current component contract in pkg/components.
+type SVGDrawer interface {
 	Draw() string
 }
 
-// LegacyAdapter bridges legacy components into the new core.Component contract.
-type LegacyAdapter struct {
+// DrawerAdapter bridges legacy components into the new core.Component contract.
+type DrawerAdapter struct {
 	ID     string
 	Box    BoundingBox
-	Legacy LegacyDrawer
+	Drawer SVGDrawer
 	Ports  map[string]Point
 	Parent BoundingBox
 }
 
-func (a *LegacyAdapter) Draw() (string, error) {
-	if a == nil || a.Legacy == nil {
-		return "", fmt.Errorf("legacy adapter has no component")
+func (a *DrawerAdapter) Draw() (string, error) {
+	if a == nil || a.Drawer == nil {
+		return "", fmt.Errorf("drawer adapter has no component")
 	}
-	return a.Legacy.Draw(), nil
+	return a.Drawer.Draw(), nil
 }
 
-func (a *LegacyAdapter) BoundingBox() BoundingBox {
+func (a *DrawerAdapter) BoundingBox() BoundingBox {
 	if a == nil {
 		return BoundingBox{}
 	}
 	return a.Box
 }
 
-func (a *LegacyAdapter) Port(name string) (Point, error) {
+func (a *DrawerAdapter) Port(name string) (Point, error) {
 	if a == nil {
-		return Point{}, fmt.Errorf("legacy adapter is nil")
+		return Point{}, fmt.Errorf("drawer adapter is nil")
 	}
 	if len(a.Ports) > 0 {
 		if p, ok := a.Ports[name]; ok {
@@ -72,21 +72,21 @@ func (a *LegacyAdapter) Port(name string) (Point, error) {
 	return Point{}, fmt.Errorf("port %q not found", name)
 }
 
-func (a *LegacyAdapter) SetContainer(box BoundingBox) {
+func (a *DrawerAdapter) SetContainer(box BoundingBox) {
 	if a == nil {
 		return
 	}
 	a.Parent = box
 }
 
-func (a *LegacyAdapter) SetBoundingBox(box BoundingBox) {
+func (a *DrawerAdapter) SetBoundingBox(box BoundingBox) {
 	if a == nil {
 		return
 	}
 	a.Box = box
 }
 
-func (a *LegacyAdapter) ApplyProps(raw string) error {
+func (a *DrawerAdapter) ApplyProps(raw string) error {
 	_ = raw
 	return nil
 }

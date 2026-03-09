@@ -5,17 +5,17 @@ import (
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
 )
 
-type Legacy struct {
+type Component struct {
 	*components.Browser
 }
 
-func NewLegacy(id string) *Legacy {
+func New(id string) *Component {
 	b := components.NewBrowser()
 	b.Text = id
-	return &Legacy{Browser: b}
+	return &Component{Browser: b}
 }
 
-func (l *Legacy) SetShape(shape components.Shape) {
+func (l *Component) SetShape(shape components.Shape) {
 	l.Shape = shape
 }
 
@@ -25,7 +25,7 @@ const (
 )
 
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
-	comp := NewLegacy(id)
+	comp := New(id)
 	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
 	if raw, ok := nodeProps["_rawProps"].(string); ok {
 		_ = comp.Props.Parse(raw)

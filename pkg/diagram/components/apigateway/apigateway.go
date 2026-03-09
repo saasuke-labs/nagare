@@ -44,15 +44,15 @@ func DefaultProps() Props {
 	}
 }
 
-type Legacy struct {
+type Component struct {
 	components.Shape
 	Text  string
 	Props Props
 	State string
 }
 
-func NewLegacy(id string) *Legacy {
-	return &Legacy{Text: id, Props: DefaultProps()}
+func New(id string) *Component {
+	return &Component{Text: id, Props: DefaultProps()}
 }
 
 type templateData struct {
@@ -64,11 +64,11 @@ type templateData struct {
 	Text   string
 }
 
-func (l *Legacy) data() templateData {
+func (l *Component) data() templateData {
 	return templateData{X: l.X, Y: l.Y, Width: l.Width, Height: l.Height, Props: l.Props, Text: l.Text}
 }
 
-func (l *Legacy) Draw() string {
+func (l *Component) Draw() string {
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, "api-gateway", l.data()); err != nil {
 		return fmt.Sprintf("<!-- Error rendering API gateway template: %v -->", err)
@@ -76,9 +76,9 @@ func (l *Legacy) Draw() string {
 	return buf.String()
 }
 
-func (l *Legacy) SetShape(shape components.Shape) { l.Shape = shape }
+func (l *Component) SetShape(shape components.Shape) { l.Shape = shape }
 
-func (l *Legacy) Offset(dx, dy float64) {
+func (l *Component) Offset(dx, dy float64) {
 	l.X -= dx
 	l.Y -= dy
 }
@@ -89,7 +89,7 @@ const (
 )
 
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
-	comp := NewLegacy(id)
+	comp := New(id)
 	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
 	if raw, ok := nodeProps["_rawProps"].(string); ok {
 		_ = comp.Props.Parse(raw)
