@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/saasuke-labs/nagare/pkg/nagare"
 )
@@ -93,6 +95,8 @@ func handlePlayground(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleAPIRender(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
 	// Read the form data
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
@@ -112,8 +116,9 @@ func handleAPIRender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send just the SVG
+	elapsed := time.Since(start)
 	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("X-Render-Time", strconv.FormatInt(elapsed.Milliseconds(), 10))
 	w.Write([]byte(svg))
 }
 

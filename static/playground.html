@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nagare Playground</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
       * {
         margin: 0;
@@ -79,11 +78,24 @@
         background: #d2d2d7;
       }
 
+      .btn-icon {
+        padding: 0.5rem 0.75rem;
+        background: #e8e8ed;
+        color: #1d1d1f;
+        font-size: 1rem;
+        line-height: 1;
+      }
+
+      .btn-icon:hover {
+        background: #d2d2d7;
+      }
+
       .container {
         display: flex;
         height: calc(100vh - 65px);
         padding: 1.5rem;
         gap: 1.5rem;
+        overflow: hidden;
       }
 
       .panel {
@@ -97,12 +109,25 @@
 
       .editor-panel {
         flex: 1;
-        min-width: 400px;
+        min-width: 300px;
       }
 
       .preview-panel {
-        flex: 1;
-        min-width: 400px;
+        flex: 1.5;
+        min-width: 300px;
+      }
+
+      .reference-panel {
+        width: 280px;
+        flex-shrink: 0;
+        transition: width 0.25s ease, opacity 0.25s ease;
+        overflow: hidden;
+      }
+
+      .reference-panel.collapsed {
+        width: 0;
+        opacity: 0;
+        pointer-events: none;
       }
 
       .panel-header {
@@ -112,12 +137,28 @@
         font-weight: 500;
         font-size: 0.9rem;
         color: #6e6e73;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+
+      .panel-header-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 400;
       }
 
       .panel-content {
         flex: 1;
         padding: 1.25rem;
         overflow: auto;
+      }
+
+      .panel-content.no-pad {
+        padding: 0;
       }
 
       textarea {
@@ -147,6 +188,7 @@
         background: #fafafa;
         border-radius: 6px;
         padding: 1rem;
+        position: relative;
       }
 
       #preview.empty {
@@ -159,9 +201,44 @@
         height: auto;
       }
 
-      .loading {
-        color: #0071e3;
-        font-size: 0.9rem;
+      .loader-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(250, 250, 250, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+      }
+
+      .loader-overlay.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #d2d2d7;
+        border-top-color: #0071e3;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .render-time {
+        color: #86868b;
+        font-size: 0.78rem;
+      }
+
+      .render-time.visible {
+        color: #34c759;
       }
 
       .error {
@@ -172,6 +249,7 @@
         font-size: 0.85rem;
         font-family: monospace;
         white-space: pre-wrap;
+        width: 100%;
       }
 
       .version {
@@ -179,14 +257,155 @@
         font-size: 0.85rem;
       }
 
-      .htmx-request .btn-primary {
-        opacity: 0.7;
-        cursor: wait;
+      /* ── Components reference panel ── */
+      .ref-search {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e8e8ed;
+        flex-shrink: 0;
       }
 
-      @media (max-width: 1024px) {
+      .ref-search input {
+        width: 100%;
+        border: 1px solid #d2d2d7;
+        border-radius: 6px;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
+        font-family: inherit;
+        outline: none;
+        background: #fafafa;
+        color: #1d1d1f;
+      }
+
+      .ref-search input:focus {
+        border-color: #0071e3;
+        background: #fff;
+      }
+
+      .ref-list {
+        overflow-y: auto;
+        flex: 1;
+        padding: 0.5rem 0;
+      }
+
+      .ref-section {
+        padding: 0 0.75rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .ref-section-title {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #86868b;
+        padding: 0.5rem 0.25rem 0.25rem;
+      }
+
+      .ref-item {
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 2px;
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+
+      .ref-item:hover {
+        background: #f5f5f7;
+      }
+
+      .ref-item.active {
+        background: #e8f0fe;
+      }
+
+      .ref-item-name {
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #0071e3;
+        font-family: "Monaco", "Menlo", "Consolas", monospace;
+      }
+
+      .ref-item-desc {
+        font-size: 0.78rem;
+        color: #6e6e73;
+        margin-top: 1px;
+      }
+
+      .ref-detail {
+        border-top: 1px solid #e8e8ed;
+        padding: 0.75rem 1rem;
+        font-size: 0.82rem;
+        flex-shrink: 0;
+        background: #f9f9fb;
+        max-height: 240px;
+        overflow-y: auto;
+      }
+
+      .ref-detail-title {
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #1d1d1f;
+        margin-bottom: 0.4rem;
+      }
+
+      .ref-props {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .ref-prop {
+        display: flex;
+        gap: 0.4rem;
+        align-items: baseline;
+      }
+
+      .ref-prop-key {
+        font-family: "Monaco", "Menlo", "Consolas", monospace;
+        font-size: 0.78rem;
+        color: #0071e3;
+        flex-shrink: 0;
+      }
+
+      .ref-prop-desc {
+        font-size: 0.78rem;
+        color: #6e6e73;
+      }
+
+      .ref-syntax {
+        margin-top: 0.6rem;
+        padding: 0.5rem 0.6rem;
+        background: #1d1d1f;
+        border-radius: 6px;
+        font-family: "Monaco", "Menlo", "Consolas", monospace;
+        font-size: 0.75rem;
+        color: #f5f5f7;
+        white-space: pre-wrap;
+        word-break: break-all;
+        cursor: pointer;
+        user-select: all;
+      }
+
+      .ref-syntax:hover {
+        background: #333;
+      }
+
+      .ref-syntax-label {
+        font-size: 0.72rem;
+        color: #86868b;
+        margin-top: 0.5rem;
+        margin-bottom: 2px;
+      }
+
+      @media (max-width: 1200px) {
+        .reference-panel {
+          display: none;
+        }
+      }
+
+      @media (max-width: 900px) {
         .container {
           flex-direction: column;
+          overflow: auto;
         }
 
         .editor-panel,
@@ -205,22 +424,21 @@
         <button class="btn btn-secondary" onclick="loadExample()">
           Load Example
         </button>
+        <button class="btn btn-icon" title="Toggle component reference" aria-label="Toggle component reference" onclick="toggleReference()">📖</button>
         <button
           class="btn btn-primary"
-          hx-post="/api/render"
-          hx-target="#preview"
-          hx-include="[name='code']"
-          hx-indicator=".loading"
+          id="renderBtn"
+          onclick="triggerRender()"
         >
           Render
         </button>
       </div>
     </div>
 
-    <div class="container">
+    <div class="container" id="mainContainer">
       <div class="panel editor-panel">
-        <div class="panel-header">Editor</div>
-        <div class="panel-content">
+        <div class="panel-header">Editor <span style="font-size:0.75rem; color:#86868b; margin-left:0.5rem;">auto-refreshes after 1s idle · Cmd/Ctrl+↩ to render now</span></div>
+        <div class="panel-content" style="padding:0.75rem;">
           <textarea
             name="code"
             id="code"
@@ -265,26 +483,118 @@ nginx.e --> app.w
       </div>
 
       <div class="panel preview-panel">
-        <div class="panel-header">Preview</div>
-        <div class="panel-content">
-          <div id="preview" class="empty" style="height: 100%; width: 100%">
-            <span class="loading htmx-indicator">Rendering...</span>
-            <span>Click "Render" to see your diagram</span>
+        <div class="panel-header">
+          Preview
+          <div class="panel-header-meta">
+            <span class="render-time" id="renderTime">—</span>
           </div>
         </div>
+        <div class="panel-content" style="padding:0.75rem; position:relative;">
+          <div id="preview" class="empty" style="height: 100%; width: 100%">
+            <span>Click "Render" or edit the code to see your diagram</span>
+          </div>
+          <div class="loader-overlay" id="loaderOverlay">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel reference-panel" id="referencePanel">
+        <div class="panel-header">Components</div>
+        <div class="ref-search">
+          <input type="text" id="refSearch" placeholder="Search components…" oninput="filterRef(this.value)" />
+        </div>
+        <div class="ref-list" id="refList"></div>
+        <div class="ref-detail" id="refDetail" style="display:none;"></div>
       </div>
     </div>
 
     <script>
-      // Keyboard shortcut: Cmd/Ctrl + Enter to render
+      // ── Debounced auto-render ──────────────────────────────────────────────
+      let debounceTimer = null
+      let abortController = null
+
+      document.getElementById("code").addEventListener("input", function () {
+        clearTimeout(debounceTimer)
+        debounceTimer = setTimeout(triggerRender, 1000)
+      })
+
       document.getElementById("code").addEventListener("keydown", function (e) {
         if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
           e.preventDefault()
-          document.querySelector(".btn-primary").click()
+          clearTimeout(debounceTimer)
+          triggerRender()
         }
       })
 
-      // Load example diagram
+      function triggerRender() {
+        const code = document.getElementById("code").value.trim()
+        if (!code) return
+
+        if (abortController) {
+          abortController.abort()
+        }
+
+        const preview = document.getElementById("preview")
+        const overlay = document.getElementById("loaderOverlay")
+        const timeEl = document.getElementById("renderTime")
+
+        overlay.classList.add("visible")
+        timeEl.textContent = "rendering…"
+        timeEl.classList.remove("visible")
+
+        const startMs = Date.now()
+        const controller = new AbortController()
+        abortController = controller
+
+        const body = new URLSearchParams({ code })
+
+        fetch("/api/render", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: body.toString(),
+          signal: controller.signal,
+        })
+          .then((res) => {
+            const serverMs = res.headers.get("X-Render-Time")
+            const clientMs = Date.now() - startMs
+            const displayMs = serverMs !== null ? parseInt(serverMs, 10) : clientMs
+
+            if (!res.ok) {
+              return res.text().then((text) => {
+                throw new Error(text)
+              })
+            }
+            return res.text().then((svg) => ({ svg, displayMs }))
+          })
+          .then(({ svg, displayMs }) => {
+            preview.innerHTML = svg
+            preview.classList.remove("empty")
+            timeEl.textContent = "generated in " + displayMs + " ms"
+            timeEl.classList.add("visible")
+          })
+          .catch((err) => {
+            if (err.name === "AbortError") return
+            preview.innerHTML = '<div class="error">Error: ' + escapeHtml(err.message) + "</div>"
+            preview.classList.remove("empty")
+            timeEl.textContent = "error"
+            timeEl.classList.remove("visible")
+          })
+          .finally(() => {
+            overlay.classList.remove("visible")
+            abortController = null
+          })
+      }
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+      }
+
+      // ── Example loader ────────────────────────────────────────────────────
       function loadExample() {
         const example = `@layout(w:950,h:400)
 
@@ -306,22 +616,348 @@ nginx.e --> app.w
 @nginx(x:50,y:&browser.c,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
 @app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")`
         document.getElementById("code").value = example
+        clearTimeout(debounceTimer)
+        triggerRender()
       }
 
-      // Initialize with empty state
-      document.body.addEventListener("htmx:afterSwap", function (evt) {
-        if (evt.detail.target.id === "preview") {
-          const preview = document.getElementById("preview")
-          preview.classList.remove("empty")
-        }
-      })
+      // ── Reference panel ───────────────────────────────────────────────────
+      const COMPONENTS = [
+        {
+          name: "Browser",
+          desc: "Browser window with address bar",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "url", desc: "Address bar URL" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "contentBg", desc: "Content area background" },
+            { key: "text", desc: "Label text" },
+          ],
+          example: `browser:Browser@home\n\n@browser(x:50,y:50,w:300,h:200)\n@home(url:"https://example.com", bg:"#e6f3ff", fg:"#333", text:"Home")`,
+        },
+        {
+          name: "VM",
+          desc: "Virtual machine / container that holds child components",
+          container: true,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Label / hostname" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "text", desc: "OS / subtitle text" },
+          ],
+          example: `vps:VM@ubuntu {\n  app:Server@app\n}\n\n@vps(x:200,y:50,w:400,h:250)\n@ubuntu(title:"ubuntu", bg:"#333", fg:"#ccc")`,
+        },
+        {
+          name: "Server",
+          desc: "Generic server / application node",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Display label" },
+            { key: "icon", desc: "Icon name (e.g. nginx, golang, default)" },
+            { key: "port", desc: "Port number" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+          ],
+          example: `api:Server@backend\n\n@api(x:300,y:100,w:200,h:50, title:"API", icon:"golang", port:8080)`,
+        },
+        {
+          name: "Terminal",
+          desc: "Terminal / CLI window",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Window title" },
+            { key: "cwd", desc: "Working directory" },
+            { key: "command", desc: "Command to display" },
+            { key: "prompt", desc: "Prompt symbol" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "accent", desc: "Accent color (hex)" },
+          ],
+          example: `term:Terminal@shell\n\n@term(x:50,y:50,w:350,h:200)\n@shell(title:"bash", cwd:"/home", command:"ls -la", bg:"#1d1d1f", fg:"#f5f5f7")`,
+        },
+        {
+          name: "Database",
+          desc: "Database (cylinder with read/write LEDs)",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Database label" },
+            { key: "engine", desc: "Engine name (e.g. PostgreSQL)" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "accent", desc: "Accent color (hex)" },
+          ],
+          example: `db:Database@pg\n\n@db(x:400,y:100,w:150,h:180)\n@pg(title:"Users DB", engine:"PostgreSQL")`,
+        },
+        {
+          name: "Cylinder",
+          desc: "Raw cylinder primitive",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Label" },
+            { key: "subtitle", desc: "Subtitle" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "accent", desc: "Accent color (hex)" },
+          ],
+          example: `cyl:Cylinder@storage\n\n@cyl(x:200,y:100,w:120,h:160)\n@storage(title:"Volume", subtitle:"100 GB")`,
+        },
+        {
+          name: "Led",
+          desc: "Mode-driven LED indicator",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "mode", desc: "Color mode: green | red" },
+          ],
+          example: `light:Led@status\n\n@light(x:100,y:100,w:40,h:40)\n@status(mode:"green")`,
+        },
+        {
+          name: "MessageQueue",
+          desc: "Message queue / broker (alias: Queue)",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Queue label" },
+            { key: "kind", desc: "Broker type (e.g. RabbitMQ, Kafka)" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "accent", desc: "Accent color (hex)" },
+          ],
+          example: `mq:MessageQueue@broker\n\n@mq(x:300,y:100,w:160,h:80)\n@broker(title:"Events", kind:"RabbitMQ")`,
+        },
+        {
+          name: "CDN",
+          desc: "CDN / edge node (alias: Edge)",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Label" },
+            { key: "provider", desc: "CDN provider" },
+            { key: "region", desc: "Region / PoP" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "accent", desc: "Accent color (hex)" },
+          ],
+          example: `edge:CDN@cf\n\n@edge(x:50,y:100,w:160,h:80)\n@cf(title:"Cloudflare", provider:"Cloudflare", region:"Global")`,
+        },
+        {
+          name: "APIGateway",
+          desc: "API gateway component",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Label" },
+            { key: "route", desc: "Route path (e.g. /api/v1)" },
+            { key: "method", desc: "HTTP method (GET, POST…)" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "accent", desc: "Accent color (hex)" },
+          ],
+          example: `gw:APIGateway@gateway\n\n@gw(x:200,y:50,w:200,h:70)\n@gateway(title:"API GW", route:"/api/v1", method:"POST")`,
+        },
+        {
+          name: "BackgroundWorker",
+          desc: "Background job / worker",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Worker name" },
+            { key: "job", desc: "Job description" },
+            { key: "schedule", desc: "Cron expression or interval" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "accent", desc: "Accent color (hex)" },
+          ],
+          example: `worker:BackgroundWorker@job\n\n@worker(x:400,y:200,w:180,h:80)\n@job(title:"Mailer", job:"send emails", schedule:"0 * * * *")`,
+        },
+        {
+          name: "Package",
+          desc: "Software package / library node",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Package name" },
+            { key: "version", desc: "Semver version" },
+            { key: "lang", desc: "Programming language" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "accent", desc: "Accent color (hex)" },
+          ],
+          example: `pkg:Package@dep\n\n@pkg(x:100,y:100,w:160,h:80)\n@dep(title:"express", version:"4.18.2", lang:"javascript")`,
+        },
+        {
+          name: "Artifact",
+          desc: "Build / deployment artifact (file-like)",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Artifact label" },
+            { key: "filename", desc: "Filename" },
+            { key: "size", desc: "Size string (e.g. 12 MB)" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+            { key: "accent", desc: "Accent color (hex)" },
+          ],
+          example: `art:Artifact@build\n\n@art(x:100,y:100,w:160,h:180)\n@build(title:"Release", filename:"app.tar.gz", size:"24 MB")`,
+        },
+        {
+          name: "Rectangle",
+          desc: "Simple labeled rectangle",
+          container: false,
+          geometry: ["x", "y", "w", "h"],
+          props: [
+            { key: "title", desc: "Label text" },
+            { key: "bg", desc: "Background color (hex)" },
+            { key: "fg", desc: "Foreground / text color (hex)" },
+          ],
+          example: `box:Rectangle@label\n\n@box(x:100,y:100,w:200,h:100)\n@label(title:"My Box", bg:"#ffe5cc", fg:"#333")`,
+        },
+      ]
 
-      // Handle errors
-      document.body.addEventListener("htmx:responseError", function (evt) {
-        const preview = document.getElementById("preview")
-        preview.innerHTML =
-          '<div class="error">Error: ' + evt.detail.xhr.responseText + "</div>"
-        preview.classList.remove("empty")
+      const SYNTAX_TIPS = [
+        {
+          name: "@layout",
+          desc: "Set canvas dimensions",
+          example: "@layout(w:800, h:400)",
+        },
+        {
+          name: "Declaration",
+          desc: "id:Type@stateName",
+          example: "server:Server@api",
+        },
+        {
+          name: "Nesting",
+          desc: "Wrap children in { }",
+          example: "vm:VM@host {\n  app:Server@app\n}",
+        },
+        {
+          name: "Connection",
+          desc: "Cardinal points: n s e w c",
+          example: "browser.e --> server.w",
+        },
+        {
+          name: "Geometry ref",
+          desc: "Align to another component's center",
+          example: "@server(y:&browser.c)",
+        },
+      ]
+
+      function buildRefPanel() {
+        const list = document.getElementById("refList")
+        list.innerHTML = ""
+
+        // Syntax section
+        const syntaxSection = document.createElement("div")
+        syntaxSection.className = "ref-section"
+        syntaxSection.dataset.section = "syntax"
+        syntaxSection.innerHTML = `<div class="ref-section-title">Syntax</div>`
+        SYNTAX_TIPS.forEach((tip, i) => {
+          const item = document.createElement("div")
+          item.className = "ref-item"
+          item.dataset.index = "s" + i
+          item.innerHTML = `<div class="ref-item-name">${escapeHtml(tip.name)}</div><div class="ref-item-desc">${escapeHtml(tip.desc)}</div>`
+          item.addEventListener("click", () => showSyntaxDetail(tip, item))
+          syntaxSection.appendChild(item)
+        })
+        list.appendChild(syntaxSection)
+
+        // Components section
+        const compSection = document.createElement("div")
+        compSection.className = "ref-section"
+        compSection.dataset.section = "components"
+        compSection.innerHTML = `<div class="ref-section-title">Components</div>`
+        COMPONENTS.forEach((comp, i) => {
+          const item = document.createElement("div")
+          item.className = "ref-item"
+          item.dataset.index = "c" + i
+          item.innerHTML = `<div class="ref-item-name">${escapeHtml(comp.name)}</div><div class="ref-item-desc">${escapeHtml(comp.desc)}</div>`
+          item.addEventListener("click", () => showCompDetail(comp, item))
+          compSection.appendChild(item)
+        })
+        list.appendChild(compSection)
+      }
+
+      function showSyntaxDetail(tip, itemEl) {
+        setActiveItem(itemEl)
+        const detail = document.getElementById("refDetail")
+        detail.style.display = "block"
+        detail.innerHTML = `
+          <div class="ref-detail-title">${escapeHtml(tip.name)}</div>
+          <div class="ref-prop-desc" style="margin-bottom:0.4rem;">${escapeHtml(tip.desc)}</div>
+          <div class="ref-syntax-label">Example</div>
+          <div class="ref-syntax" title="Click to copy" onclick="copyToClipboard(this)">${escapeHtml(tip.example)}</div>
+        `
+      }
+
+      function showCompDetail(comp, itemEl) {
+        setActiveItem(itemEl)
+        const detail = document.getElementById("refDetail")
+        detail.style.display = "block"
+
+        const geoLine = comp.geometry.map(k => escapeHtml(k) + ":…").join(", ")
+        const propsHtml = comp.props.map(p =>
+          `<div class="ref-prop"><span class="ref-prop-key">${escapeHtml(p.key)}</span><span class="ref-prop-desc">${escapeHtml(p.desc)}</span></div>`
+        ).join("")
+
+        detail.innerHTML = `
+          <div class="ref-detail-title">${escapeHtml(comp.name)}${comp.container ? " (container)" : ""}</div>
+          <div class="ref-prop-desc" style="margin-bottom:0.5rem;">${escapeHtml(comp.desc)}</div>
+          <div class="ref-props">${propsHtml}</div>
+          <div class="ref-syntax-label" style="margin-top:0.6rem;">Geometry props</div>
+          <div class="ref-syntax">${geoLine}</div>
+          <div class="ref-syntax-label">Example (click to copy)</div>
+          <div class="ref-syntax" title="Click to copy" onclick="copyToClipboard(this)">${escapeHtml(comp.example)}</div>
+        `
+      }
+
+      function setActiveItem(el) {
+        document.querySelectorAll(".ref-item.active").forEach(i => i.classList.remove("active"))
+        el.classList.add("active")
+      }
+
+      function filterRef(query) {
+        const q = query.toLowerCase()
+        document.querySelectorAll(".ref-item").forEach(item => {
+          const text = item.textContent.toLowerCase()
+          item.style.display = text.includes(q) ? "" : "none"
+        })
+        document.querySelectorAll(".ref-section").forEach(section => {
+          const visible = [...section.querySelectorAll(".ref-item")].some(i => i.style.display !== "none")
+          section.style.display = visible ? "" : "none"
+        })
+      }
+
+      function copyToClipboard(el) {
+        const text = el.textContent
+        navigator.clipboard.writeText(text).then(() => {
+          const orig = el.style.background
+          el.style.background = "#0071e3"
+          setTimeout(() => { el.style.background = orig }, 600)
+        }).catch(() => {
+          el.style.outline = "2px solid #ff3b30"
+          setTimeout(() => { el.style.outline = "" }, 1000)
+        })
+      }
+
+      // ── Reference panel toggle ────────────────────────────────────────────
+      function toggleReference() {
+        const panel = document.getElementById("referencePanel")
+        panel.classList.toggle("collapsed")
+      }
+
+      // ── Init ──────────────────────────────────────────────────────────────
+      buildRefPanel()
+
+      // Auto-render initial content on page load
+      window.addEventListener("load", () => {
+        const code = document.getElementById("code").value.trim()
+        if (code) triggerRender()
       })
     </script>
   </body>
