@@ -40,6 +40,7 @@ name: Deploy to GCP Cloud Run
 #      https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account
 
 on:
+  workflow_dispatch: 
   push:
     branches:
       - main
