@@ -77,7 +77,7 @@ goreleaser build --snapshot --clean
 ### Deployment CI Notes
 
 - Cloud Run deployment CI uses GitHub OIDC + Google Workload Identity Federation.
-- If deployment auth fails with `iam.serviceAccounts.getAccessToken`, verify the deployer service account has `roles/iam.workloadIdentityUser` bound to the GitHub `principalSet`.
+- If deployment auth fails with `iam.serviceAccounts.getAccessToken`, verify the deployer service account grants both `roles/iam.workloadIdentityUser` and `roles/iam.serviceAccountTokenCreator` to the GitHub `principalSet`.
 - Keep deployment setup docs in sync in `docs/GCP_CLOUD_RUN_CI_SETUP.md` whenever workflow auth/deploy settings change.
 
 ## Known Limitations
