@@ -17,6 +17,8 @@ For that to work, the GitHub principal from your Workload Identity Provider must
 - `roles/iam.workloadIdentityUser` **on the service account** (required)
 - Workload Identity Provider configured with matching attribute mapping/condition (required)
 
+In some org setups, adding `roles/iam.serviceAccountTokenCreator` to the same principal can also be required for access-token minting flows.
+
 Without the first item, CI fails with `iam.serviceAccounts.getAccessToken` denied.
 
 ---
@@ -118,6 +120,12 @@ gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
   --project="$PROJECT_ID" \
   --role="roles/iam.workloadIdentityUser" \
   --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/attribute.repository/${REPO_FULL}"
+
+# Optional fallback if your org/policy still blocks access token minting:
+gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
+  --project="$PROJECT_ID" \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/attribute.repository/${REPO_FULL}"
 ```
 
 Optional stricter binding for `main` only:
@@ -152,6 +160,8 @@ gcloud iam service-accounts get-iam-policy "$SA_EMAIL" \
 ```
 
 Confirm you see `roles/iam.workloadIdentityUser` with your `principalSet://...` member.
+
+Also verify the project number in the `principalSet://...` member is the **numeric project number** that owns the Workload Identity Pool (not `PROJECT_ID`). A mismatched project number is the most common reason this still fails after setup.
 
 ---
 
@@ -213,6 +223,8 @@ In **IAM & Admin → IAM**, grant to `nagare-deployer@...`:
 
 This is the UI equivalent of the CLI fix command.
 
+If CI still fails, also grant `Service Account Token Creator` (`roles/iam.serviceAccountTokenCreator`) to the same `principalSet://...` principal on the same service account.
+
 ### 7) Configure GitHub secrets
 
 In GitHub: **Repo → Settings → Secrets and variables → Actions → New repository secret**
@@ -231,8 +243,10 @@ If deploy still fails:
 2. Verify `GCP_WORKLOAD_IDENTITY_PROVIDER` matches exact provider resource path.
 3. Verify `GCP_SERVICE_ACCOUNT` exists and is correct.
 4. Verify SA IAM policy includes `roles/iam.workloadIdentityUser` for the expected `principalSet://...`.
-5. Verify provider condition matches repo and (if used) branch.
-6. Verify required APIs are enabled.
+5. Verify the `principalSet://.../projects/<PROJECT_NUMBER>/...` uses the correct **pool project number**.
+6. Verify provider condition matches repo and (if used) branch.
+7. If still denied, grant `roles/iam.serviceAccountTokenCreator` on the service account to the same principal.
+8. Verify required APIs are enabled.
 
 ---
 
