@@ -35,8 +35,18 @@ name: Deploy to GCP Cloud Run
 #          --role="$role"
 #      done
 #
-# 4. Create a Workload Identity Pool and Provider and allow the service account
-#    to be impersonated by this repository:
+# 4. Create a Workload Identity Pool + Provider and grant this GitHub repo
+#    permission to impersonate the deployer service account (required to avoid
+#    iam.serviceAccounts.getAccessToken errors in `google-github-actions/auth`):
+#      gcloud iam service-accounts add-iam-policy-binding \
+#        nagare-deployer@$PROJECT_ID.iam.gserviceaccount.com \
+#        --role="roles/iam.workloadIdentityUser" \
+#        --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/<OWNER>/<REPO>"
+#
+#    Optional hardening (recommended): map and bind on attribute.ref so only
+#    `refs/heads/main` can deploy.
+#
+#    Full reference:
 #      https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account
 
 on:

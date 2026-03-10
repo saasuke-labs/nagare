@@ -228,6 +228,10 @@ just clean
 
 Nagare core is SVG-only. CI preview workflows publish SVG artifacts directly from Nagare output and do not perform WebP conversion in this repository.
 
+### GCP Cloud Run Deployment CI
+
+For a full step-by-step setup (CLI and GCP Console UI) for GitHub Actions Workload Identity Federation and Cloud Run deploys, see `docs/GCP_CLOUD_RUN_CI_SETUP.md`.
+
 ### Playground UI
 
 Start the server and visit http://localhost:8080 to access the interactive playground. Features:
