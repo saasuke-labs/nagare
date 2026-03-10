@@ -1,0 +1,96 @@
+name: Deploy to GCP Cloud Run
+
+# Deploys the nagare playground to Google Cloud Run whenever code is pushed to
+# the main branch.
+#
+# Required GitHub secrets
+# ──────────────────────────────────────────────────────────────────────────────
+# GCP_PROJECT_ID                  – Google Cloud project ID
+# GCP_WORKLOAD_IDENTITY_PROVIDER  – Full resource name of the Workload Identity
+#                                   Provider, e.g.
+#                                   projects/123456789/locations/global/
+#                                   workloadIdentityPools/github/
+#                                   providers/github
+# GCP_SERVICE_ACCOUNT             – Service account email used for deployment,
+#                                   e.g. nagare-deployer@<project>.iam.gserviceaccount.com
+#
+# Required Google Cloud setup (one-time)
+# ──────────────────────────────────────────────────────────────────────────────
+# 1. Enable APIs:
+#      gcloud services enable \
+#        run.googleapis.com \
+#        artifactregistry.googleapis.com \
+#        iamcredentials.googleapis.com
+#
+# 2. Create an Artifact Registry Docker repository:
+#      gcloud artifacts repositories create nagare \
+#        --repository-format=docker \
+#        --location=us-central1
+#
+# 3. Create a service account and grant the necessary roles:
+#      gcloud iam service-accounts create nagare-deployer
+#      for role in roles/run.admin roles/artifactregistry.writer roles/iam.serviceAccountUser; do
+#        gcloud projects add-iam-policy-binding $PROJECT_ID \
+#          --member="serviceAccount:nagare-deployer@$PROJECT_ID.iam.gserviceaccount.com" \
+#          --role="$role"
+#      done
+#
+# 4. Create a Workload Identity Pool and Provider and allow the service account
+#    to be impersonated by this repository:
+#      https://github.com/google-github-actions/auth?tab=readme-ov-file#workload-identity-federation-through-a-service-account
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGION: us-central1
+  SERVICE_NAME: nagare-playground
+  IMAGE_NAME: nagare
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write # Required for Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          IMAGE_URI="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/nagare/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          docker build -t "${IMAGE_URI}" .
+          docker push "${IMAGE_URI}"
+          echo "IMAGE_URI=${IMAGE_URI}" >> "$GITHUB_ENV"
+
+      - name: Deploy to Cloud Run
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image "${IMAGE_URI}" \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --project "${PROJECT_ID}"

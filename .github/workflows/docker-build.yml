@@ -1,0 +1,21 @@
+name: Docker build check
+
+# Verifies that the Docker image builds successfully on every pull request.
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build .

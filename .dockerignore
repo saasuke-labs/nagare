@@ -1,0 +1,18 @@
+# Ignore VCS metadata
+.git
+.gitignore
+
+# Build outputs
+nagare
+
+# Go test cache / coverage
+*.out
+*.test
+
+# Editor / OS artefacts
+.DS_Store
+*.swp
+
+# CI artefacts
+.github/pr-images
+dist/
