@@ -10,16 +10,15 @@ That error means the GitHub OIDC principal is authenticated, but it is **not all
 
 ## Why this happens
 
-`google-github-actions/auth@v2` with `token_format: access_token` calls IAM Credentials API to generate an OAuth2 token for your deployer service account.
+`google-github-actions/auth@v2` authenticates via Workload Identity Federation, and subsequent `gcloud`/Docker credential-helper calls mint access tokens for your deployer service account through IAM Credentials API.
 
 For that to work, the GitHub principal from your Workload Identity Provider must have:
 
 - `roles/iam.workloadIdentityUser` **on the service account** (required)
+- `roles/iam.serviceAccountTokenCreator` **on the service account** (required for `gcloud`/Docker credential-helper token minting used in this repo)
 - Workload Identity Provider configured with matching attribute mapping/condition (required)
 
-In some org setups, adding `roles/iam.serviceAccountTokenCreator` to the same principal can also be required for access-token minting flows.
-
-Without the first item, CI fails with `iam.serviceAccounts.getAccessToken` denied.
+Without these service-account bindings, CI typically fails with `iam.serviceAccounts.getAccessToken` denied.
 
 ---
 
@@ -121,7 +120,7 @@ gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
   --role="roles/iam.workloadIdentityUser" \
   --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/attribute.repository/${REPO_FULL}"
 
-# Optional fallback if your org/policy still blocks access token minting:
+# Required in this repository because docker push auth uses gcloud's credential helper:
 gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
   --project="$PROJECT_ID" \
   --role="roles/iam.serviceAccountTokenCreator" \
@@ -223,7 +222,7 @@ In **IAM & Admin → IAM**, grant to `nagare-deployer@...`:
 
 This is the UI equivalent of the CLI fix command.
 
-If CI still fails, also grant `Service Account Token Creator` (`roles/iam.serviceAccountTokenCreator`) to the same `principalSet://...` principal on the same service account.
+Also grant `Service Account Token Creator` (`roles/iam.serviceAccountTokenCreator`) to the same `principalSet://...` principal on the same service account (required for this repository's deploy workflow).
 
 ### 7) Configure GitHub secrets
 
@@ -245,11 +244,11 @@ If deploy still fails:
 4. Verify SA IAM policy includes `roles/iam.workloadIdentityUser` for the expected `principalSet://...`.
 5. Verify the `principalSet://.../projects/<PROJECT_NUMBER>/...` uses the correct **pool project number**.
 6. Verify provider condition matches repo and (if used) branch.
-7. If still denied, grant `roles/iam.serviceAccountTokenCreator` on the service account to the same principal.
+7. Verify `roles/iam.serviceAccountTokenCreator` is granted on the same service account to the same principalSet used for Workload Identity.
 8. Verify required APIs are enabled.
 
 ---
 
 ## Notes for this repository
 
-The workflow file is `.github/workflows/deploy-gcp.yml` and already uses Workload Identity Federation. If you see the access token permission error, the missing piece is almost always step **"grant Workload Identity User on the service account"**.
+The workflow file is `.github/workflows/deploy-gcp.yml` and already uses Workload Identity Federation. If you see the access token permission error, verify both service-account role bindings in this guide (`roles/iam.workloadIdentityUser` and `roles/iam.serviceAccountTokenCreator`) for your repo principalSet.

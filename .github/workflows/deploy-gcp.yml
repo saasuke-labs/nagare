@@ -36,11 +36,16 @@ name: Deploy to GCP Cloud Run
 #      done
 #
 # 4. Create a Workload Identity Pool + Provider and grant this GitHub repo
-#    permission to impersonate the deployer service account (required to avoid
-#    iam.serviceAccounts.getAccessToken errors in `google-github-actions/auth`):
+#    permission to impersonate the deployer service account. For Artifact
+#    Registry pushes that rely on `gcloud auth configure-docker`, grant both
+#    roles below on the deployer service account to the same principalSet.
 #      gcloud iam service-accounts add-iam-policy-binding \
 #        nagare-deployer@$PROJECT_ID.iam.gserviceaccount.com \
 #        --role="roles/iam.workloadIdentityUser" \
+#        --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/<OWNER>/<REPO>"
+#      gcloud iam service-accounts add-iam-policy-binding \
+#        nagare-deployer@$PROJECT_ID.iam.gserviceaccount.com \
+#        --role="roles/iam.serviceAccountTokenCreator" \
 #        --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/attribute.repository/<OWNER>/<REPO>"
 #
 #    Optional hardening (recommended): map and bind on attribute.ref so only
@@ -84,6 +89,18 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
+
+      - name: Verify impersonation can mint access token
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        run: |
+          gcloud auth print-access-token >/dev/null || {
+            echo "Failed to mint access token for ${PROJECT_ID}."
+            echo "Ensure the GitHub principalSet has BOTH roles/iam.workloadIdentityUser"
+            echo "and roles/iam.serviceAccountTokenCreator on ${SERVICE_ACCOUNT}."
+            exit 1
+          }
 
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
