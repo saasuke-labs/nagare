@@ -74,6 +74,12 @@ goreleaser build --snapshot --clean
 - Keep Nagare runtime output focused on SVG.
 - CI preview artifacts should stay SVG-only; do not add WebP conversion steps or WebP rendering logic back into this repository.
 
+### Deployment CI Notes
+
+- Cloud Run deployment CI uses GitHub OIDC + Google Workload Identity Federation.
+- If deployment auth fails with `iam.serviceAccounts.getAccessToken`, verify the deployer service account has `roles/iam.workloadIdentityUser` bound to the GitHub `principalSet`.
+- Keep deployment setup docs in sync in `docs/GCP_CLOUD_RUN_CI_SETUP.md` whenever workflow auth/deploy settings change.
+
 ## Known Limitations
 
 - Component types in `layout/Calculate` require manual registration
