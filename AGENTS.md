@@ -48,6 +48,7 @@ The project follows a pipeline architecture with four main stages:
 - Reuse prop parsing helpers in `props/`; avoid duplicating parsing logic inside components.
 - Prefer composing higher-level diagram components from primitive render components (for example `Database` composed from `Cylinder` + `Led`) when behavior can be shared across types.
 - When an action is semantically an alias, map it at the parent component boundary (for example `Database.read/write` -> child `Led.blink`) so primitives keep a small, stable action surface.
+- For action-generated arrows, map action semantics at the source component boundary (for example `Browser.request/response` deciding solid vs dashed style) and instantiate Arrow with resolved values; Arrow itself should remain action-agnostic.
 - For composed visuals, prefer parent-relative/proportional child geometry (instead of fixed pixel offsets) so composition scales correctly when parent dimensions change.
 - In the `layout/` package, leverage helpers like `applyIDStateProperties`, `applyNamedStateProperties`, and `routeArrowPoints` when adding new component types or connection rules so geometry/state handling remains consistent.
 
@@ -94,3 +95,8 @@ goreleaser build --snapshot --clean
 - More flexible property parsing
 - Additional component types
 - Enhanced connection routing
+
+
+### RFC references
+
+- Action-driven arrow creation and centralized arrow resolution plan: `docs/RFC_PORT_AWARE_ARROWS.md`

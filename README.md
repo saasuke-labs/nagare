@@ -154,6 +154,11 @@ The composed database LEDs are positioned relative to the database width/height 
 The `pkg/diagram/components/*` packages now own per-component render-node translation.
 Each component exposes `DrawFromRenderNode(id, props)` and resolves its own fallback geometry (`x`, `y`, `w`, `h`) from render props, which keeps `pkg/diagram/diagram.go` focused on tree traversal instead of per-type box defaults.
 Render-tree recursion already applies parent/child `<g transform="translate(...)">` wrappers, so component templates should render using local coordinates (`x:0`, `y:0`) to avoid double-applying placement offsets.
+When component actions semantically create arrows (for example request/response), keep action-to-style mapping at the owning component boundary and pass resolved geometry/style props to Arrow, keeping Arrow action-agnostic.
+
+## RFCs
+
+- [RFC: Action-Driven Arrow Creation and Centralized Arrow Resolution](docs/RFC_PORT_AWARE_ARROWS.md)
 
 ## Project Structure
 
