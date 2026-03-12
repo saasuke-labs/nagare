@@ -239,6 +239,8 @@ Start the server and visit http://localhost:8080 to access the interactive playg
 - Live diagram editor with syntax highlighting
 - Instant preview rendering
 - Keyboard shortcut: Cmd/Ctrl + Enter to render
+- Save diagrams with custom names in browser local storage (with overwrite confirmation)
+- Autosave restores your latest diagram when you return to the playground
 - Example diagrams to get started
 
 ### Watch Mode
