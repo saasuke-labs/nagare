@@ -35,6 +35,7 @@ The project follows a pipeline architecture with four main stages:
 ### Key Components
 
 - `cmd/main.go` - HTTP server with `/render` (POST) and `/test` (GET) endpoints
+- `static/playground.html` - Browser playground UI (editor, live render, localStorage-backed save/load + autosave behavior)
 - `pkg/diagram/components/` - Component-specific render-node translation and rendering entrypoints
 - `pkg/components/` - Shared SVG drawing primitives/templates used by diagram component adapters
 - `pkg/props/` - Property parsing helpers for component configuration

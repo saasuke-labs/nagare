@@ -43,6 +43,30 @@
         align-items: center;
       }
 
+      .save-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .name-input,
+      .diagram-select {
+        border: 1px solid #d2d2d7;
+        border-radius: 8px;
+        padding: 0.45rem 0.65rem;
+        font-size: 0.85rem;
+        background: #fff;
+        color: #1d1d1f;
+      }
+
+      .name-input {
+        width: 180px;
+      }
+
+      .diagram-select {
+        max-width: 210px;
+      }
+
       .btn {
         padding: 0.5rem 1.25rem;
         border: none;
@@ -403,6 +427,16 @@
       }
 
       @media (max-width: 900px) {
+        .header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.75rem;
+        }
+
+        .header-actions {
+          flex-wrap: wrap;
+        }
+
         .container {
           flex-direction: column;
           overflow: auto;
@@ -420,6 +454,26 @@
     <div class="header">
       <h1>🌊 Nagare Playground</h1>
       <div class="header-actions">
+        <div class="save-controls">
+          <input
+            type="text"
+            id="diagramName"
+            class="name-input"
+            placeholder="Diagram name"
+            aria-label="Diagram name"
+          />
+          <button class="btn btn-secondary" onclick="saveDiagram()">
+            Save
+          </button>
+          <select
+            id="savedDiagrams"
+            class="diagram-select"
+            aria-label="Load saved diagram"
+            onchange="loadSavedDiagram(this.value)"
+          >
+            <option value="">Load saved diagram…</option>
+          </select>
+        </div>
         <span class="version">v0.1.0</span>
         <button class="btn btn-secondary" onclick="loadExample()">
           Load Example
@@ -513,8 +567,11 @@ nginx.e --> app.w
       // ── Debounced auto-render ──────────────────────────────────────────────
       let debounceTimer = null
       let abortController = null
+      const SAVED_DIAGRAMS_KEY = "nagare.playground.savedDiagrams"
+      const AUTOSAVE_KEY = "nagare.playground.autosave"
 
       document.getElementById("code").addEventListener("input", function () {
+        autosaveDiagram()
         clearTimeout(debounceTimer)
         debounceTimer = setTimeout(triggerRender, 1000)
       })
@@ -616,8 +673,119 @@ nginx.e --> app.w
 @nginx(x:50,y:&browser.c,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
 @app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")`
         document.getElementById("code").value = example
+        autosaveDiagram()
         clearTimeout(debounceTimer)
         triggerRender()
+      }
+
+      // ── Saved diagrams & autosave ────────────────────────────────────────
+      function getSavedDiagrams() {
+        const raw = localStorage.getItem(SAVED_DIAGRAMS_KEY)
+        if (!raw) return {}
+
+        try {
+          const parsed = JSON.parse(raw)
+          return parsed && typeof parsed === "object" ? parsed : {}
+        } catch {
+          return {}
+        }
+      }
+
+      function setSavedDiagrams(diagrams) {
+        localStorage.setItem(SAVED_DIAGRAMS_KEY, JSON.stringify(diagrams))
+      }
+
+      function saveDiagram() {
+        const nameInput = document.getElementById("diagramName")
+        const diagramName = nameInput.value.trim()
+        const code = document.getElementById("code").value
+
+        if (!diagramName) {
+          alert("Please enter a diagram name before saving.")
+          nameInput.focus()
+          return
+        }
+
+        if (!code.trim()) {
+          alert("Cannot save an empty diagram.")
+          return
+        }
+
+        const diagrams = getSavedDiagrams()
+        if (Object.prototype.hasOwnProperty.call(diagrams, diagramName)) {
+          const overwrite = window.confirm(
+            `A diagram named "${diagramName}" already exists. Overwrite it?`
+          )
+          if (!overwrite) return
+        }
+
+        diagrams[diagramName] = {
+          code,
+          savedAt: new Date().toISOString(),
+        }
+
+        setSavedDiagrams(diagrams)
+        refreshSavedDiagramOptions(diagramName)
+      }
+
+      function refreshSavedDiagramOptions(selectedName = "") {
+        const select = document.getElementById("savedDiagrams")
+        const diagrams = getSavedDiagrams()
+        const names = Object.keys(diagrams).sort((a, b) => a.localeCompare(b))
+
+        select.innerHTML = ""
+
+        const placeholder = document.createElement("option")
+        placeholder.value = ""
+        placeholder.textContent = "Load saved diagram…"
+        select.appendChild(placeholder)
+
+        names.forEach((name) => {
+          const option = document.createElement("option")
+          option.value = name
+          option.textContent = name
+          select.appendChild(option)
+        })
+
+        if (selectedName && names.includes(selectedName)) {
+          select.value = selectedName
+        }
+      }
+
+      function loadSavedDiagram(name) {
+        if (!name) return
+
+        const diagrams = getSavedDiagrams()
+        const selected = diagrams[name]
+        if (!selected || !selected.code) return
+
+        document.getElementById("code").value = selected.code
+        document.getElementById("diagramName").value = name
+        autosaveDiagram()
+        clearTimeout(debounceTimer)
+        triggerRender()
+      }
+
+      function autosaveDiagram() {
+        const code = document.getElementById("code").value
+        localStorage.setItem(
+          AUTOSAVE_KEY,
+          JSON.stringify({ code, savedAt: new Date().toISOString() })
+        )
+      }
+
+      function restoreAutosavedDiagram() {
+        const raw = localStorage.getItem(AUTOSAVE_KEY)
+        if (!raw) return
+
+        try {
+          const autosaved = JSON.parse(raw)
+          if (autosaved && typeof autosaved.code === "string" && autosaved.code.trim()) {
+            document.getElementById("code").value = autosaved.code
+          }
+        } catch {
+          // Ignore invalid autosave entries.
+        }
       }
 
       // ── Reference panel ───────────────────────────────────────────────────
@@ -953,11 +1121,16 @@ nginx.e --> app.w
 
       // ── Init ──────────────────────────────────────────────────────────────
       buildRefPanel()
+      refreshSavedDiagramOptions()
+      restoreAutosavedDiagram()
 
       // Auto-render initial content on page load
       window.addEventListener("load", () => {
         const code = document.getElementById("code").value.trim()
-        if (code) triggerRender()
+        if (code) {
+          autosaveDiagram()
+          triggerRender()
+        }
       })
     </script>
   </body>
