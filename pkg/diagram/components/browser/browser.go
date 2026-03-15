@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"strings"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
@@ -85,6 +86,36 @@ func (c *Component) Offset(dx, dy float64) {
 // Draw renders the browser as SVG by composing its atom sub-components.
 func (c *Component) Draw() string {
 	return drawComposite(c.Shape, c.Props)
+}
+
+// ResolveAction implements core.ActionConnector. It maps Browser action names
+// to ConnectionIntents so that layout can create arrows without knowing the
+// per-action semantics:
+//   - "request"  → solid-line arrow to the target
+//   - "response" → dashed-line arrow to the target
+//
+// actionProps are the parsed key/value pairs from the action call, e.g.
+// target:@s,dir:lr.
+func (c *Component) ResolveAction(sourceID, actionName string, actionProps map[string]any) []core.ConnectionIntent {
+	if actionName != "request" && actionName != "response" {
+		return nil
+	}
+	targetRaw, _ := actionProps["target"].(string)
+	if targetRaw == "" {
+		return nil
+	}
+	targetID := strings.TrimPrefix(targetRaw, "@")
+	dir, _ := actionProps["dir"].(string)
+	style := ""
+	if actionName == "response" {
+		style = "dashed"
+	}
+	return []core.ConnectionIntent{{
+		FromID: sourceID,
+		ToID:   targetID,
+		Dir:    dir,
+		Style:  style,
+	}}
 }
 
 // DrawFromRenderNode is the entry point called by the diagram rendering pipeline.

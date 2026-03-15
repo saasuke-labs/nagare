@@ -5,6 +5,7 @@ import (
 
 	"github.com/saasuke-labs/nagare/pkg/components"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
+	diagrambrowser "github.com/saasuke-labs/nagare/pkg/diagram/components/browser"
 	diagramserver "github.com/saasuke-labs/nagare/pkg/diagram/components/server"
 	diagramvm "github.com/saasuke-labs/nagare/pkg/diagram/components/vm"
 	"github.com/saasuke-labs/nagare/pkg/parser"
@@ -346,7 +347,11 @@ func TestResolveActionConnectionsBrowserRequest(t *testing.T) {
 		"s": {X: 400, Y: 0, Width: 200, Height: 140},
 	}
 
-	arrows := resolveActionConnections(root, nodeIndex)
+	connectorIndex := map[string]core.ActionConnector{
+		"b": diagrambrowser.New("b"),
+	}
+
+	arrows := resolveActionConnections(root, nodeIndex, connectorIndex)
 
 	if len(arrows) != 1 {
 		t.Fatalf("expected 1 action arrow, got %d", len(arrows))
@@ -384,7 +389,11 @@ func TestResolveActionConnectionsBrowserResponse(t *testing.T) {
 		"s": {X: 400, Y: 0, Width: 200, Height: 140},
 	}
 
-	arrows := resolveActionConnections(root, nodeIndex)
+	connectorIndex := map[string]core.ActionConnector{
+		"b": diagrambrowser.New("b"),
+	}
+
+	arrows := resolveActionConnections(root, nodeIndex, connectorIndex)
 
 	if len(arrows) != 1 {
 		t.Fatalf("expected 1 action arrow, got %d", len(arrows))
@@ -413,7 +422,10 @@ func TestResolveActionConnectionsNonBrowserIgnored(t *testing.T) {
 		"db":  {X: 300, Y: 0, Width: 200, Height: 200},
 	}
 
-	arrows := resolveActionConnections(root, nodeIndex)
+	// Neither Server nor Database implements ActionConnector, so the index is empty.
+	connectorIndex := map[string]core.ActionConnector{}
+
+	arrows := resolveActionConnections(root, nodeIndex, connectorIndex)
 
 	if len(arrows) != 0 {
 		t.Fatalf("expected 0 action arrows for non-Browser components, got %d", len(arrows))

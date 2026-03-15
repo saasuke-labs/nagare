@@ -483,10 +483,18 @@ func syncVMChildGeometry(vm *diagramvm.Component, nodeIndex map[string]component
 func Calculate(node parser.Node, canvasWidth, canvasHeight float64) (Layout, error) {
 	boundsWidth, boundsHeight := calculateCanvasBounds(node, canvasWidth, canvasHeight)
 	nodeIndex := make(map[string]components.Shape)
+	connectorIndex := make(map[string]core.ActionConnector)
 
 	children := make([]components.Component, 0, len(node.Children))
 	for _, child := range node.Children {
-		children = append(children, buildComponentTree(child, nodeIndex)...)
+		built := buildComponentTree(child, nodeIndex)
+		children = append(children, built...)
+		// Register any component that can handle action-driven connections.
+		if len(built) > 0 {
+			if connector, ok := built[0].(core.ActionConnector); ok {
+				connectorIndex[child.Text] = connector
+			}
+		}
 	}
 
 	// Resolve alignment references after all components are positioned
@@ -499,7 +507,7 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) (Layout, err
 	}
 
 	// Resolve action-generated arrows (e.g. @browser.request(target:@server,dir:lr))
-	actionArrows := resolveActionConnections(node, nodeIndex)
+	actionArrows := resolveActionConnections(node, nodeIndex, connectorIndex)
 	if len(actionArrows) > 0 {
 		arrows = append(arrows, actionArrows...)
 		children = append(children, buildArrowComponents(actionArrows)...)
@@ -1064,19 +1072,20 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 	return arrows
 }
 
-// resolveActionConnections converts action-driven connection intents in global
-// states into Arrow geometry. Currently handles Browser actions:
-//   - "request" → solid-line arrow from the browser to the target
-//   - "response" → dashed-line arrow from the browser to the target
+// resolveActionConnections converts action-driven connection intents from global
+// states into Arrow geometry.  Each component that implements
+// core.ActionConnector is consulted for every global state whose name matches
+// "componentID.actionName".  The component decides what ConnectionIntents to
+// emit; layout resolves the coordinates using the shared anchor/routing helpers.
 //
-// The direction hint "dir" (lr, rl, tb, bt) selects the source and target
-// anchor; when omitted the best anchors are inferred from relative positions.
-func resolveActionConnections(node parser.Node, nodeIndex map[string]components.Shape) []Arrow {
+// The direction hint "dir" on a ConnectionIntent (lr, rl, tb, bt) selects the
+// source and target anchor; when omitted the best anchors are inferred from
+// relative positions.
+func resolveActionConnections(node parser.Node, nodeIndex map[string]components.Shape, connectorIndex map[string]core.ActionConnector) []Arrow {
 	if len(node.GlobalStates) == 0 {
 		return nil
 	}
 
-	typeIndex := buildNodeTypeIndex(node)
 	arrows := make([]Arrow, 0)
 
 	for _, state := range node.GlobalStates {
@@ -1087,75 +1096,56 @@ func resolveActionConnections(node parser.Node, nodeIndex map[string]components.
 		nodeID := state.Name[:dotIdx]
 		actionName := state.Name[dotIdx+1:]
 
-		// Only process Browser actions that semantically generate arrows.
-		nodeType, ok := typeIndex[nodeID]
-		if !ok || nodeType != componentTypeBrowser {
-			continue
-		}
-		if actionName != "request" && actionName != "response" {
+		connector, ok := connectorIndex[nodeID]
+		if !ok {
 			continue
 		}
 
 		actionProps := props.ParseToMap(state.PropsDef)
+		intents := connector.ResolveAction(nodeID, actionName, actionProps)
 
-		targetRaw, ok := actionProps["target"].(string)
-		if !ok || targetRaw == "" {
-			continue
+		for _, intent := range intents {
+			fromShape, okFrom := nodeIndex[intent.FromID]
+			toShape, okTo := nodeIndex[intent.ToID]
+			if !okFrom || !okTo {
+				continue
+			}
+
+			fromAnchor, toAnchor := intentAnchors(intent, fromShape, toShape)
+			start := computeAnchorPoint(fromShape, fromAnchor)
+			end := computeAnchorPoint(toShape, toAnchor)
+			points := routeArrowPoints(start, end, fromAnchor, toAnchor)
+
+			bendPoints := make([]core.Point, 0)
+			if len(points) > 2 {
+				bendPoints = append(bendPoints, points[1:len(points)-1]...)
+			}
+
+			arrows = append(arrows, Arrow{
+				FromID:      intent.FromID,
+				ToID:        intent.ToID,
+				FromAnchor:  fromAnchor.Raw,
+				ToAnchor:    toAnchor.Raw,
+				Start:       points[0],
+				End:         points[len(points)-1],
+				BendPoints:  bendPoints,
+				Style:       intent.Style,
+				MarkerStart: false,
+				MarkerEnd:   true,
+			})
 		}
-		targetID := strings.TrimPrefix(targetRaw, "@")
-
-		fromShape, okFrom := nodeIndex[nodeID]
-		toShape, okTo := nodeIndex[targetID]
-		if !okFrom || !okTo {
-			continue
-		}
-
-		// Map action name to arrow style at the Browser component boundary.
-		// "request" → solid line (default), "response" → dashed line.
-		style := ""
-		if actionName == "response" {
-			style = "dashed"
-		}
-
-		dirRaw, _ := actionProps["dir"].(string)
-		fromAnchor, toAnchor := actionDirToAnchors(dirRaw, fromShape, toShape)
-
-		start := computeAnchorPoint(fromShape, fromAnchor)
-		end := computeAnchorPoint(toShape, toAnchor)
-		points := routeArrowPoints(start, end, fromAnchor, toAnchor)
-
-		bendPoints := make([]core.Point, 0)
-		if len(points) > 2 {
-			bendPoints = append(bendPoints, points[1:len(points)-1]...)
-		}
-
-		arrows = append(arrows, Arrow{
-			FromID:      nodeID,
-			ToID:        targetID,
-			FromAnchor:  fromAnchor.Raw,
-			ToAnchor:    toAnchor.Raw,
-			Start:       points[0],
-			End:         points[len(points)-1],
-			BendPoints:  bendPoints,
-			Style:       style,
-			MarkerStart: false,
-			MarkerEnd:   true,
-		})
 	}
 	return arrows
 }
 
-// buildNodeTypeIndex builds a flat map of node ID → component type string from
-// the root-level children and their immediate children (for VM-nested nodes).
-func buildNodeTypeIndex(node parser.Node) map[string]string {
-	index := make(map[string]string, len(node.Children))
-	for _, child := range node.Children {
-		index[child.Text] = string(child.Type)
-		for _, grandchild := range child.Children {
-			index[grandchild.Text] = string(grandchild.Type)
-		}
+// intentAnchors resolves the source and target AnchorDescriptors for a
+// ConnectionIntent.  It uses explicit FromPort/ToPort when provided, falls back
+// to the Dir hint, and finally infers anchors from relative shape positions.
+func intentAnchors(intent core.ConnectionIntent, from, to components.Shape) (parser.AnchorDescriptor, parser.AnchorDescriptor) {
+	if intent.FromPort != "" && intent.ToPort != "" {
+		return makeRawAnchor(intent.FromPort), makeRawAnchor(intent.ToPort)
 	}
-	return index
+	return actionDirToAnchors(intent.Dir, from, to)
 }
 
 // actionDirToAnchors maps a direction hint string (lr, rl, tb, bt) to a pair
