@@ -156,6 +156,9 @@ Each component exposes `DrawFromRenderNode(id, props)` and resolves its own fall
 Render-tree recursion already applies parent/child `<g transform="translate(...)">` wrappers, so component templates should render using local coordinates (`x:0`, `y:0`) to avoid double-applying placement offsets.
 When component actions semantically create arrows (for example request/response), keep action-to-style mapping at the owning component boundary and pass resolved geometry/style props to Arrow, keeping Arrow action-agnostic.
 
+Parser behavior note: the parser currently records actions as state definitions (for example `@browser.request(...)`) but does not synthesize `Connection` entries from action names; explicit arrows (`from.anchor --> to.anchor`) remain the parser-level connection syntax.
+
+
 ## RFCs
 
 - [RFC: Action-Driven Arrow Creation and Centralized Arrow Resolution](docs/RFC_PORT_AWARE_ARROWS.md)
