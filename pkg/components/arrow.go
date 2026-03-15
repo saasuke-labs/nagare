@@ -67,6 +67,7 @@ func (a *Arrow) Draw() string {
 		StrokeWidth float64
 		Style       string
 		HasStyle    bool
+		IsDashed    bool
 		MarkerStart bool
 		MarkerEnd   bool
 		MarkerID    string
@@ -76,6 +77,7 @@ func (a *Arrow) Draw() string {
 		StrokeWidth: a.StrokeWidth,
 		Style:       trimmedStyle,
 		HasStyle:    trimmedStyle != "",
+		IsDashed:    trimmedStyle == "dashed",
 		MarkerStart: a.MarkerStart,
 		MarkerEnd:   a.MarkerEnd,
 		MarkerID:    markerID,

@@ -483,10 +483,18 @@ func syncVMChildGeometry(vm *diagramvm.Component, nodeIndex map[string]component
 func Calculate(node parser.Node, canvasWidth, canvasHeight float64) (Layout, error) {
 	boundsWidth, boundsHeight := calculateCanvasBounds(node, canvasWidth, canvasHeight)
 	nodeIndex := make(map[string]components.Shape)
+	connectorIndex := make(map[string]core.ActionConnector)
 
 	children := make([]components.Component, 0, len(node.Children))
 	for _, child := range node.Children {
-		children = append(children, buildComponentTree(child, nodeIndex)...)
+		built := buildComponentTree(child, nodeIndex)
+		children = append(children, built...)
+		// Register any component that can handle action-driven connections.
+		if len(built) > 0 {
+			if connector, ok := built[0].(core.ActionConnector); ok {
+				connectorIndex[child.Text] = connector
+			}
+		}
 	}
 
 	// Resolve alignment references after all components are positioned
@@ -496,6 +504,13 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) (Layout, err
 	arrows := resolveConnections(node.Connections, nodeIndex)
 	if len(arrows) > 0 {
 		children = append(children, buildArrowComponents(arrows)...)
+	}
+
+	// Resolve action-generated arrows (e.g. @browser.request(target:@server,dir:lr))
+	actionArrows := resolveActionConnections(node, nodeIndex, connectorIndex)
+	if len(actionArrows) > 0 {
+		arrows = append(arrows, actionArrows...)
+		children = append(children, buildArrowComponents(actionArrows)...)
 	}
 
 	return Layout{
@@ -1055,6 +1070,134 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 		})
 	}
 	return arrows
+}
+
+// resolveActionConnections converts action-driven connection intents from global
+// states into Arrow geometry.  Each component that implements
+// core.ActionConnector is consulted for every global state whose name matches
+// "componentID.actionName".  The component decides what ConnectionIntents to
+// emit; layout resolves the coordinates using the shared anchor/routing helpers.
+//
+// The direction hint "dir" on a ConnectionIntent (lr, rl, tb, bt) selects the
+// source and target anchor; when omitted the best anchors are inferred from
+// relative positions.
+func resolveActionConnections(node parser.Node, nodeIndex map[string]components.Shape, connectorIndex map[string]core.ActionConnector) []Arrow {
+	if len(node.GlobalStates) == 0 {
+		return nil
+	}
+
+	arrows := make([]Arrow, 0)
+
+	for _, state := range node.GlobalStates {
+		dotIdx := strings.Index(state.Name, ".")
+		if dotIdx < 0 {
+			continue
+		}
+		nodeID := state.Name[:dotIdx]
+		actionName := state.Name[dotIdx+1:]
+
+		connector, ok := connectorIndex[nodeID]
+		if !ok {
+			continue
+		}
+
+		actionProps := props.ParseToMap(state.PropsDef)
+		intents := connector.ResolveAction(nodeID, actionName, actionProps)
+
+		for _, intent := range intents {
+			fromShape, okFrom := nodeIndex[intent.FromID]
+			toShape, okTo := nodeIndex[intent.ToID]
+			if !okFrom || !okTo {
+				continue
+			}
+
+			fromAnchor, toAnchor := intentAnchors(intent, fromShape, toShape)
+			start := computeAnchorPoint(fromShape, fromAnchor)
+			end := computeAnchorPoint(toShape, toAnchor)
+			points := routeArrowPoints(start, end, fromAnchor, toAnchor)
+
+			bendPoints := make([]core.Point, 0)
+			if len(points) > 2 {
+				bendPoints = append(bendPoints, points[1:len(points)-1]...)
+			}
+
+			arrows = append(arrows, Arrow{
+				FromID:      intent.FromID,
+				ToID:        intent.ToID,
+				FromAnchor:  fromAnchor.Raw,
+				ToAnchor:    toAnchor.Raw,
+				Start:       points[0],
+				End:         points[len(points)-1],
+				BendPoints:  bendPoints,
+				Style:       intent.Style,
+				MarkerStart: false,
+				MarkerEnd:   true,
+			})
+		}
+	}
+	return arrows
+}
+
+// intentAnchors resolves the source and target AnchorDescriptors for a
+// ConnectionIntent.  It uses explicit FromPort/ToPort when provided, falls back
+// to the Dir hint, and finally infers anchors from relative shape positions.
+func intentAnchors(intent core.ConnectionIntent, from, to components.Shape) (parser.AnchorDescriptor, parser.AnchorDescriptor) {
+	if intent.FromPort != "" && intent.ToPort != "" {
+		return makeRawAnchor(intent.FromPort), makeRawAnchor(intent.ToPort)
+	}
+	return actionDirToAnchors(intent.Dir, from, to)
+}
+
+// actionDirToAnchors maps a direction hint string (lr, rl, tb, bt) to a pair
+// of anchor descriptors for the source and target components.  When dir is
+// empty the best anchors are inferred from the relative positions of the two
+// shapes.
+func actionDirToAnchors(dir string, from, to components.Shape) (parser.AnchorDescriptor, parser.AnchorDescriptor) {
+	switch strings.ToLower(dir) {
+	case "lr":
+		return makeRawAnchor("e"), makeRawAnchor("w")
+	case "rl":
+		return makeRawAnchor("w"), makeRawAnchor("e")
+	case "tb":
+		return makeRawAnchor("s"), makeRawAnchor("n")
+	case "bt":
+		return makeRawAnchor("n"), makeRawAnchor("s")
+	default:
+		return inferAnchors(from, to)
+	}
+}
+
+// makeRawAnchor builds a normalised AnchorDescriptor from a compass string
+// (e.g. "e", "w", "n", "s").
+func makeRawAnchor(raw string) parser.AnchorDescriptor {
+	return normalizeAnchor(parser.AnchorDescriptor{Raw: raw})
+}
+
+// inferAnchors selects the best anchor pair based on the relative centres of
+// the two shapes.
+func inferAnchors(from, to components.Shape) (parser.AnchorDescriptor, parser.AnchorDescriptor) {
+	fromCX := from.X + from.Width*0.5
+	fromCY := from.Y + from.Height*0.5
+	toCX := to.X + to.Width*0.5
+	toCY := to.Y + to.Height*0.5
+
+	dx := toCX - fromCX
+	dy := toCY - fromCY
+	absDX := math.Abs(dx)
+	absDY := math.Abs(dy)
+
+	if absDX >= absDY {
+		// Primarily horizontal
+		if dx >= 0 {
+			return makeRawAnchor("e"), makeRawAnchor("w")
+		}
+		return makeRawAnchor("w"), makeRawAnchor("e")
+	}
+	// Primarily vertical
+	if dy >= 0 {
+		return makeRawAnchor("s"), makeRawAnchor("n")
+	}
+	return makeRawAnchor("n"), makeRawAnchor("s")
 }
 
 func normalizeAnchor(anchor parser.AnchorDescriptor) parser.AnchorDescriptor {

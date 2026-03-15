@@ -166,3 +166,96 @@ func TestDatabaseLedLayoutIsInsideAndScalesWithDatabase(t *testing.T) {
 		t.Fatalf("expected larger led radius for larger database")
 	}
 }
+
+// TestBrowserRendersFromAtomSubComponents verifies that the browser component
+// renders using its three atom sub-components: application (outer chrome +
+// content area + control buttons), titlebar (URL bar), and html-content.
+func TestBrowserRendersFromAtomSubComponents(t *testing.T) {
+	code := `
+b:Browser
+@b(x:10,y:20,w:640,h:420,url:"https://example.com",text:"Hello World")
+`
+	html, err := CreateDiagram(code)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// application: outer frame present
+	if !strings.Contains(html, `filter="url(#softShadow)"`) {
+		t.Fatalf("expected browser application shadow group")
+	}
+	// control buttons (traffic lights)
+	if !strings.Contains(html, `fill="#ff5f57"`) {
+		t.Fatalf("expected red control button from application sub-component")
+	}
+	if !strings.Contains(html, `fill="#febc2e"`) {
+		t.Fatalf("expected yellow control button from application sub-component")
+	}
+	if !strings.Contains(html, `fill="#28c840"`) {
+		t.Fatalf("expected green control button from application sub-component")
+	}
+	// titlebar: URL bar present
+	if !strings.Contains(html, `opacity="0.85"`) {
+		t.Fatalf("expected URL bar rect from titlebar sub-component")
+	}
+	// titlebar: URL text
+	if !strings.Contains(html, "https://example.com") {
+		t.Fatalf("expected URL text from titlebar sub-component")
+	}
+	// html-content: label text
+	if !strings.Contains(html, "Hello World") {
+		t.Fatalf("expected content text from html-content sub-component")
+	}
+}
+
+// TestBrowserRequestActionGeneratesSolidArrow verifies that the "request"
+// action on a Browser component generates a solid-line arrow toward the target.
+func TestBrowserRequestActionGeneratesSolidArrow(t *testing.T) {
+	components.ResetArrowMarkerCounter()
+	code := `
+b:Browser
+s:Server
+@b(x:0,y:0,w:320,h:210)
+@s(x:400,y:0,w:200,h:140)
+@b.request(target:@s,dir:lr)
+`
+	html, err := CreateDiagram(code)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Should contain a polyline (arrow) element
+	if !strings.Contains(html, "<polyline") {
+		t.Fatalf("expected a polyline arrow for the request action")
+	}
+	// Should NOT contain dashed style (request is a solid line)
+	if strings.Contains(html, `stroke-dasharray`) {
+		t.Fatalf("request action arrow should be solid, not dashed")
+	}
+}
+
+// TestBrowserResponseActionGeneratesDashedArrow verifies that the "response"
+// action on a Browser component generates a dashed-line arrow toward the target.
+func TestBrowserResponseActionGeneratesDashedArrow(t *testing.T) {
+	components.ResetArrowMarkerCounter()
+	code := `
+b:Browser
+s:Server
+@b(x:0,y:0,w:320,h:210)
+@s(x:400,y:0,w:200,h:140)
+@b.response(target:@s,dir:lr)
+`
+	html, err := CreateDiagram(code)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Should contain a polyline (arrow) element
+	if !strings.Contains(html, "<polyline") {
+		t.Fatalf("expected a polyline arrow for the response action")
+	}
+	// Should contain dashed stroke style
+	if !strings.Contains(html, `stroke-dasharray`) {
+		t.Fatalf("response action arrow should be dashed")
+	}
+}
