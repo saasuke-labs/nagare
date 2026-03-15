@@ -174,6 +174,55 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name: "type declaration with inline props",
+			tokens: []tokenizer.Token{
+				{Type: tokenizer.IDENTIFIER, Value: "browser"},
+				{Type: tokenizer.COLON},
+				{Type: tokenizer.IDENTIFIER, Value: "Browser"},
+				{Type: tokenizer.LEFT_PAREN},
+				{Type: tokenizer.IDENTIFIER, Value: "title"},
+				{Type: tokenizer.COLON},
+				{Type: tokenizer.IDENTIFIER, Value: "home"},
+				{Type: tokenizer.RIGHT_PAREN},
+			},
+			expected: Node{
+				Type:  NODE_ELEMENT,
+				Depth: 0,
+				Children: []Node{
+					{
+						Type:     NodeType("Browser"),
+						Text:     "browser",
+						PropsDef: "title:home",
+						Depth:    0,
+					},
+				},
+			},
+		},
+		{
+			name: "anonymous inline type props",
+			tokens: []tokenizer.Token{
+				{Type: tokenizer.IDENTIFIER, Value: "DB"},
+				{Type: tokenizer.LEFT_PAREN},
+				{Type: tokenizer.IDENTIFIER, Value: "x"},
+				{Type: tokenizer.COLON},
+				{Type: tokenizer.IDENTIFIER, Value: "10"},
+				{Type: tokenizer.RIGHT_PAREN},
+			},
+			expected: Node{
+				Type:  NODE_ELEMENT,
+				Depth: 0,
+				Children: []Node{
+					{
+						Type:     NodeType("DB"),
+						Text:     "db-3eaf1a",
+						PropsDef: "x:10",
+						Depth:    0,
+					},
+				},
+			},
+		},
 		{
 			name: "type declaration remains",
 			tokens: []tokenizer.Token{

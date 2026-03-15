@@ -53,6 +53,32 @@ func TestTokenize(t *testing.T) {
 			},
 		},
 		{
+			name:  "inline type props",
+			input: "browser:Browser(title: home)",
+			expected: []Token{
+				{Type: IDENTIFIER, Value: "browser"},
+				{Type: COLON},
+				{Type: IDENTIFIER, Value: "Browser"},
+				{Type: LEFT_PAREN},
+				{Type: IDENTIFIER, Value: "title"},
+				{Type: COLON},
+				{Type: IDENTIFIER, Value: "home"},
+				{Type: RIGHT_PAREN},
+			},
+		},
+		{
+			name:  "anonymous typed node with props",
+			input: "DB(x: 10)",
+			expected: []Token{
+				{Type: IDENTIFIER, Value: "DB"},
+				{Type: LEFT_PAREN},
+				{Type: IDENTIFIER, Value: "x"},
+				{Type: COLON},
+				{Type: IDENTIFIER, Value: "10"},
+				{Type: RIGHT_PAREN},
+			},
+		},
+		{
 			name:  "connection arrow",
 			input: "foo.w --> bar.e",
 			expected: []Token{
