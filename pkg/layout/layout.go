@@ -956,6 +956,9 @@ func coreShape(x, y, width, height float64) core.Shape {
 }
 
 func applyIDStateProperties(node parser.Node, shape *components.Shape, props propertyParser, componentID string) {
+	applyGeometryDefinition(componentID, shape, node.PropsDef)
+	parseComponentProps(componentID, props, node.PropsDef)
+
 	idState, ok := node.States[node.Text]
 	if !ok {
 		return

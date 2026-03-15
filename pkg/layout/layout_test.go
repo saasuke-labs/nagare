@@ -327,3 +327,26 @@ func TestApplyNamedStatePropertiesWithGeometry(t *testing.T) {
 		t.Fatalf("expected props parser to be invoked")
 	}
 }
+
+func TestCalculateAppliesInlineNodeProps(t *testing.T) {
+	code := `browser:Browser(title: "Home",x:120,y:90,w:300,h:200)`
+
+	tokens := tokenizer.Tokenize(code)
+	ast, err := parser.Parse(tokens)
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+
+	layout, _ := Calculate(ast, 800, 400)
+	shape, ok := layout.NodeIndex["browser"]
+	if !ok {
+		t.Fatalf("expected browser in node index")
+	}
+
+	if !floatsNearlyEqual(shape.X, 120) || !floatsNearlyEqual(shape.Y, 90) {
+		t.Fatalf("expected inline position 120,90 got %.2f,%.2f", shape.X, shape.Y)
+	}
+	if !floatsNearlyEqual(shape.Width, 300) || !floatsNearlyEqual(shape.Height, 200) {
+		t.Fatalf("expected inline size 300x200 got %.2fx%.2f", shape.Width, shape.Height)
+	}
+}

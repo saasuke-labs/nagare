@@ -63,15 +63,10 @@ func main() {
     diagramCode := `
 @layout(w:500,h:300)
 
-client:Browser@webapp
-server:Server@backend
+client:Browser(url: "https://example.com", text: "Web App", x:50,y:100,w:180,h:120)
+server:Server(title: "API Server", icon: "server", port: 8080, x:300,y:100,w:150,h:50)
 
 client.e --> server.w
-
-@client(x:50,y:100,w:180,h:120)
-@webapp(url: "https://example.com", bg: "#e6f3ff", fg: "#333", text: "Web App")
-
-@server(x:300,y:100,w:150,h:50, title: "API Server", icon: "server", port: 8080, bg: "#f0f8ff", fg: "#333")
 `
 
     svg, err := nagare.RenderToSVG(diagramCode)
@@ -89,6 +84,19 @@ Install the library in your project:
 go get github.com/saasuke-labs/nagare
 ```
 
+## Syntax Notes
+
+Nagare supports inline attributes directly on node declarations:
+
+```text
+browser:Browser(title: home, x: 50, y: 100)
+db:DB(x: 10)
+DB(x: 10)  # anonymous component id is auto-generated
+```
+
+`@layout(...)` and action states (for example `@db.read(...)`) are still supported.
+Legacy `@id(...)` and `name:Type@state` syntax continue to work, but inline attributes are now the preferred style for component configuration.
+
 ## Layout Overrides
 
 You can control the overall canvas dimensions with a global `@layout` directive. This is useful when you need extra room for connections or when you want diagrams to render inside a specific viewport.
@@ -96,8 +104,8 @@ You can control the overall canvas dimensions with a global `@layout` directive.
 ```text
 @layout(w: 800, h: 600)
 
-browser:Browser@home
-vps:VM@ubuntu {
+browser:Browser(title: "home")
+vps:VM(title: "ubuntu") {
     nginx:App
     app:App
 }
@@ -110,23 +118,14 @@ The `layout` stage resolves these geometry overrides before components are insta
 ```text
 @layout(w:950,h:400)
 
-browser:Browser@home
-vps:VM@ubuntu {
-    nginx:Server@nginx
-    app:Server@app
+browser:Browser(url: "https://www.nagare.com", text: "Home Page", x:50,y:100,w:200,h:150)
+vps:VM(title: "home@ubuntu", bg: "#333", fg: "#ccc", x:300,y:&browser.c,w:600,h:300) {
+    nginx:Server(title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333", x:50,y:&browser.c,w:200,h:50)
+    app:Server(title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333", x:350,y:&browser.c,w:200,h:50)
 }
 
 browser.e --> nginx.w
 nginx.e --> app.w
-
-@browser(x:50,y:100,w:200,h:150)
-@home(url: "https://www.nagare.com", bg: "#e6f3ff", fg: "#333", text: "Home Page")
-
-@vps(x:300,y:&browser.c,w:600,h:300)
-@ubuntu(title: "home@ubuntu", bg: "#333", fg: "#ccc", text: "Ubuntu")
-
-@nginx(x:50,y:&browser.c,w:200,h:50, title: "nginx", icon: "nginx", port: 80, bg: "#e6f3ff", fg: "#333")
-@app(x:350,y:&browser.c,w:200,h:50, title: "App", icon: "golang", port: 8080, bg: "#f0f8ff", fg: "#333")
 ```
 
 

@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"strconv"
@@ -30,6 +31,7 @@ type Node struct {
 	Children     []Node
 	Depth        int    // Track nesting level
 	State        string // Current state name if specified with @
+	PropsDef     string // Inline props definition from node declarations like Type(x:1)
 	States       map[string]State
 	Globals      map[string]State
 	GlobalStates []State
@@ -138,12 +140,23 @@ func (p *Parser) parseState() (*State, error) {
 
 	name := nameBuilder.String()
 
-	if p.current >= len(p.tokens) || p.tokens[p.current].Type != tokenizer.LEFT_PAREN {
-		return nil, errors.New("expected ( after state name")
+	propsDef, err := p.parsePropsDefinition()
+	if err != nil {
+		return nil, err
 	}
-	p.current++ // Move past (
 
-	// Collect everything until the matching )
+	return &State{
+		Name:     name,
+		PropsDef: propsDef,
+	}, nil
+}
+
+func (p *Parser) parsePropsDefinition() (string, error) {
+	if p.current >= len(p.tokens) || p.tokens[p.current].Type != tokenizer.LEFT_PAREN {
+		return "", errors.New("expected ( for props definition")
+	}
+	p.current++
+
 	var propsDef strings.Builder
 	parenCount := 1
 	inQuotes := false
@@ -154,7 +167,7 @@ func (p *Parser) parseState() (*State, error) {
 		switch {
 		case token.Type == tokenizer.IDENTIFIER && (token.Value == "\"" || token.Value == "'"):
 			inQuotes = !inQuotes
-			propsDef.WriteString("\"") // Always use double quotes
+			propsDef.WriteString("\"")
 		case token.Type == tokenizer.COMMA && !inQuotes:
 			propsDef.WriteString(",")
 		case token.Type == tokenizer.COLON && !inQuotes:
@@ -173,7 +186,7 @@ func (p *Parser) parseState() (*State, error) {
 			propsDef.WriteString(token.Value)
 			if !inQuotes && token.Type != tokenizer.COLON && token.Type != tokenizer.COMMA {
 				nextToken := p.peekNext()
-				if nextToken != nil && nextToken.Type != tokenizer.COLON && nextToken.Type != tokenizer.COMMA {
+				if nextToken != nil && nextToken.Type != tokenizer.COLON && nextToken.Type != tokenizer.COMMA && nextToken.Type != tokenizer.RIGHT_PAREN {
 					propsDef.WriteString(" ")
 				}
 			}
@@ -182,13 +195,15 @@ func (p *Parser) parseState() (*State, error) {
 	}
 
 	if parenCount > 0 {
-		return nil, errors.New("unclosed parenthesis in state definition")
+		return "", errors.New("unclosed parenthesis in props definition")
 	}
 
-	return &State{
-		Name:     name,
-		PropsDef: propsDef.String(),
-	}, nil
+	return propsDef.String(), nil
+}
+
+func generateAnonymousNodeID(nodeType string, position int) string {
+	hash := sha1.Sum([]byte(fmt.Sprintf("%s-%d", nodeType, position)))
+	return fmt.Sprintf("%s-%x", strings.ToLower(nodeType), hash[:3])
 }
 
 func (p *Parser) peekNext() *tokenizer.Token {
@@ -258,10 +273,12 @@ func (p *Parser) parse(depth int) (Node, error) {
 				continue
 			}
 
+			start := p.current
 			// Look ahead for type declaration
 			nodeName := strings.TrimSpace(token.Value)
 			nodeType := NODE_ELEMENT // Default type
-			p.current++              // Move past identifier
+			propsDef := ""
+			p.current++ // Move past identifier
 
 			// Check if next token is a colon (type declaration)
 			if p.current < len(p.tokens) && p.tokens[p.current].Type == tokenizer.COLON {
@@ -275,6 +292,9 @@ func (p *Parser) parse(depth int) (Node, error) {
 				// Use the declared type
 				nodeType = NodeType(p.tokens[p.current].Value)
 				p.current++ // Move past type
+			} else if p.current < len(p.tokens) && p.tokens[p.current].Type == tokenizer.LEFT_PAREN {
+				nodeType = NodeType(nodeName)
+				nodeName = generateAnonymousNodeID(nodeName, start)
 			}
 
 			// Check for state declaration with @
@@ -299,6 +319,14 @@ func (p *Parser) parse(depth int) (Node, error) {
 				}
 			}
 
+			if p.current < len(p.tokens) && p.tokens[p.current].Type == tokenizer.LEFT_PAREN {
+				parsedProps, err := p.parsePropsDefinition()
+				if err != nil {
+					return Node{}, err
+				}
+				propsDef = parsedProps
+			}
+
 			// Check if it's a container (has braces)
 			isContainer := p.current < len(p.tokens) &&
 				p.tokens[p.current].Type == tokenizer.LEFT_BRACE
@@ -311,11 +339,12 @@ func (p *Parser) parse(depth int) (Node, error) {
 				}
 				// This is a container node
 				containerNode := Node{
-					Type:   nodeType, // Use declared type or default
-					Text:   nodeName,
-					Depth:  depth,
-					State:  stateName,
-					States: states,
+					Type:     nodeType, // Use declared type or default
+					Text:     nodeName,
+					Depth:    depth,
+					State:    stateName,
+					PropsDef: propsDef,
+					States:   states,
 				}
 				p.current++ // Skip the left brace
 
@@ -344,11 +373,12 @@ func (p *Parser) parse(depth int) (Node, error) {
 			} else {
 				// Regular node
 				node := Node{
-					Type:   nodeType, // Use declared type or default
-					Text:   nodeName,
-					Depth:  depth,
-					State:  stateName,
-					States: states,
+					Type:     nodeType, // Use declared type or default
+					Text:     nodeName,
+					Depth:    depth,
+					State:    stateName,
+					PropsDef: propsDef,
+					States:   states,
 				}
 
 				if depth == 0 {
