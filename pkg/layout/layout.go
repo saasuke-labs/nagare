@@ -498,6 +498,13 @@ func Calculate(node parser.Node, canvasWidth, canvasHeight float64) (Layout, err
 		children = append(children, buildArrowComponents(arrows)...)
 	}
 
+	// Resolve action-generated arrows (e.g. @browser.request(target:@server,dir:lr))
+	actionArrows := resolveActionConnections(node, nodeIndex)
+	if len(actionArrows) > 0 {
+		arrows = append(arrows, actionArrows...)
+		children = append(children, buildArrowComponents(actionArrows)...)
+	}
+
 	return Layout{
 		Bounds: Rect{
 			X:      defaultComponentX,
@@ -1055,6 +1062,152 @@ func resolveConnections(connections []parser.Connection, nodeIndex map[string]co
 		})
 	}
 	return arrows
+}
+
+// resolveActionConnections converts action-driven connection intents in global
+// states into Arrow geometry. Currently handles Browser actions:
+//   - "request" → solid-line arrow from the browser to the target
+//   - "response" → dashed-line arrow from the browser to the target
+//
+// The direction hint "dir" (lr, rl, tb, bt) selects the source and target
+// anchor; when omitted the best anchors are inferred from relative positions.
+func resolveActionConnections(node parser.Node, nodeIndex map[string]components.Shape) []Arrow {
+	if len(node.GlobalStates) == 0 {
+		return nil
+	}
+
+	typeIndex := buildNodeTypeIndex(node)
+	arrows := make([]Arrow, 0)
+
+	for _, state := range node.GlobalStates {
+		dotIdx := strings.Index(state.Name, ".")
+		if dotIdx < 0 {
+			continue
+		}
+		nodeID := state.Name[:dotIdx]
+		actionName := state.Name[dotIdx+1:]
+
+		// Only process Browser actions that semantically generate arrows.
+		nodeType, ok := typeIndex[nodeID]
+		if !ok || nodeType != componentTypeBrowser {
+			continue
+		}
+		if actionName != "request" && actionName != "response" {
+			continue
+		}
+
+		actionProps := props.ParseToMap(state.PropsDef)
+
+		targetRaw, ok := actionProps["target"].(string)
+		if !ok || targetRaw == "" {
+			continue
+		}
+		targetID := strings.TrimPrefix(targetRaw, "@")
+
+		fromShape, okFrom := nodeIndex[nodeID]
+		toShape, okTo := nodeIndex[targetID]
+		if !okFrom || !okTo {
+			continue
+		}
+
+		// Map action name to arrow style at the Browser component boundary.
+		// "request" → solid line (default), "response" → dashed line.
+		style := ""
+		if actionName == "response" {
+			style = "dashed"
+		}
+
+		dirRaw, _ := actionProps["dir"].(string)
+		fromAnchor, toAnchor := actionDirToAnchors(dirRaw, fromShape, toShape)
+
+		start := computeAnchorPoint(fromShape, fromAnchor)
+		end := computeAnchorPoint(toShape, toAnchor)
+		points := routeArrowPoints(start, end, fromAnchor, toAnchor)
+
+		bendPoints := make([]core.Point, 0)
+		if len(points) > 2 {
+			bendPoints = append(bendPoints, points[1:len(points)-1]...)
+		}
+
+		arrows = append(arrows, Arrow{
+			FromID:      nodeID,
+			ToID:        targetID,
+			FromAnchor:  fromAnchor.Raw,
+			ToAnchor:    toAnchor.Raw,
+			Start:       points[0],
+			End:         points[len(points)-1],
+			BendPoints:  bendPoints,
+			Style:       style,
+			MarkerStart: false,
+			MarkerEnd:   true,
+		})
+	}
+	return arrows
+}
+
+// buildNodeTypeIndex builds a flat map of node ID → component type string from
+// the root-level children and their immediate children (for VM-nested nodes).
+func buildNodeTypeIndex(node parser.Node) map[string]string {
+	index := make(map[string]string, len(node.Children))
+	for _, child := range node.Children {
+		index[child.Text] = string(child.Type)
+		for _, grandchild := range child.Children {
+			index[grandchild.Text] = string(grandchild.Type)
+		}
+	}
+	return index
+}
+
+// actionDirToAnchors maps a direction hint string (lr, rl, tb, bt) to a pair
+// of anchor descriptors for the source and target components.  When dir is
+// empty the best anchors are inferred from the relative positions of the two
+// shapes.
+func actionDirToAnchors(dir string, from, to components.Shape) (parser.AnchorDescriptor, parser.AnchorDescriptor) {
+	switch strings.ToLower(dir) {
+	case "lr":
+		return makeRawAnchor("e"), makeRawAnchor("w")
+	case "rl":
+		return makeRawAnchor("w"), makeRawAnchor("e")
+	case "tb":
+		return makeRawAnchor("s"), makeRawAnchor("n")
+	case "bt":
+		return makeRawAnchor("n"), makeRawAnchor("s")
+	default:
+		return inferAnchors(from, to)
+	}
+}
+
+// makeRawAnchor builds a normalised AnchorDescriptor from a compass string
+// (e.g. "e", "w", "n", "s").
+func makeRawAnchor(raw string) parser.AnchorDescriptor {
+	return normalizeAnchor(parser.AnchorDescriptor{Raw: raw})
+}
+
+// inferAnchors selects the best anchor pair based on the relative centres of
+// the two shapes.
+func inferAnchors(from, to components.Shape) (parser.AnchorDescriptor, parser.AnchorDescriptor) {
+	fromCX := from.X + from.Width*0.5
+	fromCY := from.Y + from.Height*0.5
+	toCX := to.X + to.Width*0.5
+	toCY := to.Y + to.Height*0.5
+
+	dx := toCX - fromCX
+	dy := toCY - fromCY
+	absDX := math.Abs(dx)
+	absDY := math.Abs(dy)
+
+	if absDX >= absDY {
+		// Primarily horizontal
+		if dx >= 0 {
+			return makeRawAnchor("e"), makeRawAnchor("w")
+		}
+		return makeRawAnchor("w"), makeRawAnchor("e")
+	}
+	// Primarily vertical
+	if dy >= 0 {
+		return makeRawAnchor("s"), makeRawAnchor("n")
+	}
+	return makeRawAnchor("n"), makeRawAnchor("s")
 }
 
 func normalizeAnchor(anchor parser.AnchorDescriptor) parser.AnchorDescriptor {

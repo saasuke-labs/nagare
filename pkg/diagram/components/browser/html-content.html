@@ -1,0 +1,5 @@
+{{define "browser-html-content"}}
+<text x="{{printf "%.6f" (mul .Width 0.5)}}" y="{{printf "%.6f" (add .ContentAreaY (mul .ContentAreaHeight 0.5))}}" text-anchor="middle" dominant-baseline="middle"
+    font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+    font-size="{{printf "%.6f" (mul .FontSize 2)}}" fill="{{.ForegroundColor}}">{{.Text}}</text>
+{{end}}

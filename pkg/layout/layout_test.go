@@ -327,3 +327,95 @@ func TestApplyNamedStatePropertiesWithGeometry(t *testing.T) {
 		t.Fatalf("expected props parser to be invoked")
 	}
 }
+
+// TestResolveActionConnectionsBrowserRequest verifies that a Browser's
+// "request" global state generates a solid-line Arrow connection.
+func TestResolveActionConnectionsBrowserRequest(t *testing.T) {
+	root := parser.Node{
+		Children: []parser.Node{
+			{Type: "Browser", Text: "b"},
+			{Type: "Server", Text: "s"},
+		},
+		GlobalStates: []parser.State{
+			{Name: "b.request", PropsDef: "target:@s,dir:lr"},
+		},
+	}
+
+	nodeIndex := map[string]components.Shape{
+		"b": {X: 0, Y: 0, Width: 320, Height: 210},
+		"s": {X: 400, Y: 0, Width: 200, Height: 140},
+	}
+
+	arrows := resolveActionConnections(root, nodeIndex)
+
+	if len(arrows) != 1 {
+		t.Fatalf("expected 1 action arrow, got %d", len(arrows))
+	}
+	arrow := arrows[0]
+	if arrow.FromID != "b" {
+		t.Fatalf("expected FromID 'b', got %q", arrow.FromID)
+	}
+	if arrow.ToID != "s" {
+		t.Fatalf("expected ToID 's', got %q", arrow.ToID)
+	}
+	if arrow.Style != "" {
+		t.Fatalf("request action should produce a solid (empty style) arrow, got %q", arrow.Style)
+	}
+	if !arrow.MarkerEnd {
+		t.Fatalf("expected arrow to have an end marker")
+	}
+}
+
+// TestResolveActionConnectionsBrowserResponse verifies that a Browser's
+// "response" global state generates a dashed-line Arrow connection.
+func TestResolveActionConnectionsBrowserResponse(t *testing.T) {
+	root := parser.Node{
+		Children: []parser.Node{
+			{Type: "Browser", Text: "b"},
+			{Type: "Server", Text: "s"},
+		},
+		GlobalStates: []parser.State{
+			{Name: "b.response", PropsDef: "target:@s,dir:lr"},
+		},
+	}
+
+	nodeIndex := map[string]components.Shape{
+		"b": {X: 0, Y: 0, Width: 320, Height: 210},
+		"s": {X: 400, Y: 0, Width: 200, Height: 140},
+	}
+
+	arrows := resolveActionConnections(root, nodeIndex)
+
+	if len(arrows) != 1 {
+		t.Fatalf("expected 1 action arrow, got %d", len(arrows))
+	}
+	if arrows[0].Style != "dashed" {
+		t.Fatalf("response action should produce a dashed arrow, got %q", arrows[0].Style)
+	}
+}
+
+// TestResolveActionConnectionsNonBrowserIgnored verifies that action states
+// from non-Browser components do not generate arrows.
+func TestResolveActionConnectionsNonBrowserIgnored(t *testing.T) {
+	root := parser.Node{
+		Children: []parser.Node{
+			{Type: "Server", Text: "srv"},
+			{Type: "Database", Text: "db"},
+		},
+		GlobalStates: []parser.State{
+			{Name: "srv.request", PropsDef: "target:@db"},
+			{Name: "db.read", PropsDef: "begin:0s,dur:1s"},
+		},
+	}
+
+	nodeIndex := map[string]components.Shape{
+		"srv": {X: 0, Y: 0, Width: 200, Height: 140},
+		"db":  {X: 300, Y: 0, Width: 200, Height: 200},
+	}
+
+	arrows := resolveActionConnections(root, nodeIndex)
+
+	if len(arrows) != 0 {
+		t.Fatalf("expected 0 action arrows for non-Browser components, got %d", len(arrows))
+	}
+}

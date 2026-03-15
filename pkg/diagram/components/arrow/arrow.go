@@ -60,12 +60,15 @@ func (a *Component) Draw() string {
 		return ""
 	}
 
+	trimmedStyle := strings.TrimSpace(a.Style)
+
 	data := struct {
 		Points      []Point
 		StrokeColor string
 		StrokeWidth float64
 		Style       string
 		HasStyle    bool
+		IsDashed    bool
 		MarkerStart bool
 		MarkerEnd   bool
 		MarkerID    string
@@ -73,8 +76,9 @@ func (a *Component) Draw() string {
 		Points:      a.Points,
 		StrokeColor: a.StrokeColor,
 		StrokeWidth: a.StrokeWidth,
-		Style:       strings.TrimSpace(a.Style),
-		HasStyle:    strings.TrimSpace(a.Style) != "",
+		Style:       trimmedStyle,
+		HasStyle:    trimmedStyle != "",
+		IsDashed:    trimmedStyle == "dashed",
 		MarkerStart: a.MarkerStart,
 		MarkerEnd:   a.MarkerEnd,
 		MarkerID:    a.ensureMarkerID(),
