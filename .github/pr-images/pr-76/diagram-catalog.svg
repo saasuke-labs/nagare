@@ -1,0 +1,103 @@
+<svg viewBox="0 0 800.000000 300.000000"  xmlns="http://www.w3.org/2000/svg">
+<!-- Background -->
+<rect width="800.000000" height="300.000000" fill="#ccc"></rect>
+<g transform="translate(0.000000,0.000000)">
+<g transform="translate(0.000000,0.000000)">
+    <g class="ns" filter="url(#softShadow)">
+            <rect x="0" y="0" width="50.000000" height="40.000000" rx="0.781250" fill="#e6f3ff" stroke="#333333"/>
+            <rect x="0" y="0" width="50.000000" height="4.190476" rx="0.781250" ry="0.781250" fill="#e6f3ff" stroke="#333333"/>
+            <rect x="7.812500" y="0.952380" width="37.500000" height="2.285712" rx="0.468750" fill="#fff" stroke="#333333" opacity="0.85"/>
+            <rect x="0.937500" y="5.333332" width="48.125000" height="33.523808" rx="0.468750" fill="#ffffff" stroke="#333333" opacity="0.9"/>
+    </g>
+    <text x="26.562500" y="2.095236" text-anchor="middle" dominant-baseline="middle"
+            font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+            font-size="2.000000" fill="#333333"></text>
+    <text x="25.000000" y="22.095236" text-anchor="middle" dominant-baseline="middle"
+            font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
+            font-size="5" fill="#333333"></text>
+    
+<g transform="translate(1.093750,1.333332)">
+        <circle r="0.468750" cx="0" cy="0.623438" fill="#ff5f57"/>
+        <circle r="0.468750" cx="1.406250" cy="0.623438" fill="#febc2e"/>
+        <circle r="0.468750" cx="2.812500" cy="0.623438" fill="#28c840"/>
+</g>
+
+
+</g>
+</g>
+<g transform="translate(100.000000,0.000000)">
+<g transform="translate(0.000000,0.000000)">
+    <rect x="0" y="0" width="50.000000" height="40.000000"
+          rx="3.200000" ry="3.200000"
+          fill="#0f172a"/>
+    <rect x="0" y="0" width="50.000000" height="7.200000"
+          rx="3.200000" ry="3.200000"
+          fill="#38bdf8"/>
+    <text x="25.000000" y="4.800000"
+          text-anchor="middle" font-family="Menlo, monospace"
+          font-size="4.800000" fill="#f8fafc">Terminal</text>
+    <text x="4.000000" y="18.000000"
+          font-family="Menlo, monospace" font-size="7.200000" fill="#f8fafc">
+        <tspan fill="#38bdf8">~/project</tspan>
+        <tspan> $ </tspan>
+        <tspan>go run main.go</tspan>
+    </text>
+</g>
+</g>
+<g transform="translate(200.000000,0.000000)">
+<g transform="translate(0, 0)">
+  <defs>
+    <linearGradient id="database-body@cylinder" x1="0%" x2="100%" y1="0%" y2="0%">
+      <stop offset="0%" stop-color="#0f766e" />
+      <stop offset="100%" stop-color="#14b8a6" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="50" height="40" fill="url(#database-body@cylinder)"></rect>
+  <ellipse cx="25" cy="0" rx="25" ry="15" fill="#14b8a6"></ellipse>
+  <ellipse cx="25" cy="40" rx="25" ry="15" fill="url(#database-body@cylinder)"></ellipse>
+
+  <text
+    x="25"
+    y="20"
+    text-anchor="middle"
+    font-family="Arial"
+    font-size="24"
+    fill="#ecfdf5"
+  >Database</text>
+
+  
+  <text
+    x="25"
+    y="26.666666666666668"
+    text-anchor="middle"
+    font-family="Arial"
+    font-size="22"
+    fill="#ecfdf5"
+  >PostgreSQL</text>
+  
+</g>
+
+<g transform="translate(23.199999999999996, 8)">
+  <ellipse cx="4" cy="4" rx="4" ry="4" fill="darkred" opacity="0">
+    
+  </ellipse>
+
+  
+  <ellipse cx="4" cy="4" rx="4" ry="4" fill="darkred">
+    
+  </ellipse>
+</g>
+
+<g transform="translate(34.8, 8)">
+  <ellipse cx="4" cy="4" rx="4" ry="4" fill="darkgreen" opacity="1">
+    
+  </ellipse>
+
+  
+  <ellipse cx="4" cy="4" rx="4" ry="4" fill="darkgreen">
+    
+  </ellipse>
+</g>
+</g>
+</svg>
