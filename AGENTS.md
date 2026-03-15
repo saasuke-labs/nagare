@@ -50,6 +50,8 @@ The project follows a pipeline architecture with four main stages:
 - When an action is semantically an alias, map it at the parent component boundary (for example `Database.read/write` -> child `Led.blink`) so primitives keep a small, stable action surface.
 - For action-generated arrows, map action semantics at the source component boundary (for example `Browser.request/response` deciding solid vs dashed style) and instantiate Arrow with resolved values; Arrow itself should remain action-agnostic.
 - Parser should remain action-name agnostic: do not hardcode component action names in `pkg/parser`; action-to-arrow mapping belongs in component boundaries and downstream orchestration/layout.
+- Prefer inline component attributes (`name:Type(x:..., y:...)`) for concise examples, while keeping `@id(...)` and `name:Type@state` as equally supported syntax choices; keep `@layout(...)` and action states (for example `@db.read(...)`) for global layout and action timelines.
+- Anonymous inline declarations like `Type(x:...)` are valid and receive an auto-generated id in the parser.
 - For composed visuals, prefer parent-relative/proportional child geometry (instead of fixed pixel offsets) so composition scales correctly when parent dimensions change.
 - In the `layout/` package, leverage helpers like `applyIDStateProperties`, `applyNamedStateProperties`, and `routeArrowPoints` when adding new component types or connection rules so geometry/state handling remains consistent.
 
