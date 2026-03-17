@@ -97,6 +97,26 @@ DB(x: 10)  # anonymous component id is auto-generated
 `@layout(...)` and action states (for example `@db.read(...)`) are still supported.
 `@id(...)` and `name:Type@state` syntax remain fully supported. Inline attributes are also supported and are often convenient for colocating component configuration with the declaration.
 
+## Chart DSL Notes
+
+Nagare charts support mixed series styles in the same chart definition:
+
+- `style: line`, `dashed`, `dotted`
+- `style: bar` for column/bar rendering
+- `style: marker` for point annotations (marker dot + value text above each point)
+
+Bar series can also be stacked by declaring `stack` values aligned with each series:
+
+```text
+series: jog | walk | total distance | jog blocks
+style: bar | bar | line | marker
+stack: session | session | none | none
+yaxis: time | time | distance | blocks
+type: duration | duration | number | number
+```
+
+When multiple `bar` series share the same stack group (for example `session`), they stack at each x-position and share the same y-axis scale. This works with `xaxis: date` and with duration-typed y-values (`type: duration`) so bar heights are computed from parsed duration seconds while axis labels still render as duration strings.
+
 ## Layout Overrides
 
 You can control the overall canvas dimensions with a global `@layout` directive. This is useful when you need extra room for connections or when you want diagrams to render inside a specific viewport.

@@ -40,6 +40,7 @@ The project follows a pipeline architecture with four main stages:
 - `pkg/components/` - Shared SVG drawing primitives/templates used by diagram component adapters
 - `pkg/props/` - Property parsing helpers for component configuration
 - `pkg/version/` - Version information and build metadata
+- `pkg/chart/` - Chart DSL parser/renderer (supports mixed `line`/`bar`/`marker` styles, stack groups via `stack: ...`, multi-axis scales, and duration/date-aware chart rendering)
 
 ## Coding Conventions
 
