@@ -1,6 +1,8 @@
 package chart
 
 import (
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -617,7 +619,65 @@ data:
 		t.Fatalf("Expected line series stroke in SVG")
 	}
 
+	if !strings.Contains(svg, `fill="#aa7777"`) || !strings.Contains(svg, `fill="#ddd0d0"`) {
+		t.Fatalf("Expected each stacked bar series to preserve its own fill color")
+	}
+
+	if strings.Contains(svg, `opacity="0.9"`) {
+		t.Fatalf("Expected bar rendering without forced transparency")
+	}
+
 	if !strings.Contains(svg, "jog") || !strings.Contains(svg, "walk") || !strings.Contains(svg, "total") || !strings.Contains(svg, "blocks") {
 		t.Fatalf("Expected legend entries for mixed series")
+	}
+}
+
+func TestRenderSVGBarWidthFitsDenseDateSeries(t *testing.T) {
+	var inputBuilder strings.Builder
+	inputBuilder.WriteString(`chart
+title: Dense bars
+width: 1000
+height: 420
+xaxis: date
+
+scale
+  id: blocks
+
+series: blocks
+style: bar
+color: #ff0000
+yaxis: blocks
+type: number
+data:
+`)
+	for d := 1; d <= 30; d++ {
+		inputBuilder.WriteString("  2025-01-")
+		if d < 10 {
+			inputBuilder.WriteString("0")
+		}
+		inputBuilder.WriteString(strconv.Itoa(d))
+		inputBuilder.WriteString(": 1\n")
+	}
+
+	c, err := Parse(inputBuilder.String())
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	svg := c.RenderSVG()
+	re := regexp.MustCompile(`<rect x="[^"]+" y="[^"]+" width="([0-9]+\.?[0-9]*)"`)
+	matches := re.FindAllStringSubmatch(svg, -1)
+	if len(matches) == 0 {
+		t.Fatalf("Expected bar rects for dense date series")
+	}
+
+	for _, m := range matches {
+		w, err := strconv.ParseFloat(m[1], 64)
+		if err != nil {
+			t.Fatalf("Failed to parse bar width %q: %v", m[1], err)
+		}
+		if w > 24 {
+			t.Fatalf("Expected dense series bars to be narrower than 24px, got %.2f", w)
+		}
 	}
 }

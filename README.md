@@ -117,6 +117,8 @@ type: duration | duration | number | number
 
 When multiple `bar` series share the same stack group (for example `session`), they stack at each x-position and share the same y-axis scale. This works with `xaxis: date` and with duration-typed y-values (`type: duration`) so bar heights are computed from parsed duration seconds while axis labels still render as duration strings.
 
+Stacked bar segments preserve each series color (no forced color blending), and bar widths are automatically adapted to x-density so dense charts remain readable without excessive overlap.
+
 ## Layout Overrides
 
 You can control the overall canvas dimensions with a global `@layout` directive. This is useful when you need extra room for connections or when you want diagrams to render inside a specific viewport.
