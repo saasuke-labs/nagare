@@ -1105,10 +1105,44 @@ func (c *Chart) generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax f
 			continue
 		}
 
-		barSlotWidth := (plotWidth / math.Max(float64(seriesWithData), 1)) * 0.75
-		maxBarWidth := 28.0
-		if barSlotWidth > maxBarWidth {
-			barSlotWidth = maxBarWidth
+		uniqueX := map[float64]struct{}{}
+		for _, group := range groups {
+			for _, series := range group.Series {
+				for _, point := range series.Data {
+					uniqueX[point.X] = struct{}{}
+				}
+			}
+		}
+
+		minPixelGap := plotWidth
+		if len(uniqueX) > 1 {
+			xValues := make([]float64, 0, len(uniqueX))
+			for x := range uniqueX {
+				xValues = append(xValues, x)
+			}
+			sort.Float64s(xValues)
+
+			minPixelGap = math.MaxFloat64
+			for i := 1; i < len(xValues); i++ {
+				x0 := plotX + (xValues[i-1]-xMin)/(xMax-xMin)*plotWidth
+				x1 := plotX + (xValues[i]-xMin)/(xMax-xMin)*plotWidth
+				gap := math.Abs(x1 - x0)
+				if gap > 0 && gap < minPixelGap {
+					minPixelGap = gap
+				}
+			}
+			if minPixelGap == math.MaxFloat64 {
+				minPixelGap = plotWidth
+			}
+		}
+
+		groupBandWidth := minPixelGap * 0.8
+		barSlotWidth := groupBandWidth / math.Max(float64(len(groups)), 1)
+		if barSlotWidth > 28 {
+			barSlotWidth = 28
+		}
+		if barSlotWidth < 3 {
+			barSlotWidth = 3
 		}
 
 		for groupIdx, group := range groups {
@@ -1141,7 +1175,7 @@ func (c *Chart) generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax f
 						yTop, height = yBottom, -height
 					}
 
-					svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s" opacity="0.9"/>`,
+					svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>`,
 						x-barSlotWidth/2, yTop, barSlotWidth, height, series.Color))
 				}
 			}
