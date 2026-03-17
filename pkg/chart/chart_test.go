@@ -529,3 +529,95 @@ data:
 	}
 }
 
+func TestParseStackedBarAndMarkerSeries(t *testing.T) {
+	input := `chart
+title: Training Metrics
+xaxis: date
+
+scale
+  id: time
+  type: duration
+
+scale
+  id: distance
+
+series: jog | walk | total | blocks
+style: bar | bar | line | marker
+stack: session | session | none | none
+yaxis: time | time | distance | distance
+type: duration | duration | number | number
+data:
+  2025-12-18: 3:51 | 25:04 | 2.95 | 1
+  2025-12-19: 7:29 | 20:02 | 2.88 | 2`
+
+	c, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if len(c.Series) != 4 {
+		t.Fatalf("Expected 4 series, got %d", len(c.Series))
+	}
+
+	if c.Series[0].Style != "bar" || c.Series[1].Style != "bar" {
+		t.Fatalf("Expected first two series to be bar style, got %q and %q", c.Series[0].Style, c.Series[1].Style)
+	}
+
+	if c.Series[0].Stack != "session" || c.Series[1].Stack != "session" {
+		t.Fatalf("Expected stacked bar series to have stack=session, got %q and %q", c.Series[0].Stack, c.Series[1].Stack)
+	}
+
+	if c.Series[3].Style != "marker" {
+		t.Fatalf("Expected marker series style, got %q", c.Series[3].Style)
+	}
+
+	if c.Series[0].Data[0].Y != 231 { // 3:51
+		t.Fatalf("Expected duration to be converted to seconds for bars, got %.0f", c.Series[0].Data[0].Y)
+	}
+}
+
+func TestRenderSVGStackedBarsAndMarkerAnnotations(t *testing.T) {
+	input := `chart
+title: Mixed
+xaxis: date
+
+scale
+  id: time
+  type: duration
+
+scale
+  id: distance
+
+series: jog | walk | total | blocks
+color: #aa7777 | #ddd0d0 | #7777aa | #666666
+style: bar | bar | line | marker
+stack: session | session | none | none
+yaxis: time | time | distance | distance
+type: duration | duration | number | number
+data:
+  2025-12-18: 3:51 | 25:04 | 2.95 | 1
+  2025-12-19: 7:29 | 20:02 | 2.88 | 2`
+
+	c, err := Parse(input)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	svg := c.RenderSVG()
+
+	if strings.Count(svg, "<rect") < 3 {
+		t.Fatalf("Expected bar rendering rects, got SVG: %s", svg)
+	}
+
+	if !strings.Contains(svg, `<text x=`) || !strings.Contains(svg, `>2</text>`) {
+		t.Fatalf("Expected marker labels to render as text annotations, got SVG: %s", svg)
+	}
+
+	if !strings.Contains(svg, `stroke="#7777aa"`) {
+		t.Fatalf("Expected line series stroke in SVG")
+	}
+
+	if !strings.Contains(svg, "jog") || !strings.Contains(svg, "walk") || !strings.Contains(svg, "total") || !strings.Contains(svg, "blocks") {
+		t.Fatalf("Expected legend entries for mixed series")
+	}
+}

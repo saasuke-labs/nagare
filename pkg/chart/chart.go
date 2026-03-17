@@ -32,9 +32,10 @@ type Series struct {
 	Name  string
 	Data  []DataPoint
 	Color string
-	Style string // "line", "dashed", "dotted"
+	Style string // "line", "dashed", "dotted", "bar", "marker"
 	Type  string // "number" or "duration"
 	YAxis string // Scale ID this series belongs to (default: "default")
+	Stack string // Stack group for bar series ("none" disables stacking)
 }
 
 // Chart represents a line chart
@@ -105,6 +106,7 @@ func Parse(input string) (*Chart, error) {
 	var seriesStyles []string
 	var seriesTypes []string
 	var seriesYAxes []string
+	var seriesStacks []string
 	var inDataBlock bool
 	var dataLines []string
 	var currentScale *Scale
@@ -118,13 +120,14 @@ func Parse(input string) (*Chart, error) {
 		if trimmed == "" {
 			// Empty line - end data/scale block if we're in one
 			if inDataBlock && len(dataLines) > 0 {
-				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, dataLines, chart.XAxisType)
+				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, seriesStacks, dataLines, chart.XAxisType)
 				dataLines = nil
 				seriesNames = nil
 				seriesColors = nil
 				seriesStyles = nil
 				seriesTypes = nil
 				seriesYAxes = nil
+				seriesStacks = nil
 			}
 			if inScaleBlock && currentScale != nil {
 				if scaleMinSet && scaleMaxSet {
@@ -156,7 +159,7 @@ func Parse(input string) (*Chart, error) {
 		if trimmed == "scale" && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
 			// End any previous blocks
 			if inDataBlock && len(dataLines) > 0 {
-				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, dataLines, chart.XAxisType)
+				processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, seriesStacks, dataLines, chart.XAxisType)
 				dataLines = nil
 				inDataBlock = false
 			}
@@ -180,7 +183,7 @@ func Parse(input string) (*Chart, error) {
 
 		// Parse key: value
 		if inDataBlock && len(dataLines) > 0 {
-			processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, dataLines, chart.XAxisType)
+			processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, seriesStacks, dataLines, chart.XAxisType)
 			dataLines = nil
 			inDataBlock = false
 		}
@@ -262,6 +265,12 @@ func Parse(input string) (*Chart, error) {
 			} else {
 				seriesYAxes = []string{value}
 			}
+		case "stack":
+			if strings.Contains(value, "|") {
+				seriesStacks = parseDelimitedList(value, "|")
+			} else {
+				seriesStacks = []string{value}
+			}
 		case "data":
 			// Start data block
 			inDataBlock = true
@@ -293,7 +302,7 @@ func Parse(input string) (*Chart, error) {
 
 	// Handle final data block
 	if inDataBlock && len(dataLines) > 0 {
-		processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, dataLines, chart.XAxisType)
+		processMultiSeriesData(chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, seriesStacks, dataLines, chart.XAxisType)
 	}
 
 	// Handle final scale block
@@ -343,11 +352,6 @@ func Parse(input string) (*Chart, error) {
 		}
 	}
 
-	// Sort series by name for consistency
-	sort.Slice(chart.Series, func(i, j int) bool {
-		return chart.Series[i].Name < chart.Series[j].Name
-	})
-
 	return chart, nil
 }
 
@@ -365,7 +369,7 @@ func parseDelimitedList(value, delimiter string) []string {
 }
 
 // processMultiSeriesData handles both single and multi-series data blocks
-func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes []string, dataLines []string, xAxisType string) {
+func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyles, seriesTypes, seriesYAxes, seriesStacks []string, dataLines []string, xAxisType string) {
 	if len(seriesNames) == 0 {
 		return
 	}
@@ -382,8 +386,8 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 	}
 
 	if isMultiSeries {
-		// Parse multi-series data
-		seriesDataMap := make(map[int][][2]string)
+		// Parse multi-series data while preserving series declaration order
+		seriesDataByIndex := make([][][2]string, len(seriesNames))
 
 		for _, dataLine := range dataLines {
 			dataLine = strings.TrimSpace(dataLine)
@@ -396,16 +400,16 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 			values := strings.Split(strings.TrimSpace(parts[1]), "|")
 
 			for idx, valueStr := range values {
+				if idx >= len(seriesDataByIndex) {
+					break
+				}
 				valueStr = strings.TrimSpace(valueStr)
-				seriesDataMap[idx] = append(seriesDataMap[idx], [2]string{xStr, valueStr})
+				seriesDataByIndex[idx] = append(seriesDataByIndex[idx], [2]string{xStr, valueStr})
 			}
 		}
 
-		// Create series from the map
-		for idx, dataPoints := range seriesDataMap {
-			if idx >= len(seriesNames) {
-				break
-			}
+		// Create series from collected data in declaration order
+		for idx, dataPoints := range seriesDataByIndex {
 
 			// Get the type for this series
 			dataType := "number"
@@ -431,6 +435,10 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 
 			if idx < len(seriesYAxes) {
 				series.YAxis = seriesYAxes[idx]
+			}
+
+			if idx < len(seriesStacks) {
+				series.Stack = seriesStacks[idx]
 			}
 
 			if series.Color == "" {
@@ -467,6 +475,10 @@ func processMultiSeriesData(chart *Chart, seriesNames, seriesColors, seriesStyle
 
 			if len(seriesYAxes) > 0 {
 				series.YAxis = seriesYAxes[0]
+			}
+
+			if len(seriesStacks) > 0 {
+				series.Stack = seriesStacks[0]
 			}
 
 			if series.Color == "" {
@@ -844,14 +856,35 @@ func (c *Chart) calculateScaleRanges() {
 		yMin := math.MaxFloat64
 		yMax := -math.MaxFloat64
 		foundData := false
+		stackedSumsByX := map[string]float64{}
+		stackedNegativeSumsByX := map[string]float64{}
 
 		// Find all series belonging to this scale
 		for _, series := range c.Series {
 			if series.YAxis != scale.ID {
 				continue
 			}
+
+			isBar := series.Style == "bar"
+			isStackedBar := isBar && series.Stack != "" && strings.ToLower(series.Stack) != "none"
 			for _, point := range series.Data {
 				foundData = true
+				if isStackedBar {
+					stackKey := fmt.Sprintf("%s:%f", series.Stack, point.X)
+					if point.Y >= 0 {
+						stackedSumsByX[stackKey] += point.Y
+						if stackedSumsByX[stackKey] > yMax {
+							yMax = stackedSumsByX[stackKey]
+						}
+					} else {
+						stackedNegativeSumsByX[stackKey] += point.Y
+						if stackedNegativeSumsByX[stackKey] < yMin {
+							yMin = stackedNegativeSumsByX[stackKey]
+						}
+					}
+					continue
+				}
+
 				if point.Y < yMin {
 					yMin = point.Y
 				}
@@ -866,6 +899,10 @@ func (c *Chart) calculateScaleRanges() {
 			scale.Min = 0
 			scale.Max = 1
 			continue
+		}
+
+		if yMin > 0 {
+			yMin = 0
 		}
 
 		// Add 10% padding
@@ -1006,8 +1043,116 @@ func (c *Chart) generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax f
 		scaleMap[c.Scales[i].ID] = &c.Scales[i]
 	}
 
+	type barGroup struct {
+		Key    string
+		Series []Series
+	}
+
+	barGroupsByAxis := map[string][]barGroup{}
+	for _, series := range c.Series {
+		if series.Style != "bar" {
+			continue
+		}
+		axis := series.YAxis
+		if axis == "" {
+			axis = "default"
+		}
+		groupKey := "series:" + series.Name
+		if series.Stack != "" && strings.ToLower(series.Stack) != "none" {
+			groupKey = "stack:" + series.Stack
+		}
+
+		groups := barGroupsByAxis[axis]
+		found := false
+		for gi := range groups {
+			if groups[gi].Key == groupKey {
+				groups[gi].Series = append(groups[gi].Series, series)
+				found = true
+				break
+			}
+		}
+		if !found {
+			groups = append(groups, barGroup{Key: groupKey, Series: []Series{series}})
+		}
+		barGroupsByAxis[axis] = groups
+	}
+
+	for axisID, groups := range barGroupsByAxis {
+		scale, ok := scaleMap[axisID]
+		if !ok {
+			if len(c.Scales) == 0 {
+				continue
+			}
+			scale = &c.Scales[0]
+		}
+
+		yMin := scale.Min
+		yMax := scale.Max
+		if yMax == yMin {
+			yMax = yMin + 1
+		}
+
+		seriesWithData := 0
+		for _, group := range groups {
+			for _, series := range group.Series {
+				if len(series.Data) > 0 {
+					seriesWithData++
+					break
+				}
+			}
+		}
+		if seriesWithData == 0 {
+			continue
+		}
+
+		barSlotWidth := (plotWidth / math.Max(float64(seriesWithData), 1)) * 0.75
+		maxBarWidth := 28.0
+		if barSlotWidth > maxBarWidth {
+			barSlotWidth = maxBarWidth
+		}
+
+		for groupIdx, group := range groups {
+			xOffset := (float64(groupIdx) - float64(len(groups)-1)/2.0) * barSlotWidth
+			stackedBase := map[float64]float64{}
+			stackedNegativeBase := map[float64]float64{}
+
+			for _, series := range group.Series {
+				for _, point := range series.Data {
+					x := plotX + (point.X-xMin)/(xMax-xMin)*plotWidth + xOffset
+					barTopValue := point.Y
+					barBottomValue := 0.0
+
+					if strings.HasPrefix(group.Key, "stack:") {
+						if point.Y >= 0 {
+							barBottomValue = stackedBase[point.X]
+							barTopValue = barBottomValue + point.Y
+							stackedBase[point.X] = barTopValue
+						} else {
+							barBottomValue = stackedNegativeBase[point.X]
+							barTopValue = barBottomValue + point.Y
+							stackedNegativeBase[point.X] = barTopValue
+						}
+					}
+
+					yTop := plotY + plotHeight - (barTopValue-yMin)/(yMax-yMin)*plotHeight
+					yBottom := plotY + plotHeight - (barBottomValue-yMin)/(yMax-yMin)*plotHeight
+					height := yBottom - yTop
+					if height < 0 {
+						yTop, height = yBottom, -height
+					}
+
+					svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s" opacity="0.9"/>`,
+						x-barSlotWidth/2, yTop, barSlotWidth, height, series.Color))
+				}
+			}
+		}
+	}
+
 	for _, series := range c.Series {
 		if len(series.Data) == 0 {
+			continue
+		}
+		if series.Style == "bar" {
 			continue
 		}
 
@@ -1024,6 +1169,21 @@ func (c *Chart) generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax f
 
 		yMin := scale.Min
 		yMax := scale.Max
+
+		if series.Style == "marker" {
+			for _, point := range series.Data {
+				x := plotX + (point.X-xMin)/(xMax-xMin)*plotWidth
+				y := plotY + plotHeight - (point.Y-yMin)/(yMax-yMin)*plotHeight
+				svg.WriteString(fmt.Sprintf(`<circle cx="%.2f" cy="%.2f" r="3" fill="%s"/>`, x, y, series.Color))
+				label := fmt.Sprintf("%.0f", point.Y)
+				if point.YIsDuration {
+					label = point.YLabel
+				}
+				svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="10" fill="%s">%s</text>`,
+					x, y-8, series.Color, label))
+			}
+			continue
+		}
 
 		// Build path
 		var pathData strings.Builder
