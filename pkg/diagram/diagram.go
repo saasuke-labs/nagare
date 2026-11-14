@@ -20,6 +20,7 @@ import (
 	diagrampackage "github.com/saasuke-labs/nagare/pkg/diagram/components/packagecomponent"
 	diagramrectangle "github.com/saasuke-labs/nagare/pkg/diagram/components/rectangle"
 	diagramserver "github.com/saasuke-labs/nagare/pkg/diagram/components/server"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/style"
 	diagramterminal "github.com/saasuke-labs/nagare/pkg/diagram/components/terminal"
 	diagramvm "github.com/saasuke-labs/nagare/pkg/diagram/components/vm"
 	"github.com/saasuke-labs/nagare/pkg/layout"
@@ -336,6 +337,7 @@ func (d *Diagram) drawNode(node *RenderNode, shape components.Shape) string {
 	localProps["y"] = 0.0
 	localProps["w"] = shape.Width
 	localProps["h"] = shape.Height
+	localProps[style.ThemeKey] = d.Theme().Name
 
 	switch node.Type {
 	case "browser":
@@ -425,10 +427,26 @@ func serializePropValue(v any) string {
 	}
 }
 
-func renderArrowComponents(children []components.Component) string {
+// wrapSVG wraps rendered components in the root element. The canvas is
+// transparent so a diagram sits on whatever background the page has.
+func wrapSVG(w, h float64, content string) string {
+	return fmt.Sprintf("<svg viewBox=\"0 0 %.6f %.6f\" xmlns=\"http://www.w3.org/2000/svg\">\n%s</svg>", w, h, content)
+}
+
+// Theme returns the theme selected with @layout(theme:...). The default is light.
+func (d *Diagram) Theme() style.Theme {
+	name, _ := nagareprops.ParseToMap(layoutPropsDef(d.AST))["theme"].(string)
+	return style.ThemeByName(name)
+}
+
+func renderArrowComponents(children []components.Component, theme style.Theme) string {
 	var b strings.Builder
 	for _, c := range children {
 		if arrow, ok := c.(*components.Arrow); ok {
+			// Arrows still carrying the built-in colour follow the theme.
+			if arrow.StrokeColor == components.DefaultArrowStroke {
+				arrow.StrokeColor = theme.Arrow
+			}
 			b.WriteString(arrow.Draw())
 			b.WriteString("\n")
 		}
@@ -448,15 +466,9 @@ func CreateDiagram(code string) (string, error) {
 
 	renderTree := diagram.BuildRenderTree()
 	componentsSVG := diagram.RenderTreeChildren(renderTree)
-	componentsSVG += renderArrowComponents(diagram.Layout.Children)
+	componentsSVG += renderArrowComponents(diagram.Layout.Children, diagram.Theme())
 
-	// For now, just return a placeholder SVG
-	// In the future, this will use the diagram structure to render properly
-	svg := fmt.Sprintf("<svg viewBox=\"0 0 %.6f %.6f\"  xmlns=\"http://www.w3.org/2000/svg\">\n"+
-		"<!-- Background -->\n"+
-		"<rect width=\"%.6f\" height=\"%.6f\" fill=\"#ccc\"></rect>\n"+
-		"%s"+
-		"</svg>", w, h, w, h, componentsSVG)
+	svg := wrapSVG(w, h, componentsSVG)
 
 	return svg, nil
 }
@@ -473,13 +485,9 @@ func CreateDiagramWithSize(code string) (string, int, int, error) {
 	w, h := diagram.Layout.Bounds.Width, diagram.Layout.Bounds.Height
 	renderTree := diagram.BuildRenderTree()
 	componentsSVG := diagram.RenderTreeChildren(renderTree)
-	componentsSVG += renderArrowComponents(diagram.Layout.Children)
+	componentsSVG += renderArrowComponents(diagram.Layout.Children, diagram.Theme())
 
-	svg := fmt.Sprintf("<svg viewBox=\"0 0 %.6f %.6f\"  xmlns=\"http://www.w3.org/2000/svg\">\n"+
-		"<!-- Background -->\n"+
-		"<rect width=\"%.6f\" height=\"%.6f\" fill=\"#ccc\"></rect>\n"+
-		"%s"+
-		"</svg>", w, h, w, h, componentsSVG)
+	svg := wrapSVG(w, h, componentsSVG)
 
 	return svg, normalizedCanvasDimension(w, 800), normalizedCanvasDimension(h, 400), nil
 }

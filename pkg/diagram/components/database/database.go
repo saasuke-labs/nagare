@@ -8,6 +8,7 @@ import (
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/cylinder"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/led"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/style"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
@@ -32,11 +33,8 @@ func (p *Props) Parse(input string) error {
 
 func DefaultProps() Props {
 	return Props{
-		Title:           "Database",
-		Engine:          "PostgreSQL",
-		BackgroundColor: "#0f766e",
-		ForegroundColor: "#ecfdf5",
-		AccentColor:     "#14b8a6",
+		Title:  "Database",
+		Engine: "PostgreSQL",
 	}
 }
 
@@ -46,6 +44,7 @@ type Component struct {
 	Props   Props
 	State   string
 	Actions map[string][]map[string]any
+	Theme   string
 }
 
 func New(id string) *Component {
@@ -53,7 +52,7 @@ func New(id string) *Component {
 }
 
 func (l *Component) Draw() string {
-	return drawComposite(l.Text, l.Shape, l.Props, l.Actions)
+	return drawComposite(l.Text, l.Shape, l.Props, l.Actions, l.Theme)
 }
 
 func (l *Component) SetShape(shape components.Shape) { l.Shape = shape }
@@ -66,19 +65,21 @@ func (l *Component) Offset(dx, dy float64) {
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 	comp := New(id)
 	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
+	comp.Theme, _ = nodeProps[style.ThemeKey].(string)
 	_ = comp.Props.Parse(propsRaw(nodeProps))
 	comp.Actions = core.ActionMapFromAny(nodeProps["actions"])
 	return comp.Draw()
 }
 
-func drawComposite(id string, shape components.Shape, p Props, actions map[string][]map[string]any) string {
+func drawComposite(id string, shape components.Shape, p Props, actions map[string][]map[string]any, theme string) string {
 	cylinderPropsRaw := fmt.Sprintf("title:%q,subtitle:%q,bg:%q,fg:%q,accent:%q", p.Title, p.Engine, p.BackgroundColor, p.ForegroundColor, p.AccentColor)
 	cylinderSVG := cylinder.DrawFromRenderNode(id+"-body", map[string]any{
-		"x":         shape.X,
-		"y":         shape.Y,
-		"w":         shape.Width,
-		"h":         shape.Height,
-		"_rawProps": cylinderPropsRaw,
+		"x":            shape.X,
+		"y":            shape.Y,
+		"w":            shape.Width,
+		"h":            shape.Height,
+		"_rawProps":    cylinderPropsRaw,
+		style.ThemeKey: theme,
 	})
 
 	writeX, readX, ledY, ledSize := ledLayout(shape)
@@ -112,7 +113,8 @@ func ledLayout(shape components.Shape) (writeX, readX, y, size float64) {
 	size = math.Max(8, math.Min(shape.Width, shape.Height)*0.10)
 	gap := size * 0.45
 	rightPadding := size * 0.9
-	y = shape.Y + math.Max(8, shape.Height*0.10)
+	// Sit on the body, just below the cylinder's cap.
+	y = math.Round((shape.Y+shape.Height*0.28)*100) / 100
 
 	readX = shape.X + shape.Width - rightPadding - size
 	writeX = readX - gap - size

@@ -21,6 +21,10 @@ type Arrow struct {
 	markerID    string
 }
 
+// DefaultArrowStroke is the colour a new arrow starts with. The renderer
+// swaps it for the theme's arrow colour.
+const DefaultArrowStroke = "#1f2937"
+
 var arrowMarkerCounter uint64
 
 // ResetArrowMarkerCounter resets the global arrow marker counter.
@@ -38,7 +42,7 @@ func NewArrow(points []Point) *Arrow {
 	markerID := nextArrowMarkerID()
 	return &Arrow{
 		Points:      points,
-		StrokeColor: "#1f2937",
+		StrokeColor: DefaultArrowStroke,
 		StrokeWidth: 2,
 		MarkerEnd:   true,
 		markerID:    markerID,

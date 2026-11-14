@@ -1,0 +1,62 @@
+@layout(w:1900,h:1400, theme:dark)
+
+desktop:Browser
+mobile:Browser
+infra:VM
+jobs:VM
+api:Server
+auth:Server
+termDeploy:Terminal
+termDebug:Terminal
+dbPrimary:Database
+dbReplica:Database
+eventsQueue:MessageQueue
+tasksQueue:MessageQueue
+edgeGlobal:CDN
+edgeRegional:CDN
+gatewayPublic:APIGateway
+gatewayInternal:APIGateway
+workerReports:BackgroundWorker
+workerCleanup:BackgroundWorker
+pkgCLI:Package
+pkgLib:Package
+artifactBuild:Artifact
+artifactRelease:Artifact
+noteDesign:Rectangle
+noteMetrics:Rectangle
+
+@desktop(x:40,y:40,w:320,h:220,url: "https://app.example.com", text: "Dashboard")
+@mobile(x:400,y:40,w:280,h:220,url: "https://m.example.com", text: "Mobile")
+
+@infra(x:40,y:300,w:620,h:360,title: "prod-app-01")
+@jobs(x:720,y:300,w:620,h:360,title: "async-workers")
+
+@api(x:80,y:360,w:220,h:140,title: "api", icon: "golang", port: 8080)
+@auth(x:360,y:360,w:220,h:140,title: "auth", icon: "nginx", port: 443)
+
+@termDeploy(x:40,y:700,w:360,h:220,title: "deploy", cwd: "/srv/app", command: "kubectl apply -f deploy.yaml", prompt: "$")
+@termDebug(x:440,y:700,w:360,h:220,title: "debug", cwd: "~/workspace", command: "go test ./...", prompt: "#")
+
+@dbPrimary(x:840,y:700,w:220,h:200,title: "primary", engine: "PostgreSQL 15")
+@dbReplica(x:1120,y:700,w:220,h:200,title: "replica", engine: "PostgreSQL 15")
+
+@eventsQueue(x:1400,y:700,w:220,h:180,title: "events", kind: "Kafka")
+@tasksQueue(x:1640,y:700,w:220,h:180,title: "tasks", kind: "RabbitMQ")
+
+@edgeGlobal(x:40,y:960,w:200,h:160,title: "global edge", provider: "Cloudflare", region: "Global")
+@edgeRegional(x:280,y:960,w:200,h:160,title: "asia edge", provider: "AWS CloudFront", region: "ap-southeast-1")
+
+@gatewayPublic(x:520,y:960,w:220,h:180,title: "public api", route: "/v1", method: "ANY")
+@gatewayInternal(x:780,y:960,w:220,h:180,title: "internal", route: "/internal", method: "POST")
+
+@workerReports(x:1040,y:960,w:220,h:180,title: "reports", job: "generate-monthly", schedule: "0 2 * * *")
+@workerCleanup(x:1300,y:960,w:220,h:180,title: "cleanup", job: "trim-cache", schedule: "@every 5m")
+
+@pkgCLI(x:40,y:1180,w:200,h:180,title: "cli", version: "2.1.0", lang: "Go")
+@pkgLib(x:280,y:1180,w:200,h:180,title: "lib", version: "0.9.3", lang: "Python")
+
+@artifactBuild(x:520,y:1180,w:200,h:180,title: "build", filename: "build_2024_05.tar.gz", size: "32 MB")
+@artifactRelease(x:760,y:1180,w:200,h:180,title: "release", filename: "release-2024-05.zip", size: "28 MB")
+
+@noteDesign(x:1000,y:1180,w:220,h:160,title: "Design Notes")
+@noteMetrics(x:1260,y:1180,w:220,h:160,title: "Metrics")

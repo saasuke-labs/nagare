@@ -1,31 +1,29 @@
 package server
 
 import (
-	"bytes"
-	"embed"
 	"fmt"
-	"html/template"
+	"strings"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/style"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
-//go:embed server.html
-var templateFile embed.FS
+const (
+	DefaultWidth  = 200.0
+	DefaultHeight = 140.0
+)
 
-var tmpl = template.Must(template.New("server").Funcs(template.FuncMap{
-	"add": func(a, b float64) float64 { return a + b },
-	"mul": func(a, b float64) float64 { return a * b },
-	"sub": func(a, b float64) float64 { return a - b },
-}).ParseFS(templateFile, "server.html"))
-
+// Props are the configurable properties. Colour props are optional
+// overrides; when empty the diagram theme decides the colours.
 type Props struct {
 	Title           string `prop:"title"`
 	Icon            string `prop:"icon"`
 	Port            int    `prop:"port"`
 	BackgroundColor string `prop:"bg"`
 	ForegroundColor string `prop:"fg"`
+	AccentColor     string `prop:"accent"`
 }
 
 func (p *Props) Parse(input string) error {
@@ -33,12 +31,7 @@ func (p *Props) Parse(input string) error {
 }
 
 func DefaultProps() Props {
-	return Props{
-		Icon:            "default",
-		Port:            80,
-		BackgroundColor: "#e6f3ff",
-		ForegroundColor: "#333333",
-	}
+	return Props{Icon: "default", Port: 80}
 }
 
 type Component struct {
@@ -46,54 +39,42 @@ type Component struct {
 	Box       core.Shape
 	Container core.Shape
 	Props     Props
+	Theme     style.Theme
 }
 
 func New(id string) *Component {
-	return &Component{IDVal: id, Props: DefaultProps()}
+	return &Component{IDVal: id, Props: DefaultProps(), Theme: style.Light}
 }
 
-func (c *Component) ApplyProps(raw string) error {
-	return c.Props.Parse(raw)
-}
+func (c *Component) ApplyProps(raw string) error { return c.Props.Parse(raw) }
 
-func (c *Component) SetContainer(box core.Shape) {
-	c.Container = box
-}
+func (c *Component) SetContainer(box core.Shape) { c.Container = box }
 
-func (c *Component) SetShape(box core.Shape) {
-	c.Box = box
-}
+func (c *Component) SetShape(box core.Shape) { c.Box = box }
 
-func (c *Component) Shape() core.Shape {
-	return c.Box
-}
+func (c *Component) Shape() core.Shape { return c.Box }
 
 func (c *Component) Port(name string) (core.Point, error) {
 	return core.RectPort(c.Box, name)
 }
 
 func (c *Component) Draw() (string, error) {
-	data := struct {
-		X      float64
-		Y      float64
-		Width  float64
-		Height float64
-		Props  Props
-		Text   string
-	}{
-		X:      c.Box.X,
-		Y:      c.Box.Y,
-		Width:  c.Box.Width,
-		Height: c.Box.Height,
-		Props:  c.Props,
-		Text:   c.IDVal,
+	title := style.Or(c.Props.Title, c.IDVal)
+	sub := fmt.Sprintf(":%d", c.Props.Port)
+	if kind := strings.TrimSpace(c.Props.Icon); kind != "" && kind != "default" {
+		sub = kind + " · " + sub
 	}
-
-	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "server", data); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
+	return style.Card(style.CardSpec{
+		X: c.Box.X, Y: c.Box.Y, W: c.Box.Width, H: c.Box.Height,
+		Class:    "nagare-server",
+		Title:    title,
+		Subtitle: sub,
+		Icon:     style.IconServer,
+		Accent:   style.Or(c.Props.AccentColor, style.AccentBlue),
+		Bg:       c.Props.BackgroundColor,
+		Fg:       c.Props.ForegroundColor,
+		Theme:    c.Theme,
+	}), nil
 }
 
 type Adapter struct {
@@ -107,16 +88,11 @@ func NewAdapter(id string) *Adapter {
 }
 
 func (l *Adapter) Draw() string {
-	result, err := l.Comp.Draw()
-	if err != nil {
-		return fmt.Sprintf("<!-- Error rendering server template: %v -->", err)
-	}
+	result, _ := l.Comp.Draw()
 	return result
 }
 
-func (l *Adapter) SetShape(shape components.Shape) {
-	l.Comp.SetShape(shape)
-}
+func (l *Adapter) SetShape(shape components.Shape) { l.Comp.SetShape(shape) }
 
 func (l *Adapter) Offset(dx, dy float64) {
 	box := l.Comp.Shape()
@@ -125,14 +101,10 @@ func (l *Adapter) Offset(dx, dy float64) {
 	l.Comp.SetShape(box)
 }
 
-const (
-	DefaultWidth  = 200.0
-	DefaultHeight = 140.0
-)
-
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 	comp := NewAdapter(id)
 	comp.SetShape(core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight))
+	comp.Comp.Theme = style.ThemeFromProps(nodeProps)
 	if raw, ok := nodeProps["_rawProps"].(string); ok {
 		_ = comp.Comp.ApplyProps(raw)
 	}

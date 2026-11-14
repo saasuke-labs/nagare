@@ -135,6 +135,27 @@ vps:VM(title: "ubuntu") {
 
 The `layout` stage resolves these geometry overrides before components are instantiated, so every downstream step (child placement, connection routing, SVG rendering) respects the requested dimensions.
 
+### Themes and colours
+
+Every component is drawn from one shared visual system: the same card shape, stroke, corner radius and type scale, with a line icon and an accent colour per component type. The canvas is transparent, so a diagram sits on whatever background the page has.
+
+Pick the theme in the layout directive (`light` is the default):
+
+```text
+@layout(w: 800, h: 600, theme: dark)
+```
+
+Colour props are optional overrides on top of the theme:
+
+| Prop | Applies to |
+| --- | --- |
+| `bg` | Card, window chrome or cylinder fill |
+| `fg` | Text colour |
+| `accent` | Icon and highlight colour (where the component has one) |
+| `contentBg` | Content area of `Browser` and `VM` |
+
+If an `fg` override would be unreadable on its background, a contrasting text colour is used instead.
+
 ### Browser and VM Example
 
 ```text

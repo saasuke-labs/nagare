@@ -2,6 +2,7 @@ package diagram
 
 import (
 	_ "embed"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/style"
 	"strings"
 	"testing"
 
@@ -153,10 +154,10 @@ func TestDatabaseLedLayoutIsInsideAndScalesWithDatabase(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !strings.Contains(smallSVG, `transform="translate(66.5, 10)"`) {
+	if !strings.Contains(smallSVG, `transform="translate(66.5, 28)"`) {
 		t.Fatalf("expected small database leds to stay inside right edge")
 	}
-	if !strings.Contains(largeSVG, `transform="translate(199.5, 30)"`) {
+	if !strings.Contains(largeSVG, `transform="translate(199.5, 84)"`) {
 		t.Fatalf("expected large database leds to move proportionally with larger size")
 	}
 	if !strings.Contains(smallSVG, `rx="5" ry="5"`) {
@@ -181,8 +182,8 @@ b:Browser
 	}
 
 	// application: outer frame present
-	if !strings.Contains(html, `filter="url(#softShadow)"`) {
-		t.Fatalf("expected browser application shadow group")
+	if !strings.Contains(html, `class="nagare-window nagare-browser"`) {
+		t.Fatalf("expected browser window group")
 	}
 	// control buttons (traffic lights)
 	if !strings.Contains(html, `fill="#ff5f57"`) {
@@ -195,8 +196,8 @@ b:Browser
 		t.Fatalf("expected green control button from application sub-component")
 	}
 	// titlebar: URL bar present
-	if !strings.Contains(html, `opacity="0.85"`) {
-		t.Fatalf("expected URL bar rect from titlebar sub-component")
+	if !strings.Contains(html, `fill="`+style.Light.Surface+`"`) {
+		t.Fatalf("expected URL pill filled with the theme surface")
 	}
 	// titlebar: URL text
 	if !strings.Contains(html, "https://example.com") {
@@ -257,5 +258,47 @@ s:Server
 	// Should contain dashed stroke style
 	if !strings.Contains(html, `stroke-dasharray`) {
 		t.Fatalf("response action arrow should be dashed")
+	}
+}
+
+func TestThemeAndTransparentCanvas(t *testing.T) {
+	const body = `
+s:Server
+@s(x:10,y:10,w:200,h:60,title:"api")
+`
+	light, err := CreateDiagram("@layout(w:400,h:200)\n" + body)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	dark, err := CreateDiagram("@layout(w:400,h:200,theme:dark)\n" + body)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if strings.Contains(light, `fill="#ccc"`) {
+		t.Fatalf("expected a transparent canvas, found the old grey background")
+	}
+	if !strings.Contains(light, `fill="`+style.Light.Surface+`"`) {
+		t.Fatalf("expected light surface by default")
+	}
+	if !strings.Contains(dark, `fill="`+style.Dark.Surface+`"`) || strings.Contains(dark, `fill="`+style.Light.Surface+`"`) {
+		t.Fatalf("expected dark surface with theme:dark")
+	}
+}
+
+func TestColorOverridesStayReadable(t *testing.T) {
+	code := `@layout(w:400,h:200,theme:dark)
+s:Server
+@s(x:10,y:10,w:200,h:60,title:"api",bg:"#e6f3ff")
+`
+	svg, err := CreateDiagram(code)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(svg, `fill="#e6f3ff"`) {
+		t.Fatalf("expected bg override to be applied")
+	}
+	if strings.Contains(svg, `fill="`+style.Dark.Text+`"`) {
+		t.Fatalf("expected dark text on a light bg override, got the dark theme's light text")
 	}
 }

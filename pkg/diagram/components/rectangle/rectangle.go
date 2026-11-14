@@ -1,25 +1,19 @@
 package rectangle
 
 import (
-	"bytes"
-	"embed"
-	"fmt"
-	"html/template"
-
 	"github.com/saasuke-labs/nagare/pkg/components"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/style"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
-//go:embed rectangle.html
-var templateFile embed.FS
+const (
+	DefaultWidth  = 200.0
+	DefaultHeight = 140.0
+)
 
-var tmpl = template.Must(template.New("rectangle").Funcs(template.FuncMap{
-	"add": func(a, b float64) float64 { return a + b },
-	"mul": func(a, b float64) float64 { return a * b },
-	"sub": func(a, b float64) float64 { return a - b },
-}).ParseFS(templateFile, "rectangle.html"))
-
+// Props are the configurable properties. Colour props are optional
+// overrides; when empty the diagram theme decides the colours.
 type Props struct {
 	Title           string `prop:"title"`
 	BackgroundColor string `prop:"bg"`
@@ -31,10 +25,7 @@ func (p *Props) Parse(input string) error {
 }
 
 func DefaultProps() Props {
-	return Props{
-		BackgroundColor: "#e6f3ff",
-		ForegroundColor: "#333333",
-	}
+	return Props{}
 }
 
 type Component struct {
@@ -42,65 +33,34 @@ type Component struct {
 	Box       core.Shape
 	Container core.Shape
 	Props     Props
+	Theme     style.Theme
 }
 
 func New(id string) *Component {
-	return &Component{IDVal: id, Props: DefaultProps()}
+	return &Component{IDVal: id, Props: DefaultProps(), Theme: style.Light}
 }
 
-func (c *Component) ApplyProps(raw string) error {
-	return c.Props.Parse(raw)
-}
+func (c *Component) ApplyProps(raw string) error { return c.Props.Parse(raw) }
 
-func (c *Component) SetContainer(box core.Shape) {
-	c.Container = box
-}
+func (c *Component) SetContainer(box core.Shape) { c.Container = box }
 
-func (c *Component) SetShape(box core.Shape) {
-	c.Box = box
-}
+func (c *Component) SetShape(box core.Shape) { c.Box = box }
 
-func (c *Component) Shape() core.Shape {
-	return c.Box
-}
+func (c *Component) Shape() core.Shape { return c.Box }
 
 func (c *Component) Port(name string) (core.Point, error) {
 	return core.RectPort(c.Box, name)
 }
 
 func (c *Component) Draw() (string, error) {
-	displayText := c.IDVal
-	if c.Props.Title != "" {
-		displayText = c.Props.Title
-	}
-
-	data := struct {
-		X             float64
-		Y             float64
-		Width         float64
-		Height        float64
-		DisplayText   string
-		Background    string
-		Foreground    string
-		BorderRadiusX float64
-		BorderRadiusY float64
-	}{
-		X:             c.Box.X,
-		Y:             c.Box.Y,
-		Width:         c.Box.Width,
-		Height:        c.Box.Height,
-		DisplayText:   displayText,
-		Background:    c.Props.BackgroundColor,
-		Foreground:    c.Props.ForegroundColor,
-		BorderRadiusX: c.Box.Height * 0.1,
-		BorderRadiusY: c.Box.Height * 0.1,
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "rectangle", data); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
+	return style.Card(style.CardSpec{
+		X: c.Box.X, Y: c.Box.Y, W: c.Box.Width, H: c.Box.Height,
+		Class: "nagare-rectangle",
+		Title: style.Or(c.Props.Title, c.IDVal),
+		Bg:    c.Props.BackgroundColor,
+		Fg:    c.Props.ForegroundColor,
+		Theme: c.Theme,
+	}), nil
 }
 
 type Adapter struct {
@@ -114,16 +74,11 @@ func NewAdapter(id string) *Adapter {
 }
 
 func (l *Adapter) Draw() string {
-	result, err := l.Comp.Draw()
-	if err != nil {
-		return fmt.Sprintf("<!-- Error rendering rectangle template: %v -->", err)
-	}
+	result, _ := l.Comp.Draw()
 	return result
 }
 
-func (l *Adapter) SetShape(shape components.Shape) {
-	l.Comp.SetShape(shape)
-}
+func (l *Adapter) SetShape(shape components.Shape) { l.Comp.SetShape(shape) }
 
 func (l *Adapter) Offset(dx, dy float64) {
 	box := l.Comp.Shape()
@@ -132,14 +87,10 @@ func (l *Adapter) Offset(dx, dy float64) {
 	l.Comp.SetShape(box)
 }
 
-const (
-	DefaultWidth  = 200.0
-	DefaultHeight = 140.0
-)
-
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 	comp := NewAdapter(id)
 	comp.SetShape(core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight))
+	comp.Comp.Theme = style.ThemeFromProps(nodeProps)
 	if raw, ok := nodeProps["_rawProps"].(string); ok {
 		_ = comp.Comp.ApplyProps(raw)
 	}

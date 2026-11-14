@@ -1,25 +1,22 @@
 package terminal
 
 import (
-	"bytes"
-	"embed"
-	"fmt"
-	"html/template"
+	"math"
+	"strings"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/style"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
-//go:embed terminal.html
-var templateFile embed.FS
+const (
+	DefaultWidth  = 360.0
+	DefaultHeight = 220.0
+)
 
-var tmpl = template.Must(template.New("terminal").Funcs(template.FuncMap{
-	"add": func(a, b float64) float64 { return a + b },
-	"mul": func(a, b float64) float64 { return a * b },
-	"sub": func(a, b float64) float64 { return a - b },
-}).ParseFS(templateFile, "terminal.html"))
-
+// Props are the configurable properties. Colour props are optional
+// overrides; when empty the diagram theme decides the colours.
 type Props struct {
 	Title           string `prop:"title"`
 	WorkingDir      string `prop:"cwd"`
@@ -35,15 +32,7 @@ func (p *Props) Parse(input string) error {
 }
 
 func DefaultProps() Props {
-	return Props{
-		Title:           "Terminal",
-		WorkingDir:      "~/project",
-		Command:         "go run main.go",
-		PromptSymbol:    "$",
-		BackgroundColor: "#0f172a",
-		ForegroundColor: "#f8fafc",
-		AccentColor:     "#38bdf8",
-	}
+	return Props{Title: "Terminal", WorkingDir: "~/project", Command: "go run main.go", PromptSymbol: "$"}
 }
 
 type Component struct {
@@ -51,54 +40,59 @@ type Component struct {
 	Box       core.Shape
 	Container core.Shape
 	Props     Props
+	Theme     style.Theme
 }
 
 func New(id string) *Component {
-	return &Component{IDVal: id, Props: DefaultProps()}
+	return &Component{IDVal: id, Props: DefaultProps(), Theme: style.Light}
 }
 
-func (c *Component) ApplyProps(raw string) error {
-	return c.Props.Parse(raw)
-}
+func (c *Component) ApplyProps(raw string) error { return c.Props.Parse(raw) }
 
-func (c *Component) SetContainer(box core.Shape) {
-	c.Container = box
-}
+func (c *Component) SetContainer(box core.Shape) { c.Container = box }
 
-func (c *Component) SetShape(box core.Shape) {
-	c.Box = box
-}
+func (c *Component) SetShape(box core.Shape) { c.Box = box }
 
-func (c *Component) Shape() core.Shape {
-	return c.Box
-}
+func (c *Component) Shape() core.Shape { return c.Box }
 
 func (c *Component) Port(name string) (core.Point, error) {
 	return core.RectPort(c.Box, name)
 }
 
 func (c *Component) Draw() (string, error) {
-	data := struct {
-		X      float64
-		Y      float64
-		Width  float64
-		Height float64
-		Props  Props
-		Text   string
-	}{
-		X:      c.Box.X,
-		Y:      c.Box.Y,
-		Width:  c.Box.Width,
-		Height: c.Box.Height,
-		Props:  c.Props,
-		Text:   c.IDVal,
-	}
+	t := c.Theme
+	w, h := c.Box.Width, c.Box.Height
+	barH := style.Clamp(h*0.16, 14, 28)
+	inset := style.Clamp(barH*0.2, 3, 6)
+	bodyY := barH
+	bodyH := h - barH - inset
+	body := style.Or(c.Props.BackgroundColor, t.CodeBg)
+	fg := style.Legible(c.Props.ForegroundColor, body, t.CodeFg)
+	accent := style.Or(c.Props.AccentColor, style.AccentTeal)
 
-	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "terminal", data); err != nil {
-		return "", err
+	var b strings.Builder
+	b.WriteString(style.Window(style.WindowSpec{
+		X: c.Box.X, Y: c.Box.Y, W: w, H: h,
+		Class: "nagare-terminal", BarH: barH,
+		CX: inset, CY: bodyY, CW: w - 2*inset, CH: bodyH,
+		Title: c.Props.Title, TitleMono: true,
+		ContentFill: body, Theme: t,
+	}))
+
+	size := style.Clamp(bodyH*0.13, 8, 13)
+	pad := style.Clamp(size, 6, 14)
+	textX := inset + pad
+	textW := w - 2*(inset+pad)
+	prompt := strings.TrimSpace(c.Props.PromptSymbol + " " + c.Props.Command)
+	line := size * 1.6
+	if c.Props.WorkingDir != "" && bodyH >= 2*line+pad {
+		b.WriteString(style.Text(c.Props.WorkingDir, style.TextOpts{X: textX, Y: bodyY + pad + size/2, Size: size, Color: accent, Mono: true, Width: textW}))
+		b.WriteString(style.Text(prompt, style.TextOpts{X: textX, Y: bodyY + pad + size/2 + line, Size: size, Color: fg, Mono: true, Width: textW}))
+	} else if bodyH >= size+4 {
+		b.WriteString(style.Text(prompt, style.TextOpts{X: textX, Y: bodyY + math.Min(pad+size/2, bodyH/2), Size: size, Color: fg, Mono: true, Width: textW}))
 	}
-	return buf.String(), nil
+	b.WriteString(style.WindowEnd)
+	return b.String(), nil
 }
 
 type Adapter struct {
@@ -112,16 +106,11 @@ func NewAdapter(id string) *Adapter {
 }
 
 func (l *Adapter) Draw() string {
-	result, err := l.Comp.Draw()
-	if err != nil {
-		return fmt.Sprintf("<!-- Error rendering terminal template: %v -->", err)
-	}
+	result, _ := l.Comp.Draw()
 	return result
 }
 
-func (l *Adapter) SetShape(shape components.Shape) {
-	l.Comp.SetShape(shape)
-}
+func (l *Adapter) SetShape(shape components.Shape) { l.Comp.SetShape(shape) }
 
 func (l *Adapter) Offset(dx, dy float64) {
 	box := l.Comp.Shape()
@@ -130,14 +119,10 @@ func (l *Adapter) Offset(dx, dy float64) {
 	l.Comp.SetShape(box)
 }
 
-const (
-	DefaultWidth  = 360.0
-	DefaultHeight = 220.0
-)
-
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 	comp := NewAdapter(id)
 	comp.SetShape(core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight))
+	comp.Comp.Theme = style.ThemeFromProps(nodeProps)
 	if raw, ok := nodeProps["_rawProps"].(string); ok {
 		_ = comp.Comp.ApplyProps(raw)
 	}

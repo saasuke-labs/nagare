@@ -1,14 +1,12 @@
 package browser
 
 import (
-	"bytes"
-	"embed"
-	"fmt"
-	"html/template"
+	"math"
 	"strings"
 
 	"github.com/saasuke-labs/nagare/pkg/components"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/style"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
@@ -20,17 +18,6 @@ const (
 	// "request" generates a solid-line arrow to the target.
 	// "response" generates a dashed-line arrow to the target.
 	AllowedActions = "request,response"
-)
-
-//go:embed *.html
-var templateFiles embed.FS
-
-var tmpl = template.Must(
-	template.New("").Funcs(template.FuncMap{
-		"add": func(a, b float64) float64 { return a + b },
-		"mul": func(a, b float64) float64 { return a * b },
-		"sub": func(a, b float64) float64 { return a - b },
-	}).ParseFS(templateFiles, "*.html"),
 )
 
 // Props holds configurable properties for a Browser component.
@@ -49,11 +36,7 @@ func (p *Props) Parse(input string) error {
 
 // DefaultProps returns a Props with default values.
 func DefaultProps() Props {
-	return Props{
-		BackgroundColor:        "#e6f3ff",
-		ForegroundColor:        "#333333",
-		ContentBackgroundColor: "#ffffff",
-	}
+	return Props{}
 }
 
 // Component represents a browser diagram component.
@@ -63,6 +46,7 @@ type Component struct {
 	Props   Props
 	State   string
 	Actions map[string][]map[string]any
+	Theme   style.Theme
 }
 
 // New creates a new Component with default props.
@@ -70,6 +54,7 @@ func New(id string) *Component {
 	return &Component{
 		Text:    id,
 		Props:   DefaultProps(),
+		Theme:   style.Light,
 		Actions: make(map[string][]map[string]any),
 	}
 }
@@ -83,9 +68,9 @@ func (c *Component) Offset(dx, dy float64) {
 	c.Y -= dy
 }
 
-// Draw renders the browser as SVG by composing its atom sub-components.
+// Draw renders the browser as SVG.
 func (c *Component) Draw() string {
-	return drawComposite(c.Shape, c.Props)
+	return drawWindow(c.Shape, c.Props, c.Theme)
 }
 
 // ResolveAction implements core.ActionConnector. It maps Browser action names
@@ -122,6 +107,7 @@ func (c *Component) ResolveAction(sourceID, actionName string, actionProps map[s
 func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 	comp := New(id)
 	comp.Shape = core.ShapeFromProps(nodeProps, DefaultWidth, DefaultHeight)
+	comp.Theme = style.ThemeFromProps(nodeProps)
 	if raw, ok := nodeProps["_rawProps"].(string); ok {
 		_ = comp.Props.Parse(raw)
 	}
@@ -129,75 +115,40 @@ func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 	return comp.Draw()
 }
 
-// dimensions holds all pre-computed geometry values for rendering.
-type dimensions struct {
-	Width                  float64
-	Height                 float64
-	CornerRadius           float64
-	TopBarHeight           float64
-	UrlBarWidth            float64
-	UrlBarHeight           float64
-	UrlBarX                float64
-	UrlBarY                float64
-	ContentAreaWidth       float64
-	ContentAreaHeight      float64
-	ContentAreaX           float64
-	ContentAreaY           float64
-	FontSize               float64
-	ControlsX              float64
-	ControlsY              float64
-	ControlRadius          float64
-	ControlSpacing         float64
-	BackgroundColor        string
-	ForegroundColor        string
-	ContentBackgroundColor string
-	URL                    string
-	Text                   string
-}
+// Content-area ratios, shared with the VM so children lay out identically.
+const (
+	contentXRatio = 0.01875
+	contentYRatio = 0.1333333
+	contentWRatio = 0.9625
+	contentHRatio = 0.8380952
+)
 
-// computeDimensions derives all proportional geometry values from the shape and props.
-func computeDimensions(shape components.Shape, p Props) dimensions {
+// drawWindow renders the browser: shared window chrome with the URL as an
+// address pill, and an optional label centred on the page.
+func drawWindow(shape components.Shape, p Props, t style.Theme) string {
 	w, h := shape.Width, shape.Height
-	return dimensions{
-		Width:                  w,
-		Height:                 h,
-		CornerRadius:           w * 0.015625,  // 10/640
-		TopBarHeight:           h * 0.1047619, // 44/420
-		UrlBarHeight:           h * 0.0571428, // 24/420
-		UrlBarWidth:            w * 0.75,      // 480/640
-		UrlBarX:                w * 0.15625,   // 100/640
-		UrlBarY:                h * 0.0238095, // 10/420
-		ContentAreaWidth:       w * 0.9625,    // 616/640
-		ContentAreaHeight:      h * 0.8380952, // 352/420
-		ContentAreaX:           w * 0.01875,   // 12/640
-		ContentAreaY:           h * 0.1333333, // 56/420
-		FontSize:               w * 0.05,      // ~32/640
-		ControlsX:              w * 0.021875,  // 14/640
-		ControlsY:              h * 0.0238095, // 10/420
-		ControlRadius:          w * 0.009375,  // 6/640
-		ControlSpacing:         w * 0.028125,  // 18/640
-		BackgroundColor:        p.BackgroundColor,
-		ForegroundColor:        p.ForegroundColor,
-		ContentBackgroundColor: p.ContentBackgroundColor,
-		URL:                    p.URL,
-		Text:                   p.Text,
-	}
-}
+	cx, cy, cw, ch := w*contentXRatio, h*contentYRatio, w*contentWRatio, h*contentHRatio
 
-// drawComposite builds the browser SVG by composing its three atom sub-components:
-// application (outer chrome + content area + control buttons),
-// titlebar (URL bar), and html-content (page label).
-func drawComposite(shape components.Shape, p Props) string {
-	dims := computeDimensions(shape, p)
-	return renderSubTemplate("browser-application", dims) +
-		renderSubTemplate("browser-titlebar", dims) +
-		renderSubTemplate("browser-html-content", dims)
-}
+	contentFill := style.Or(p.ContentBackgroundColor, t.Surface)
 
-func renderSubTemplate(name string, data any) string {
-	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, name, data); err != nil {
-		return fmt.Sprintf("<!-- Error rendering %s template: %v -->", name, err)
+	var b strings.Builder
+	b.WriteString(style.Window(style.WindowSpec{
+		X: shape.X, Y: shape.Y, W: w, H: h,
+		Class: "nagare-browser",
+		BarH:  cy,
+		CX:    cx, CY: cy, CW: cw, CH: ch,
+		Title: p.URL, TitlePill: true,
+		Bg: p.BackgroundColor, Fg: p.ForegroundColor,
+		ContentFill: contentFill,
+		Theme:       t,
+	}))
+	if p.Text != "" {
+		size := style.Clamp(math.Min(cw, ch)*0.09, 10, 22)
+		b.WriteString(style.Text(p.Text, style.TextOpts{
+			X: cx + cw/2, Y: cy + ch/2, Size: size,
+			Color: style.Legible(p.ForegroundColor, contentFill, t.Muted), Anchor: "middle", Width: cw * 0.9,
+		}))
 	}
-	return buf.String()
+	b.WriteString(style.WindowEnd)
+	return b.String()
 }
