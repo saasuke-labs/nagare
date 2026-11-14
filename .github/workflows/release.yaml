@@ -4,6 +4,14 @@ on:
   push:
     tags:
       - "v*.*.*" # Triggers on tags like v1.2.3
+  # Manual fallback: release an existing tag. Needed when the tag push did not
+  # trigger a run (e.g. the tagged commit message contains "[skip ci]").
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release (e.g. v1.2.3)"
+        required: true
+        type: string
 
 permissions:
   contents: write # Needed to upload release assets
@@ -14,6 +22,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0 # GoReleaser needs history and tags for the changelog
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -34,3 +45,5 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pin the tag explicitly: several tags may point at the same commit.
+          GORELEASER_CURRENT_TAG: ${{ inputs.tag || github.ref_name }}

@@ -90,7 +90,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Add generated diagram renders for PR #$PR_NUMBER [skip ci]"
+          git commit -m "Add generated diagram renders for PR #$PR_NUMBER"
 
           if ! git push origin "$BRANCH_NAME"; then
             echo "Push failed; attempting to rebase onto latest remote" >&2
@@ -177,7 +177,7 @@ jobs:
           if ! git diff --cached --quiet 2>/dev/null; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "Clean up images for closed PRs [skip ci]"
+            git commit -m "Clean up images for closed PRs"
             git push origin "$BRANCH_NAME"
           fi
         continue-on-error: true
