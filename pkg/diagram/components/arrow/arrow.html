@@ -9,8 +9,8 @@
     {{- end }}
     <polyline
         points="{{- range $index, $point := .Points}}{{if $index}} {{end}}{{printf "%.2f,%.2f" $point.X $point.Y}}{{end -}}"
-        {{- if .HasStyle }} style="{{.Style}}"
-        {{- else }} stroke="{{.StrokeColor}}" stroke-width="{{printf "%.2f" .StrokeWidth}}" fill="none" stroke-linecap="round" stroke-linejoin="round"
+        stroke="{{.StrokeColor}}" stroke-width="{{printf "%.2f" .StrokeWidth}}" fill="none" stroke-linecap="round" stroke-linejoin="round"
+        {{- if .IsDashed }} stroke-dasharray="5,5"
         {{- end }}
         {{- if .MarkerStart }} marker-start="url(#{{.MarkerID}})"
         {{- end }}
@@ -19,3 +19,4 @@
     />
 </g>
 {{end}}
+
