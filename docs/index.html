@@ -1,263 +1,263 @@
 <!DOCTYPE html>
+<!-- Styles, fonts and scripts come from the main site (saasuke-labs.com/static/). -->
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nagare · Saasuke Labs</title>
-    <style>
-      :root {
-        color-scheme: light dark;
-        --color-bg: #0b1220;
-        --color-bg-soft: rgba(11, 18, 32, 0.72);
-        --color-text: #f4f6fb;
-        --color-text-muted: rgba(244, 246, 251, 0.72);
-        --color-accent: #6cc4ff;
-        --color-accent-soft: rgba(108, 196, 255, 0.16);
-        font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
-        background: var(--color-bg);
-        color: var(--color-text);
-        line-height: 1.6;
-      }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nagare · Diagrams as code · Saasuke Labs</title>
+    <meta
+      name="description"
+      content="Nagare renders architecture diagrams and charts to SVG from a small text language. Use it as a CLI, an HTTP server or a Go library."
+    />
+    <meta property="og:site_name" content="Saasuke Labs" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Nagare · Diagrams as code · Saasuke Labs"
+    />
+    <meta
+      property="og:description"
+      content="Nagare renders architecture diagrams and charts to SVG from a small text language. Use it as a CLI, an HTTP server or a Go library."
+    />
+    <meta property="og:image" content="https://saasuke-labs.com/static/logo.png" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="icon" type="image/png" href="/static/logo.png" />
+    <link
+      rel="alternate"
+      type="application/atom+xml"
+      title="Saasuke Labs releases"
+      href="/static/data/releases.xml"
+    />
 
-      body {
-        margin: 0;
-        background: linear-gradient(180deg, #0b1220 0%, #111d33 100%);
-      }
+    <script>
+      // Apply the saved theme before first paint.
+      try {
+        var t = localStorage.getItem("theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Shippori+Mincho:wght@600;800&display=swap"
+    />
+    <link rel="stylesheet" href="/static/site.css" />
 
-      a {
-        color: var(--color-accent);
-        text-decoration: none;
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-7ZYXW0159J"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
       }
-
-      header {
-        padding: 6rem 1.5rem 4rem;
-        text-align: center;
-      }
-
-      header h1 {
-        margin: 0 auto 1.5rem;
-        max-width: 720px;
-        font-size: clamp(2.5rem, 5vw, 3.5rem);
-      }
-
-      header p {
-        margin: 0 auto;
-        max-width: 680px;
-        font-size: clamp(1.05rem, 2.4vw, 1.35rem);
-        color: var(--color-text-muted);
-      }
-
-      main {
-        padding: 0 1.5rem 5rem;
-        max-width: 960px;
-        margin: 0 auto;
-        display: grid;
-        gap: 3rem;
-      }
-
-      section {
-        background: var(--color-bg-soft);
-        border-radius: 18px;
-        padding: 2.5rem;
-        box-shadow: 0 24px 64px rgba(6, 12, 24, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.04);
-      }
-
-      h2 {
-        font-size: clamp(1.6rem, 3.6vw, 2.1rem);
-        margin-top: 0;
-      }
-
-      p,
-      li {
-        color: var(--color-text-muted);
-        font-size: 1rem;
-      }
-
-      ul,
-      ol {
-        margin: 1rem 0 0;
-        padding-left: 1.25rem;
-      }
-
-      code,
-      pre {
-        font-family: "Fira Code", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-        font-size: 0.95rem;
-        background: rgba(11, 18, 32, 0.65);
-        border-radius: 12px;
-        color: #d7e3ff;
-      }
-
-      pre {
-        padding: 1.25rem 1.5rem;
-        overflow-x: auto;
-        border: 1px solid rgba(108, 196, 255, 0.18);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-      }
-
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.9rem;
-        border-radius: 999px;
-        background: var(--color-accent-soft);
-        color: var(--color-accent);
-        font-weight: 600;
-        margin-bottom: 1rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        font-size: 0.78rem;
-      }
-
-      .grid {
-        display: grid;
-        gap: 1.75rem;
-      }
-
-      @media (min-width: 768px) {
-        .grid.two-column {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      .card {
-        padding: 1.75rem;
-        background: rgba(11, 18, 32, 0.78);
-        border-radius: 16px;
-        border: 1px solid rgba(108, 196, 255, 0.16);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-      }
-
-      .card h3 {
-        margin-top: 0;
-        font-size: 1.25rem;
-      }
-
-      footer {
-        text-align: center;
-        padding: 2rem 1.5rem 4rem;
-        color: var(--color-text-muted);
-        font-size: 0.95rem;
-      }
-    </style>
+      gtag("js", new Date());
+      gtag("config", "G-7ZYXW0159J");
+    </script>
   </head>
   <body>
-    <header>
-      <span class="pill">Diagram Automation Engine</span>
-      <h1>Tell the story of your architecture with Nagare.</h1>
-      <p>
-        Nagare is Saasuke Labs' declarative diagramming engine for event-driven architectures, distributed systems, and runtime
-        workflows. Transform a concise DSL into polished SVG diagrams that stay in sync with the systems they explain.
-      </p>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">
+          <img src="/static/logo.png" alt="" width="34" height="42" />
+          Saasuke Labs
+        </a>
+        <nav class="site-nav" aria-label="Main">
+          <a href="/#tools">Tools</a>
+          <a href="/releases/">Releases</a>
+          <a
+            class="nav-optional"
+            href="https://github.com/saasuke-labs"
+            rel="noopener"
+            >GitHub</a
+          >
+          <button
+            class="theme-toggle"
+            type="button"
+            aria-label="Switch between light and dark theme"
+            data-theme-toggle
+          >
+            ◐
+          </button>
+          <a class="btn small" href="/sponsor/">Sponsor</a>
+        </nav>
+      </div>
     </header>
 
-    <main>
-      <section>
-        <h2>Why teams choose Nagare</h2>
-        <div class="grid two-column">
-          <div class="card">
-            <h3>Purpose-built for architecture</h3>
-            <p>
-              Capture services, queues, functions, and lifelines with the same vocabulary your engineers use. Say goodbye to
-              dragging shapes around generic design tools.
-            </p>
+    <main id="main">
+      <section class="page-head">
+        <div class="wrap">
+          <p class="crumbs"><a href="/#tools">Tools</a> / <span>Diagrams as code</span></p>
+          <div class="title-row">
+            <h1>Nagare</h1>
+            <a class="tag version" data-version="nagare" href="/releases/#nagare"></a>
           </div>
-          <div class="card">
-            <h3>Readable, expressive DSL</h3>
-            <p>
-              Describe flows using a Markdown-like syntax that is optimized for humans and machines, enabling code reviews and
-              documentation diffs.
-            </p>
-          </div>
-          <div class="card">
-            <h3>Consistent visuals</h3>
-            <p>
-              Every render uses a shared component library and layout rules, producing diagrams that look great and stay consistent
-              across teams and repos.
-            </p>
-          </div>
-          <div class="card">
-            <h3>Automation ready</h3>
-            <p>
-              Integrate rendering into CI, docs pipelines, and design reviews through the lightweight Go service or Docker image.
-            </p>
+          <p>A small text language that renders architecture diagrams and charts to SVG. Diagrams live in version control next to the code they describe, and are reviewed like code.</p>
+          <div class="actions">
+            <a class="btn" href="https://github.com/saasuke-labs/nagare" rel="noopener">View on GitHub</a>
+            <a class="btn ghost" href="/releases/#nagare">Release notes</a>
           </div>
         </div>
       </section>
 
-      <section>
-        <h2>How Nagare works</h2>
-        <ol>
-          <li><strong>Write the flow</strong> in a <code>.mmd</code>-style document describing components, states, and relationships.</li>
-          <li><strong>Send it to Nagare</strong> via the HTTP <code>/render</code> endpoint or Go API.</li>
-          <li><strong>Receive polished SVG</strong> diagrams ready to embed in READMEs, docs portals, and design reviews.</li>
-        </ol>
-        <pre><code>@state(client)
-  Browser "User"
-  -&gt; API "Gateway"
+      <section class="section">
+        <div class="wrap docs">
+          <nav class="docs-toc" aria-label="On this page">
+            <h2>On this page</h2>
+            <ul><li><a href="#example">A first diagram</a></li><li><a href="#install">Install</a></li><li><a href="#usage">Three ways to use it</a></li><li><a href="#syntax">Syntax</a></li><li><a href="#themes">Themes and colours</a></li><li><a href="#charts">Charts</a></li><li><a href="#gengo">Inside a Gengo site</a></li><li><a href="#licence">Licence</a></li></ul>
+          </nav>
+          <article class="prose">
+<h2 id="example">A first diagram</h2>
+<p>Declare components, give them attributes and connect them:</p><pre><code>@layout(w:950,h:400)
 
-@state(processing)
-  Function "Order Processor"
-  -&gt; Queue "Orders"
-  Queue -&gt; Service "Inventory"</code></pre>
-        <p>
-          Nagare parses the DSL, builds a component layout, and renders an SVG that mirrors the logical flow of your architecture.
-        </p>
+browser:Browser(url: "https://shop.example.com", text: "Shop", x:50,y:100,w:200,h:150)
+vps:VM(title: "prod@ubuntu", x:300,y:&amp;browser.c,w:600,h:300) {
+    nginx:Server(title: "nginx", icon: "nginx", port: 80, x:50,y:&amp;browser.c,w:200,h:50)
+    app:Server(title: "App", icon: "golang", port: 8080, x:350,y:&amp;browser.c,w:200,h:50)
+}
+
+browser.e --&gt; nginx.w
+nginx.e --&gt; app.w</code></pre><figure class="figure"><svg role="img" aria-label="Browser connected to nginx and an app server inside a VM" viewBox="0 0 950.000000 400.000000" xmlns="http://www.w3.org/2000/svg">
+<g transform="translate(50.000000,100.000000)"><g class="nagare-window nagare-browser" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="198.5" height="148.5" rx="10" fill="#eef0f3" stroke="#cfd4dc" stroke-width="1.5"/><rect x="3.75" y="20" width="192.5" height="125.71" rx="7" fill="#ffffff" stroke="#cfd4dc" stroke-width="1"/><circle cx="8.4" cy="10" r="2.8" fill="#ff5f57"/><circle cx="17.08" cy="10" r="2.8" fill="#febc2e"/><circle cx="25.76" cy="10" r="2.8" fill="#28c840"/></g></g>
+<g transform="translate(300.000000,25.000000)"><g class="nagare-window nagare-vm" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="598.5" height="298.5" rx="10" fill="#eef0f3" stroke="#cfd4dc" stroke-width="1.5"/><rect x="11.25" y="40" width="577.5" height="251.43" rx="7" fill="#f7f8fa" stroke="#cfd4dc" stroke-width="1"/><circle cx="16.8" cy="20" r="5.5" fill="#ff5f57"/><circle cx="33.85" cy="20" r="5.5" fill="#febc2e"/><circle cx="50.9" cy="20" r="5.5" fill="#28c840"/><text x="300" y="20" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#667085" dominant-baseline="central" text-anchor="middle" font-weight="600">vps</text></g><g transform="translate(61.250000,125.000000)"><g class="nagare-card nagare-server" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="198.5" height="48.5" rx="6" fill="#ffffff" stroke="#cfd4dc" stroke-width="1.5"/><rect x="5" y="7" width="36" height="36" rx="9" fill="#3b82f6" fill-opacity="0.14"/><g transform="translate(12.2,14.2) scale(0.9000)" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/></g><text x="45" y="17.98" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1d2433" dominant-baseline="central" font-weight="600">nginx</text><text x="45" y="33.32" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.4" fill="#667085" dominant-baseline="central">:80</text></g></g>
+<g transform="translate(361.250000,125.000000)"><g class="nagare-card nagare-server" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="198.5" height="48.5" rx="6" fill="#ffffff" stroke="#cfd4dc" stroke-width="1.5"/><rect x="5" y="7" width="36" height="36" rx="9" fill="#3b82f6" fill-opacity="0.14"/><g transform="translate(12.2,14.2) scale(0.9000)" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/></g><text x="45" y="17.98" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1d2433" dominant-baseline="central" font-weight="600">app</text><text x="45" y="33.32" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.4" fill="#667085" dominant-baseline="central">:80</text></g></g>
+</g>
+
+<g class="connector">
+    <defs>
+        <marker id="arrowhead-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#475467"/>
+        </marker>
+    </defs>
+    <polyline
+        points="250.00,175.00 361.25,175.00"
+        stroke="#475467" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-1)"
+    />
+</g>
+
+
+<g class="connector">
+    <defs>
+        <marker id="arrowhead-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#475467"/>
+        </marker>
+    </defs>
+    <polyline
+        points="561.25,175.00 661.25,175.00"
+        stroke="#475467" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-2)"
+    />
+</g>
+
+</svg><figcaption>The SVG Nagare renders from the text above.</figcaption></figure>
+<h2 id="install">Install</h2>
+<p>The install script downloads the latest release for your platform, verifies its checksum and puts <code>nagare</code> in <code>~/.local/bin</code>.</p><pre><code><span class="dim">$</span> curl -fsSL https://raw.githubusercontent.com/saasuke-labs/nagare/main/install/install.sh | bash</code></pre><p>Archives for every platform are on the <a href="https://github.com/saasuke-labs/nagare/releases" rel="noopener">releases page</a>.</p>
+<h2 id="usage">Three ways to use it</h2>
+<h3>Command line</h3><p>Render a file to SVG:</p><pre><code><span class="dim">$</span> nagare -input diagram.nagare -output diagram.svg</code></pre><h3>HTTP server</h3><p>Run <code>nagare</code> with no input file to start a server on port 8080 (change it with <code>-port</code>), then post diagram text to <code>/render</code>:</p><pre><code><span class="dim">$</span> nagare -port 3000
+<span class="dim">$</span> curl -X POST http://localhost:3000/render \
+    -H "Content-Type: text/plain" \
+    --data-binary @diagram.nagare</code></pre><p>The server also hosts a playground at its root URL: a live editor with instant preview, examples and diagrams saved in your browser.</p><h3>Go library</h3><pre><code><span class="dim">$</span> go get github.com/saasuke-labs/nagare</code></pre><pre><code>import "github.com/saasuke-labs/nagare/pkg/nagare"
+
+svg, err := nagare.RenderToSVG(diagramCode)
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(svg)</code></pre>
+<h2 id="syntax">Syntax</h2>
+<h3>Components</h3><p>A component is <code>id:Type(attributes)</code>. The id is optional; without one it is generated.</p><pre><code>browser:Browser(url: "https://example.com", text: "Home")
+db:Database(title: "orders")
+Server(title: "worker")</code></pre><p>Available types: <code>Browser</code>, <code>VM</code>, <code>Server</code>, <code>Terminal</code>, <code>Database</code>, <code>MessageQueue</code>, <code>CDN</code>, <code>APIGateway</code>, <code>BackgroundWorker</code>, <code>Package</code>, <code>Artifact</code>, <code>Rectangle</code>, plus the primitives <code>Cylinder</code> and <code>Led</code>.</p><h3>Position and size</h3><p><code>x</code>, <code>y</code>, <code>w</code> and <code>h</code> place a component. A value like <code>y:&amp;browser.c</code> aligns to another component, here the centre of <code>browser</code>.</p><h3>Nesting</h3><p>Containers such as <code>VM</code> hold other components in a block. Children are positioned relative to their parent.</p><pre><code>vps:VM(title: "ubuntu") {
+    nginx:Server(title: "nginx", port: 80)
+    app:Server(title: "App", port: 8080)
+}</code></pre><h3>Connections</h3><p>Arrows join anchors on two components. Anchors are compass points: <code>n</code>, <code>e</code>, <code>s</code>, <code>w</code>.</p><pre><code>browser.e --&gt; nginx.w</code></pre><h3>Canvas</h3><p>A <code>@layout</code> line sets the canvas size, useful when a diagram has to fit a fixed space.</p><pre><code>@layout(w: 800, h: 600)</code></pre>
+<h2 id="themes">Themes and colours</h2>
+<p>Every component is drawn from one visual system: the same card shape, stroke, corner radius and type scale, with an icon and accent colour per type. The canvas is transparent, so a diagram sits on whatever background the page has.</p><p>Pick the theme in the layout line. <code>light</code> is the default.</p><pre><code>@layout(w: 800, h: 600, theme: dark)</code></pre><p>Colour attributes override the theme on a single component:</p><div class="table-scroll"><table><thead><tr><th>Attribute</th><th>Applies to</th></tr></thead><tbody><tr><td><code>bg</code></td><td>Card, window chrome or cylinder fill.</td></tr><tr><td><code>fg</code></td><td>Text colour.</td></tr><tr><td><code>accent</code></td><td>Icon and highlight colour, where the component has one.</td></tr><tr><td><code>contentBg</code></td><td>Content area of <code>Browser</code> and <code>VM</code>.</td></tr></tbody></table></div><p>If an <code>fg</code> override would be unreadable on its background, Nagare uses a contrasting text colour instead.</p>
+<h2 id="charts">Charts</h2>
+<p>The same engine draws charts. A chart can mix series styles and axes in one definition:</p><pre><code>series: jog | walk | total distance | jog blocks
+style: bar | bar | line | marker
+stack: session | session | none | none
+yaxis: time | time | distance | blocks
+type: duration | duration | number | number</code></pre><ul><li><code>line</code>, <code>dashed</code> and <code>dotted</code> draw lines.</li><li><code>bar</code> draws columns. Bar series that share a <code>stack</code> group are stacked.</li><li><code>marker</code> draws a point with its value above it.</li></ul><p>Dates work on the x axis and durations on the y axis. Bar widths adapt to how dense the data is.</p>
+<h2 id="gengo">Inside a Gengo site</h2>
+<p><a href="/gengo/">Gengo</a> renders any <code>nagare</code> code block in your Markdown to an inline SVG at build time, with no exported image to keep in sync.</p>
+<h2 id="licence">Licence</h2>
+<p>Nagare is open source under the MIT licence.</p>
+
+          </article>
+        </div>
       </section>
 
-      <section>
-        <h2>Sample rendering pipeline</h2>
-        <pre><code>POST /render
-{
-  "dsl": "@state(client)..."
-}</code></pre>
-        <p>
-          The <code>/render</code> endpoint accepts DSL input and returns SVG output. Embed the SVG in Saasuke Labs, Confluence, or any
-          static site generator.
-        </p>
-      </section>
-
-      <section>
-        <h2>Common use cases</h2>
-        <ul class="grid">
-          <li>Onboarding diagrams for new services and platform capabilities.</li>
-          <li>Visualizing message-driven microservice interactions.</li>
-          <li>Architecture decision records and ADR appendices.</li>
-          <li>Runbooks for operational procedures and failover paths.</li>
-        </ul>
-      </section>
-
-      <section>
-        <h2>Get started</h2>
-        <div class="grid two-column">
-          <div class="card">
-            <h3>Explore sample flows</h3>
-            <p>Review <code>example.json</code>, <code>example2.json</code>, and <code>scene.json</code> in the repository for ready-made DSL.</p>
-          </div>
-          <div class="card">
-            <h3>Run the renderer</h3>
-            <p>
-              Launch the service with <code>go run ./cmd/main.go</code> and POST DSL content to
-              <code>http://localhost:8080/render</code>.
-            </p>
-          </div>
-          <div class="card">
-            <h3>Embed the SVG</h3>
-            <p>Drop the generated SVG into READMEs, documentation sites, or Saasuke Labs knowledge bases.</p>
-          </div>
-          <div class="card">
-            <h3>Automate updates</h3>
-            <p>Wire Nagare into CI to regenerate diagrams whenever your DSL changes, keeping visuals aligned with code.</p>
+      <section class="section">
+        <div class="wrap">
+          <div class="cta">
+            <div>
+              <h2>Using Nagare at work?</h2>
+              <p>
+                Saasuke Labs is independent and maintained in the open.
+                Sponsorship pays for maintenance, documentation and releases.
+              </p>
+            </div>
+            <div class="actions">
+              <a class="btn" href="/sponsor/">Become a sponsor</a>
+            </div>
           </div>
         </div>
       </section>
     </main>
 
-    <footer>
-      Ready to turn system flows into shareable diagrams? Nagare makes it effortless to keep architecture visuals accurate and
-      aligned with production reality.
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="about">
+          <a class="brand" href="/">
+            <img src="/static/logo.png" alt="" width="34" height="42" />
+            Saasuke Labs
+          </a>
+          <p style="margin-top: 12px; max-width: 26em">
+            Independent, open tools in Go. This site is built with Gengo and
+            rebuilt on every product release.
+          </p>
+        </div>
+        <div>
+          <h4>Tools</h4>
+          <ul>
+            <li><a href="/gengo/">Gengo</a></li>
+            <li><a href="/nagare/">Nagare</a></li>
+            <li><a href="/kotomi/">Kotomi</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Project</h4>
+          <ul>
+            <li><a href="/releases/">Releases</a></li>
+            <li><a href="/static/data/releases.xml">Release feed</a></li>
+            <li>
+              <a href="https://github.com/saasuke-labs" rel="noopener"
+                >GitHub</a
+              >
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4>Support</h4>
+          <ul>
+            <li><a href="/sponsor/">Become a sponsor</a></li>
+            <li>
+              <a href="https://github.com/sponsors/saasuke-labs" rel="noopener"
+                >GitHub Sponsors</a
+              >
+            </li>
+            <li>
+              <a href="https://ko-fi.com/saasukelabs" rel="noopener">Ko-fi</a>
+            </li>
+          </ul>
+        </div>
+      </div>
     </footer>
+
+    <script src="/static/site.js" defer></script>
   </body>
 </html>
