@@ -119,6 +119,16 @@ When multiple `bar` series share the same stack group (for example `session`), t
 
 Stacked bar segments preserve each series color (no forced color blending), and bar widths are automatically adapted to x-density so dense charts remain readable without excessive overlap.
 
+### Chart axes
+
+Axis ticks are chosen so that every label is a round value sitting where that value is:
+
+- **Y axes.** An automatic scale starts at zero (or at a round value below the lowest negative point) and ends on a round value, split into five equal intervals: `0, 5, 10, 15, 20, 25` rather than `-2.0, 2.8, 7.6, …`. Duration scales use time steps such as `15:00` or `1:00:00`. Both Y axes and the horizontal grid lines share the same five intervals. To choose the range yourself, set `min` and `max` on the scale.
+- **X axis.** When there is room, every data point gets its own label, directly under the point. Longer series fall back to round steps (`0, 10, 20, …`) or calendar boundaries: days, weeks, then the first day of a month, quarter or year. Series with one point per month are labelled `Jan, Feb, …`, and on an axis that spans several years January shows the year instead.
+- Dates are read and labelled in UTC, so a chart renders the same on every machine.
+
+The `<svg>` element carries `width`, `height` and a matching `viewBox`, so a chart keeps its natural size by default and can be scaled with CSS (`max-width: 100%; height: auto`).
+
 ## Layout Overrides
 
 You can control the overall canvas dimensions with a global `@layout` directive. This is useful when you need extra room for connections or when you want diagrams to render inside a specific viewport.

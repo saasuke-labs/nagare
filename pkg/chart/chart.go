@@ -335,6 +335,13 @@ func Parse(input string) (*Chart, error) {
 		if chart.YAxisLabel != "" {
 			chart.Scales[0].Label = chart.YAxisLabel
 		}
+		// The implicit scale shows durations as soon as one series is a duration.
+		for _, series := range chart.Series {
+			if series.Type == "duration" {
+				chart.Scales[0].Type = "duration"
+				break
+			}
+		}
 	}
 
 	// Assign default yaxis to series that don't have one
@@ -635,8 +642,8 @@ func parseDataPoints(dataPoints [][2]string, xAxisType string, dataType string) 
 // RenderSVG generates SVG output
 func (c *Chart) RenderSVG() string {
 	if len(c.Series) == 0 {
-		return fmt.Sprintf(`<svg width="%.0f" height="%.0f"><text x="%.0f" y="%.0f" fill="#999">No data</text></svg>`,
-			c.Width, c.Height, c.Width/2, c.Height/2)
+		return fmt.Sprintf(`<svg width="%.0f" height="%.0f" viewBox="0 0 %.0f %.0f" xmlns="http://www.w3.org/2000/svg"><text x="%.0f" y="%.0f" fill="#999">No data</text></svg>`,
+			c.Width, c.Height, c.Width, c.Height, c.Width/2, c.Height/2)
 	}
 
 	padding := 60.0
@@ -702,7 +709,7 @@ func (c *Chart) RenderSVG() string {
 	c.calculateScaleRanges()
 
 	var svg strings.Builder
-	svg.WriteString(fmt.Sprintf(`<svg width="%.0f" height="%.0f" xmlns="http://www.w3.org/2000/svg">`, c.Width, c.Height))
+	svg.WriteString(fmt.Sprintf(`<svg width="%.0f" height="%.0f" viewBox="0 0 %.0f %.0f" xmlns="http://www.w3.org/2000/svg">`, c.Width, c.Height, c.Width, c.Height))
 	svg.WriteString(`<rect width="100%" height="100%" fill="white"/>`)
 
 	// Title
@@ -711,13 +718,15 @@ func (c *Chart) RenderSVG() string {
 			c.Width/2, c.Title))
 	}
 
+	xTicks := c.xTicks(plotX, plotWidth, xMin, xMax)
+
 	// Grid
 	if c.Grid {
-		svg.WriteString(c.generateGrid(plotX, plotY, plotWidth, plotHeight))
+		svg.WriteString(c.generateGrid(plotX, plotY, plotWidth, plotHeight, xTicks))
 	}
 
 	// Axes
-	svg.WriteString(c.generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax))
+	svg.WriteString(c.generateAxes(plotX, plotY, plotWidth, plotHeight, xTicks))
 
 	// Series
 	svg.WriteString(c.generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax))
@@ -905,30 +914,23 @@ func (c *Chart) calculateScaleRanges() {
 			yMin = 0
 		}
 
-		// Add 10% padding
-		yRange := yMax - yMin
-		if yRange == 0 {
-			yRange = 1
-		}
-
-		scale.Min = yMin - yRange*0.1
-		scale.Max = yMax + yRange*0.1
+		// Snap to round bounds so every tick lands on a round value.
+		scale.Min, scale.Max = niceBounds(yMin, yMax, scale.Type == "duration")
 	}
 }
 
-func (c *Chart) generateGrid(plotX, plotY, plotWidth, plotHeight float64) string {
+func (c *Chart) generateGrid(plotX, plotY, plotWidth, plotHeight float64, xTicks []axisTick) string {
 	var lines strings.Builder
 
-	// Vertical lines
-	for i := 0; i <= 5; i++ {
-		x := plotX + float64(i)*plotWidth/5.0
+	// Vertical lines, one per x tick
+	for _, tick := range xTicks {
 		lines.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#e5e7eb" stroke-width="1"/>`,
-			x, plotY, x, plotY+plotHeight))
+			tick.Pos, plotY, tick.Pos, plotY+plotHeight))
 	}
 
-	// Horizontal lines
-	for i := 0; i <= 5; i++ {
-		y := plotY + float64(i)*plotHeight/5.0
+	// Horizontal lines, one per y tick
+	for i := 0; i <= yAxisIntervals; i++ {
+		y := plotY + float64(i)*plotHeight/yAxisIntervals
 		lines.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#e5e7eb" stroke-width="1"/>`,
 			plotX, y, plotX+plotWidth, y))
 	}
@@ -936,28 +938,17 @@ func (c *Chart) generateGrid(plotX, plotY, plotWidth, plotHeight float64) string
 	return lines.String()
 }
 
-func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax float64) string {
+func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight float64, xTicks []axisTick) string {
 	var svg strings.Builder
 
 	// X axis
 	svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
 		plotX, plotY+plotHeight, plotX+plotWidth, plotY+plotHeight))
 
-	// X axis labels
-	for i := 0; i <= 5; i++ {
-		x := plotX + float64(i)*plotWidth/5.0
-		value := xMin + float64(i)*(xMax-xMin)/5.0
-
-		label := ""
-		if c.XAxisType == "date" {
-			t := time.Unix(int64(value), 0)
-			label = t.Format("01/02")
-		} else {
-			label = fmt.Sprintf("%.1f", value)
-		}
-
+	// X axis labels, each drawn at the position of the value it names
+	for _, tick := range xTicks {
 		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="11" fill="#666">%s</text>`,
-			x, plotY+plotHeight+20, label))
+			tick.Pos, plotY+plotHeight+20, tick.Label))
 	}
 
 	// X axis label
@@ -976,15 +967,16 @@ func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax flo
 	svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
 		plotX, plotY, plotX, plotY+plotHeight))
 
-	for i := 0; i <= 5; i++ {
-		y := plotY + plotHeight - float64(i)*plotHeight/5.0
-		value := leftScale.Min + float64(i)*(leftScale.Max-leftScale.Min)/5.0
+	leftStep := (leftScale.Max - leftScale.Min) / yAxisIntervals
+	for i := 0; i <= yAxisIntervals; i++ {
+		y := plotY + plotHeight - float64(i)*plotHeight/yAxisIntervals
+		value := leftScale.Min + float64(i)*leftStep
 
 		label := ""
 		if leftScale.Type == "duration" {
 			label = formatDuration(value)
 		} else {
-			label = fmt.Sprintf("%.1f", value)
+			label = formatTick(value, leftStep)
 		}
 
 		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="end" font-size="11" fill="#666">%s</text>`,
@@ -1009,15 +1001,16 @@ func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight, xMin, xMax flo
 		svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
 			rightX, plotY, rightX, plotY+plotHeight))
 
-		for i := 0; i <= 5; i++ {
-			y := plotY + plotHeight - float64(i)*plotHeight/5.0
-			value := rightScale.Min + float64(i)*(rightScale.Max-rightScale.Min)/5.0
+		rightStep := (rightScale.Max - rightScale.Min) / yAxisIntervals
+		for i := 0; i <= yAxisIntervals; i++ {
+			y := plotY + plotHeight - float64(i)*plotHeight/yAxisIntervals
+			value := rightScale.Min + float64(i)*rightStep
 
 			label := ""
 			if rightScale.Type == "duration" {
 				label = formatDuration(value)
 			} else {
-				label = fmt.Sprintf("%.1f", value)
+				label = formatTick(value, rightStep)
 			}
 
 			svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="start" font-size="11" fill="#666">%s</text>`,
