@@ -82,25 +82,7 @@ func (c *Component) Draw() string {
 // actionProps are the parsed key/value pairs from the action call, e.g.
 // target:@s,dir:lr.
 func (c *Component) ResolveAction(sourceID, actionName string, actionProps map[string]any) []core.ConnectionIntent {
-	if actionName != "request" && actionName != "response" {
-		return nil
-	}
-	targetRaw, _ := actionProps["target"].(string)
-	if targetRaw == "" {
-		return nil
-	}
-	targetID := strings.TrimPrefix(targetRaw, "@")
-	dir, _ := actionProps["dir"].(string)
-	style := ""
-	if actionName == "response" {
-		style = "dashed"
-	}
-	return []core.ConnectionIntent{{
-		FromID: sourceID,
-		ToID:   targetID,
-		Dir:    dir,
-		Style:  style,
-	}}
+	return core.RequestResponse{}.ResolveAction(sourceID, actionName, actionProps)
 }
 
 // DrawFromRenderNode is the entry point called by the diagram rendering pipeline.

@@ -121,8 +121,8 @@ vps:VM(title: "prod@ubuntu", x:300,y:&amp;browser.c,w:600,h:300) {
     app:Server(title: "App", icon: "golang", port: 8080, x:350,y:&amp;browser.c,w:200,h:50)
 }
 
-browser.e --&gt; nginx.w
-nginx.e --&gt; app.w</code></pre><figure class="figure"><svg role="img" aria-label="Browser connected to nginx and an app server inside a VM" viewBox="0 0 950.000000 400.000000" xmlns="http://www.w3.org/2000/svg">
+@browser.request(target: @nginx)
+@nginx.request(target: @app)</code></pre><figure class="figure"><svg role="img" aria-label="Browser connected to nginx and an app server inside a VM" viewBox="0 0 950.000000 400.000000" xmlns="http://www.w3.org/2000/svg">
 <g transform="translate(50.000000,100.000000)"><g class="nagare-window nagare-browser" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="198.5" height="148.5" rx="10" fill="#eef0f3" stroke="#cfd4dc" stroke-width="1.5"/><rect x="3.75" y="20" width="192.5" height="125.71" rx="7" fill="#ffffff" stroke="#cfd4dc" stroke-width="1"/><circle cx="8.4" cy="10" r="2.8" fill="#ff5f57"/><circle cx="17.08" cy="10" r="2.8" fill="#febc2e"/><circle cx="25.76" cy="10" r="2.8" fill="#28c840"/><rect x="36.56" y="4" width="126.88" height="12" rx="6" fill="#ffffff" stroke="#cfd4dc" stroke-width="1"/><text x="43.16" y="10" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="8" fill="#667085" dominant-baseline="central">https://shop.example.com</text><text x="100" y="82.86" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.31" fill="#667085" dominant-baseline="central" text-anchor="middle">Shop</text></g></g>
 <g transform="translate(300.000000,25.000000)"><g class="nagare-window nagare-vm" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="598.5" height="298.5" rx="10" fill="#eef0f3" stroke="#cfd4dc" stroke-width="1.5"/><rect x="11.25" y="40" width="577.5" height="251.43" rx="7" fill="#f7f8fa" stroke="#cfd4dc" stroke-width="1"/><circle cx="16.8" cy="20" r="5.5" fill="#ff5f57"/><circle cx="33.85" cy="20" r="5.5" fill="#febc2e"/><circle cx="50.9" cy="20" r="5.5" fill="#28c840"/><text x="300" y="20" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#667085" dominant-baseline="central" text-anchor="middle" font-weight="600">prod@ubuntu</text></g><g transform="translate(61.250000,125.000000)"><g class="nagare-card nagare-server" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="198.5" height="48.5" rx="6" fill="#ffffff" stroke="#cfd4dc" stroke-width="1.5"/><rect x="5" y="7" width="36" height="36" rx="9" fill="#3b82f6" fill-opacity="0.14"/><g transform="translate(12.2,14.2) scale(0.9000)" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/></g><text x="45" y="17.98" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1d2433" dominant-baseline="central" font-weight="600">nginx</text><text x="45" y="33.32" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.4" fill="#667085" dominant-baseline="central">nginx · :80</text></g></g>
 <g transform="translate(361.250000,125.000000)"><g class="nagare-card nagare-server" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="198.5" height="48.5" rx="6" fill="#ffffff" stroke="#cfd4dc" stroke-width="1.5"/><rect x="5" y="7" width="36" height="36" rx="9" fill="#3b82f6" fill-opacity="0.14"/><g transform="translate(12.2,14.2) scale(0.9000)" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/></g><text x="45" y="17.98" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1d2433" dominant-baseline="central" font-weight="600">App</text><text x="45" y="33.32" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.4" fill="#667085" dominant-baseline="central">golang · :8080</text></g></g>
@@ -155,7 +155,7 @@ nginx.e --&gt; app.w</code></pre><figure class="figure"><svg role="img" aria-lab
 
 </svg><figcaption>The SVG Nagare renders from the text above.</figcaption></figure>
 <h2 id="examples">Examples</h2>
-<p>Each example is the complete source followed by the SVG it produces. Copy one into a <code>.nagare</code> file and render it with the CLI.</p><h3>A checkout flow, animated</h3><p>Components nest inside a <code>VM</code>, and a <code>Database</code> has activity lights. The last two lines blink them for a write, then a read. The animation is plain SVG, so it plays wherever the image is shown, with no script.</p><pre><code>@layout(w:1000,h:450)
+<p>Each example is the complete source followed by the SVG it produces. Copy one into a <code>.nagare</code> file and render it with the CLI.</p><h3>A checkout flow, animated</h3><p>Components nest inside a <code>VM</code>. Each <code>request</code> line draws an arrow, with the sides worked out from the layout. A <code>Database</code> has activity lights, and the last two lines blink them for a write, then a read. The animation is plain SVG, so it plays wherever the image is shown, with no script.</p><pre><code>@layout(w:1000,h:450)
 
 shop:Browser(url: "https://shop.example.com", text: "Checkout", x:30,y:120,w:230,h:170)
 gw:APIGateway(title: "gateway", method: "POST", route: "/orders", x:310,y:&amp;shop.c,w:180,h:60)
@@ -166,11 +166,11 @@ vm:VM(title: "prod@ubuntu", x:540,y:40,w:430,h:200) {
 db:Database(title: "orders", engine: "postgres", x:570,y:300,w:120,h:120)
 events:MessageQueue(title: "order.created", kind: "nats", x:770,y:325,w:200,h:70)
 
-shop.e --&gt; gw.w
-gw.e --&gt; api.w
-api.s --&gt; db.n
-api.e --&gt; mailer.w
-mailer.s --&gt; events.n
+@shop.request(target: @gw)
+@gw.request(target: @api)
+@api.request(target: @db)
+@api.request(target: @mailer)
+@mailer.request(target: @events)
 
 @db.write(begin:"0.5s",dur:"1.5s")
 @db.read(begin:"2.5s",dur:"1.5s")</code></pre><figure class="figure"><svg role="img" aria-label="Checkout architecture: browser, API gateway, a VM with an API and a mailer, a database and a message queue" data-loop="5" viewBox="0 0 1000 450" xmlns="http://www.w3.org/2000/svg">
@@ -313,11 +313,11 @@ mailer.s --&gt; events.n
 api:Server(title: "orders-api", icon: "golang", port: 8080, x:40,y:130,w:200,h:56)
 primary:Database(title: "primary", engine: "postgres", x:360,y:20,w:120,h:120)
 replica:Database(title: "replica", engine: "postgres", x:360,y:180,w:120,h:120)
-cache:Server(title: "reports", port: 9000, x:560,y:212,w:170,h:56)
+reports:Server(title: "reports", port: 9000, x:560,y:212,w:170,h:56)
 
-api.e --&gt; primary.w
-api.e --&gt; replica.w
-replica.e --&gt; cache.w
+@api.request(target: @primary)
+@api.request(target: @replica)
+@reports.request(target: @replica)
 
 @primary.write(begin:"0.5s",dur:"1.5s")
 @replica.write(begin:"2s",dur:"1s")
@@ -464,7 +464,7 @@ replica.e --&gt; cache.w
         </marker>
     </defs>
     <polyline
-        points="480.00,240.00 560.00,240.00"
+        points="560.00,240.00 480.00,240.00"
         stroke="#475467" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#replica-arrowhead-3)"
     />
 </g>
@@ -476,9 +476,9 @@ dist:Artifact(title: "dist", filename: "site.tar.gz", size: "1.2 MB", x:350,y:&a
 edge:CDN(title: "edge", provider: "pages", region: "global", x:570,y:&amp;ci.c,w:170,h:60)
 reader:Browser(url: "https://example.com/blog", text: "Blog", x:790,y:30,w:190,h:170)
 
-ci.e --&gt; dist.w
-dist.e --&gt; edge.w
-edge.e --&gt; reader.w</code></pre><figure class="figure dark"><svg role="img" aria-label="A terminal running a build, producing an artifact, served by a CDN to a browser" viewBox="0 0 1000 240" xmlns="http://www.w3.org/2000/svg">
+@ci.request(target: @dist)
+@dist.request(target: @edge)
+@reader.request(target: @edge)</code></pre><figure class="figure dark"><svg role="img" aria-label="A terminal running a build, producing an artifact, served by a CDN to a browser" viewBox="0 0 1000 240" xmlns="http://www.w3.org/2000/svg">
 <g transform="translate(20.000000,30.000000)"><g class="nagare-window nagare-terminal" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="278.5" height="168.5" rx="10" fill="#262b35" stroke="#3b4350" stroke-width="1.5"/><rect x="5.44" y="27.2" width="269.12" height="137.36" rx="7" fill="#0d1015" stroke="#3b4350" stroke-width="1"/><circle cx="11.42" cy="13.6" r="3.81" fill="#ff5f57"/><circle cx="23.23" cy="13.6" r="3.81" fill="#febc2e"/><circle cx="35.03" cy="13.6" r="3.81" fill="#28c840"/><text x="140" y="13.6" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.79" fill="#98a2b3" dominant-baseline="central" text-anchor="middle" font-weight="600">ci</text><text x="18.44" y="46.7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#14b8a6" dominant-baseline="central">~/site</text><text x="18.44" y="67.5" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#e6e9ef" dominant-baseline="central">$ gengo generate --plain</text></g></g>
 <g transform="translate(350.000000,85.000000)"><g class="nagare-card nagare-artifact" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="168.5" height="58.5" rx="7.2" fill="#1c2028" stroke="#3b4350" stroke-width="1.5"/><rect x="6" y="12" width="36" height="36" rx="9" fill="#64748b" fill-opacity="0.14"/><g transform="translate(13.2,19.2) scale(0.9000)" fill="none" stroke="#64748b" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7.500A1.500 1.500 0 0 0 6 4.500v15A1.500 1.500 0 0 0 7.500 21h9a1.500 1.500 0 0 0 1.500-1.500V7l-4-4z"/><path d="M14 3v4h4M9.500 12.500h5M9.500 16h5"/></g><text x="46.8" y="21.9" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#e6e9ef" dominant-baseline="central" font-weight="600">dist</text><text x="46.8" y="39.6" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#98a2b3" dominant-baseline="central">site.tar.gz · 1.…</text></g></g>
 <g transform="translate(570.000000,85.000000)"><g class="nagare-card nagare-cdn" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="168.5" height="58.5" rx="7.2" fill="#1c2028" stroke="#3b4350" stroke-width="1.5"/><rect x="6" y="12" width="36" height="36" rx="9" fill="#06b6d4" fill-opacity="0.14"/><g transform="translate(13.2,19.2) scale(0.9000)" fill="none" stroke="#06b6d4" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 3.900 5.500 3.900 9s-1.300 6.500-3.900 9c-2.600-2.500-3.900-5.500-3.900-9s1.300-6.500 3.900-9z"/></g><text x="46.8" y="21.9" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15" fill="#e6e9ef" dominant-baseline="central" font-weight="600">edge</text><text x="46.8" y="39.6" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#98a2b3" dominant-baseline="central">pages · global</text></g></g>
@@ -517,7 +517,7 @@ edge.e --&gt; reader.w</code></pre><figure class="figure dark"><svg role="img" a
         </marker>
     </defs>
     <polyline
-        points="740.00,115.00 790.00,115.00"
+        points="790.00,115.00 740.00,115.00"
         stroke="#98a2b3" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#publish-arrowhead-3)"
     />
 </g>
@@ -554,7 +554,8 @@ db:Database(title: "orders")
 Server(title: "worker")</code></pre><p>Available types: <code>Browser</code>, <code>VM</code>, <code>Server</code>, <code>Terminal</code>, <code>Database</code>, <code>MessageQueue</code>, <code>CDN</code>, <code>APIGateway</code>, <code>BackgroundWorker</code>, <code>Package</code>, <code>Artifact</code>, <code>Rectangle</code>, plus the primitives <code>Cylinder</code> and <code>Led</code>.</p><h3>Position and size</h3><p><code>x</code>, <code>y</code>, <code>w</code> and <code>h</code> place a component. A value like <code>y:&amp;browser.c</code> aligns to another component, here the centre of <code>browser</code>.</p><h3>Nesting</h3><p>Containers such as <code>VM</code> hold other components in a block. Children are positioned relative to their parent.</p><pre><code>vps:VM(title: "ubuntu") {
     nginx:Server(title: "nginx", port: 80)
     app:Server(title: "App", port: 8080)
-}</code></pre><h3>Connections</h3><p>Arrows join anchors on two components. Anchors are compass points: <code>n</code>, <code>e</code>, <code>s</code>, <code>w</code>.</p><pre><code>browser.e --&gt; nginx.w</code></pre><h3>Canvas</h3><p>A <code>@layout</code> line sets the canvas size, useful when a diagram has to fit a fixed space.</p><pre><code>@layout(w: 800, h: 600)</code></pre>
+}</code></pre><h3>Connections</h3><p>A <code>request</code> action draws a solid arrow from one component to another, and a <code>response</code> action a dashed one. Nagare picks the sides to join from where the two components sit.</p><pre><code>@browser.request(target: @nginx)
+@nginx.response(target: @browser)</code></pre><p>Add <code>dir</code> to choose the direction yourself: <code>lr</code>, <code>rl</code>, <code>tb</code> or <code>bt</code> (left to right, right to left, top to bottom, bottom to top).</p><pre><code>@api.request(target: @db, dir: tb)</code></pre><p>For full control, join two anchors directly. Anchors are compass points: <code>n</code>, <code>ne</code>, <code>e</code>, <code>se</code>, <code>s</code>, <code>sw</code>, <code>w</code>, <code>nw</code>.</p><pre><code>browser.e --&gt; nginx.w</code></pre><h3>Canvas</h3><p>A <code>@layout</code> line sets the canvas size, useful when a diagram has to fit a fixed space.</p><pre><code>@layout(w: 800, h: 600)</code></pre>
 <h2 id="themes">Themes and colours</h2>
 <p>Every component is drawn from one visual system: the same card shape, stroke, corner radius and type scale, with an icon and accent colour per type. The canvas is transparent, so a diagram sits on whatever background the page has.</p><p>Pick the theme in the layout line. <code>light</code> is the default.</p><pre><code>@layout(w: 800, h: 600, theme: dark)</code></pre><p>Colour attributes override the theme on a single component:</p><div class="table-scroll"><table><thead><tr><th>Attribute</th><th>Applies to</th></tr></thead><tbody><tr><td><code>bg</code></td><td>Card, window chrome or cylinder fill.</td></tr><tr><td><code>fg</code></td><td>Text colour.</td></tr><tr><td><code>accent</code></td><td>Icon and highlight colour, where the component has one.</td></tr><tr><td><code>contentBg</code></td><td>Content area of <code>Browser</code> and <code>VM</code>.</td></tr></tbody></table></div><p>If an <code>fg</code> override would be unreadable on its background, Nagare uses a contrasting text colour instead.</p>
 <h2 id="charts">Charts</h2>
@@ -562,7 +563,7 @@ Server(title: "worker")</code></pre><p>Available types: <code>Browser</code>, <c
 style: bar | bar | line | marker
 stack: session | session | none | none
 yaxis: time | time | distance | blocks
-type: duration | duration | number | number</code></pre><ul><li><code>line</code>, <code>dashed</code> and <code>dotted</code> draw lines.</li><li><code>bar</code> draws columns. Bar series that share a <code>stack</code> group are stacked.</li><li><code>marker</code> draws a point with its value above it.</li></ul><p>Dates work on the x axis and durations on the y axis. Axis labels land on round values and sit under the points they describe; long date ranges are labelled by week, month or year. Bar widths adapt to how dense the data is.</p>
+type: duration | duration | number | number</code></pre><ul><li><code>line</code>, <code>dashed</code> and <code>dotted</code> draw lines.</li><li><code>bar</code> draws columns. Bar series that share a <code>stack</code> group are stacked.</li><li><code>marker</code> draws a point with its value above it.</li></ul><p>Dates work on the x axis and durations on the y axis. Bar widths adapt to how dense the data is.</p>
 <h2 id="gengo">Inside a Gengo site</h2>
 <p><a href="/gengo/">Gengo</a> renders any <code>nagare</code> code block in your Markdown to an inline SVG at build time, with no exported image to keep in sync.</p>
 <h2 id="licence">Licence</h2>

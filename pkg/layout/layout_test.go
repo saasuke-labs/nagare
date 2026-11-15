@@ -426,9 +426,10 @@ func TestResolveActionConnectionsBrowserResponse(t *testing.T) {
 	}
 }
 
-// TestResolveActionConnectionsNonBrowserIgnored verifies that action states
-// from non-Browser components do not generate arrows.
-func TestResolveActionConnectionsNonBrowserIgnored(t *testing.T) {
+// TestResolveActionConnectionsAnyComponent verifies that request/response
+// work on components without their own connector, including nested ones that
+// are not in connectorIndex, and that other actions draw nothing.
+func TestResolveActionConnectionsAnyComponent(t *testing.T) {
 	root := parser.Node{
 		Children: []parser.Node{
 			{Type: "Server", Text: "srv"},
@@ -436,21 +437,27 @@ func TestResolveActionConnectionsNonBrowserIgnored(t *testing.T) {
 		},
 		GlobalStates: []parser.State{
 			{Name: "srv.request", PropsDef: "target:@db"},
+			{Name: "db.response", PropsDef: "target:@srv"},
 			{Name: "db.read", PropsDef: "begin:0s,dur:1s"},
+			{Name: "ghost.request", PropsDef: "target:@db"},
 		},
 	}
 
 	nodeIndex := map[string]components.Shape{
 		"srv": {X: 0, Y: 0, Width: 200, Height: 140},
-		"db":  {X: 300, Y: 0, Width: 200, Height: 200},
+		"db":  {X: 300, Y: 300, Width: 120, Height: 400},
 	}
 
-	// Neither Server nor Database implements ActionConnector, so the index is empty.
-	connectorIndex := map[string]core.ActionConnector{}
+	arrows := resolveActionConnections(root, nodeIndex, map[string]core.ActionConnector{})
 
-	arrows := resolveActionConnections(root, nodeIndex, connectorIndex)
-
-	if len(arrows) != 0 {
-		t.Fatalf("expected 0 action arrows for non-Browser components, got %d", len(arrows))
+	if len(arrows) != 2 {
+		t.Fatalf("expected 2 action arrows, got %d", len(arrows))
+	}
+	// db sits mostly below srv, so the ports are inferred vertically.
+	if arrows[0].FromAnchor != "s" || arrows[0].ToAnchor != "n" {
+		t.Fatalf("expected inferred s -> n, got %s -> %s", arrows[0].FromAnchor, arrows[0].ToAnchor)
+	}
+	if arrows[0].Style != "" || arrows[1].Style != "dashed" {
+		t.Fatalf("expected solid request and dashed response, got %q and %q", arrows[0].Style, arrows[1].Style)
 	}
 }

@@ -1099,9 +1099,14 @@ func resolveActionConnections(node parser.Node, nodeIndex map[string]components.
 		nodeID := state.Name[:dotIdx]
 		actionName := state.Name[dotIdx+1:]
 
+		// Components without their own connector (including ones nested in a
+		// VM, which are not in connectorIndex) get request/response arrows.
 		connector, ok := connectorIndex[nodeID]
 		if !ok {
-			continue
+			if _, known := nodeIndex[nodeID]; !known {
+				continue
+			}
+			connector = core.RequestResponse{}
 		}
 
 		actionProps := props.ParseToMap(state.PropsDef)
