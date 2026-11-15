@@ -1,0 +1,105 @@
+<svg viewBox="0 0 1000.000000 800.000000" xmlns="http://www.w3.org/2000/svg">
+<g transform="translate(300.000000,200.000000)"><g class="nagare-cylinder" transform="translate(0, 0)"><path d="M0.75 22.75 V377.25 A199.25 22 0 0 0 399.25 377.25 V22.75" fill="DodgerBlue" stroke="#cfd4dc" stroke-width="1.5"/><ellipse cx="200" cy="22.75" rx="199.25" ry="22" fill="DodgerBlue"/><ellipse cx="200" cy="22.75" rx="199.25" ry="22" fill="#4EC0FF" fill-opacity="0.16" stroke="#4EC0FF" stroke-width="1.5"/><text x="200" y="207.81" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#eff" dominant-baseline="central" text-anchor="middle" font-weight="600">Database</text><text x="200" y="228.19" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" fill="#eff" dominant-baseline="central" text-anchor="middle" fill-opacity="0.7">PostgreSQL</text></g>
+<g transform="translate(266, 112)">
+  <ellipse cx="20" cy="20" rx="20" ry="20" fill="darkred" opacity="0">
+    
+    <animate
+      attributeName="opacity"
+      begin="3s"
+      dur="1s"
+      values="0;0.35;0.1;0.8;0.15;0.6;0"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    
+    <animate
+      attributeName="opacity"
+      begin="6s"
+      dur="1s"
+      values="0;0.35;0.1;0.8;0.15;0.6;0"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    
+  </ellipse>
+
+  
+  <ellipse cx="20" cy="20" rx="20" ry="20" fill="darkred">
+    
+    <animate
+      attributeName="fill"
+      begin="3s"
+      dur="1s"
+      values="darkred;#f87171;#ef4444;#dc2626;#b91c1c;#f87171;darkred"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    
+    <animate
+      attributeName="fill"
+      begin="6s"
+      dur="1s"
+      values="darkred;#f87171;#ef4444;#dc2626;#b91c1c;#f87171;darkred"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    
+  </ellipse>
+</g>
+
+<g transform="translate(324, 112)">
+  <ellipse cx="20" cy="20" rx="20" ry="20" fill="darkgreen" opacity="1">
+    
+    <animate
+      attributeName="opacity"
+      begin="1s"
+      dur="1s"
+      values="0;0.35;0.1;0.8;0.15;0.6;0"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    
+    <animate
+      attributeName="opacity"
+      begin="6s"
+      dur="1s"
+      values="0;0.35;0.1;0.8;0.15;0.6;0"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    
+  </ellipse>
+
+  
+  <ellipse cx="20" cy="20" rx="20" ry="20" fill="darkgreen">
+    
+    <animate
+      attributeName="fill"
+      begin="1s"
+      dur="1s"
+      values="darkgreen;#4ade80;#22c55e;#86efac;#16a34a;#4ade80;darkgreen"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    
+    <animate
+      attributeName="fill"
+      begin="6s"
+      dur="1s"
+      values="darkgreen;#4ade80;#22c55e;#86efac;#16a34a;#4ade80;darkgreen"
+      keyTimes="0;0.15;0.3;0.45;0.6;0.85;1"
+      repeatCount="1"
+      fill="remove"
+    />
+    
+  </ellipse>
+</g>
+</g>
+</svg>

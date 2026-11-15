@@ -1,0 +1,32 @@
+<svg viewBox="0 0 950.000000 400.000000" xmlns="http://www.w3.org/2000/svg">
+<g transform="translate(50.000000,100.000000)"><g class="nagare-window nagare-browser" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="198.5" height="148.5" rx="10" fill="#e6f3ff" stroke="#cfd4dc" stroke-width="1.5"/><rect x="3.75" y="20" width="192.5" height="125.71" rx="7" fill="#ffffff" stroke="#cfd4dc" stroke-width="1"/><circle cx="8.4" cy="10" r="2.8" fill="#ff5f57"/><circle cx="17.08" cy="10" r="2.8" fill="#febc2e"/><circle cx="25.76" cy="10" r="2.8" fill="#28c840"/><rect x="36.56" y="4" width="126.88" height="12" rx="6" fill="#ffffff" stroke="#cfd4dc" stroke-width="1"/><text x="43.16" y="10" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="8" fill="#333" dominant-baseline="central" fill-opacity="0.85">https://www.nagare.com</text><text x="100" y="82.86" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.31" fill="#333" dominant-baseline="central" text-anchor="middle">Home Page</text></g></g>
+<g transform="translate(300.000000,0.000000)"><g class="nagare-window nagare-vm" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="598.5" height="298.5" rx="10" fill="#333" stroke="#cfd4dc" stroke-width="1.5"/><rect x="11.25" y="40" width="577.5" height="251.43" rx="7" fill="#f7f8fa" stroke="#cfd4dc" stroke-width="1"/><circle cx="16.8" cy="20" r="5.5" fill="#ff5f57"/><circle cx="33.85" cy="20" r="5.5" fill="#febc2e"/><circle cx="50.9" cy="20" r="5.5" fill="#28c840"/><text x="300" y="20" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#ccc" dominant-baseline="central" text-anchor="middle" font-weight="600" fill-opacity="0.85">home@ubuntu</text></g><g transform="translate(-250.000000,0.000000)"><g class="nagare-card nagare-server" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="198.5" height="48.5" rx="6" fill="#e6f3ff" stroke="#cfd4dc" stroke-width="1.5"/><rect x="5" y="7" width="36" height="36" rx="9" fill="#3b82f6" fill-opacity="0.14"/><g transform="translate(12.2,14.2) scale(0.9000)" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/></g><text x="45" y="17.98" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#333" dominant-baseline="central" font-weight="600">nginx</text><text x="45" y="33.32" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.4" fill="#333" dominant-baseline="central" fill-opacity="0.7">nginx · :80</text></g></g>
+<g transform="translate(50.000000,0.000000)"><g class="nagare-card nagare-server" transform="translate(0, 0)"><rect x="0.75" y="0.75" width="198.5" height="48.5" rx="6" fill="#f0f8ff" stroke="#cfd4dc" stroke-width="1.5"/><rect x="5" y="7" width="36" height="36" rx="9" fill="#3b82f6" fill-opacity="0.14"/><g transform="translate(12.2,14.2) scale(0.9000)" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/></g><text x="45" y="17.98" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#333" dominant-baseline="central" font-weight="600">App</text><text x="45" y="33.32" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.4" fill="#333" dominant-baseline="central" fill-opacity="0.7">golang · :8080</text></g></g>
+</g>
+
+<g class="connector">
+    <defs>
+        <marker id="arrowhead-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#475467"/>
+        </marker>
+    </defs>
+    <polyline
+        points="250.00,175.00 361.25,175.00"
+        stroke="#475467" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-1)"
+    />
+</g>
+
+
+<g class="connector">
+    <defs>
+        <marker id="arrowhead-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#475467"/>
+        </marker>
+    </defs>
+    <polyline
+        points="561.25,175.00 661.25,175.00"
+        stroke="#475467" stroke-width="2.00" fill="none" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead-2)"
+    />
+</g>
+
+</svg>
