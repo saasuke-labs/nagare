@@ -302,3 +302,18 @@ s:Server
 		t.Fatalf("expected dark text on a light bg override, got the dark theme's light text")
 	}
 }
+
+func TestInlinePropsAreRendered(t *testing.T) {
+	code := `@layout(w:400,h:200)
+s:Server(title: "orders", port: 8080, x:10,y:10,w:200,h:60)`
+
+	svg, err := CreateDiagram(code)
+	if err != nil {
+		t.Fatalf("CreateDiagram failed: %v", err)
+	}
+	for _, want := range []string{"orders", ":8080"} {
+		if !strings.Contains(svg, want) {
+			t.Fatalf("expected inline prop value %q in SVG", want)
+		}
+	}
+}

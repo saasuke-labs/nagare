@@ -199,7 +199,20 @@ func (d *Diagram) buildRenderNode(node parser.Node) *RenderNode {
 	nodeProps := make(map[string]any)
 	rawDefs := make([]string, 0, 2)
 
-	// Merge ID-based state (@db(...)) first.
+	// Inline props (db:Database(title: "orders")) come first so that states
+	// override them, the same order layout uses. Geometry is left to layout,
+	// which has already resolved it (including alignment references).
+	if node.PropsDef != "" {
+		rawDefs = append(rawDefs, node.PropsDef)
+		for k, v := range nagareprops.ParseToMap(node.PropsDef) {
+			if k == "x" || k == "y" || k == "w" || k == "h" {
+				continue
+			}
+			nodeProps[k] = v
+		}
+	}
+
+	// Merge ID-based state (@db(...)).
 	if s, ok := d.AST.Globals[node.Text]; ok {
 		rawDefs = append(rawDefs, s.PropsDef)
 		mergeProps(nodeProps, nagareprops.ParseToMap(s.PropsDef))
