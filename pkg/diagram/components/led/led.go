@@ -9,6 +9,7 @@ import (
 
 	"github.com/saasuke-labs/nagare/pkg/components"
 	"github.com/saasuke-labs/nagare/pkg/diagram/components/core"
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/style"
 	"github.com/saasuke-labs/nagare/pkg/props"
 )
 
@@ -43,6 +44,7 @@ type Component struct {
 	Text    string
 	Props   Props
 	Actions map[string][]map[string]any
+	Theme   style.Theme
 }
 
 func New(id string) *Component {
@@ -75,6 +77,9 @@ func (l *Component) data() templateData {
 }
 
 func (l *Component) Draw() string {
+	if l.Theme.IsWatercolor() {
+		return l.drawPainted()
+	}
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, "led", l.data()); err != nil {
 		return fmt.Sprintf("<!-- Error rendering led template: %v -->", err)
@@ -96,6 +101,7 @@ func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 		_ = comp.Props.Parse(raw)
 	}
 	comp.Actions = actionMapFromAny(nodeProps["actions"])
+	comp.Theme = style.ThemeFromProps(nodeProps)
 	return comp.Draw()
 }
 
@@ -126,4 +132,40 @@ func actionMapFromAny(v any) map[string][]map[string]any {
 		out[k] = copied
 	}
 	return out
+}
+
+// drawPainted paints the light as a dot of pigment. It blinks the same way
+// the flat light does: the dot's colour pulses, and a red light that is off
+// at rest only shows while it blinks.
+func (l *Component) drawPainted() string {
+	d := l.data()
+	base, pulses := "#3a7a30", d.PulseColors
+	if strings.EqualFold(strings.TrimSpace(l.Props.Mode), "red") {
+		base = "#9e2b2f"
+	}
+	pulses = strings.Replace(strings.Replace(pulses, "darkgreen", base, -1), "darkred", base, -1)
+	r := l.Width / 2
+	poly := style.Ellipse(r, l.Height/2, r, l.Height/2, 12)
+	wash := style.Wash(style.WashSpec{Poly: poly, Pigment: base, Density: 0.78, Seed: l.Theme.Seed, Layers: 3, Wander: 0.12, MaxOff: r * 0.15, Filter: "none", Class: "nagare-led-dot"}, l.Theme)
+
+	var anim strings.Builder
+	for _, a := range l.Actions["blink"] {
+		fmt.Fprintf(&anim, `<animate attributeName="opacity" begin="%v" dur="%v" values="%s;1;0.55;1;0.6;1;%s" keyTimes="0;0.15;0.3;0.45;0.6;0.85;1" repeatCount="1" fill="remove"/>`,
+			a["begin"], a["dur"], d.InactiveOpacity, d.InactiveOpacity)
+	}
+	// The pulse recolours the dot: animate the pigment of the wash layers.
+	var recolor strings.Builder
+	for _, a := range l.Actions["blink"] {
+		fmt.Fprintf(&recolor, `<animate attributeName="fill" begin="%v" dur="%v" values="%s" keyTimes="0;0.15;0.3;0.45;0.6;0.85;1" repeatCount="1" fill="remove"/>`,
+			a["begin"], a["dur"], pulses)
+	}
+	// Wash puts the pigment on its inner group; the animation goes there.
+	if i := strings.Index(wash, `<g transform=`); i >= 0 {
+		if j := strings.Index(wash[i:], ">"); j >= 0 {
+			k := i + j + 1
+			wash = wash[:k] + recolor.String() + wash[k:]
+		}
+	}
+	return fmt.Sprintf(`<g class="nagare-led" transform="translate(%s, %s)" opacity="%s">%s%s</g>`,
+		style.F(l.X), style.F(l.Y), d.InactiveOpacity, anim.String(), wash)
 }

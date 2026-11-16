@@ -1,6 +1,7 @@
 package style
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -74,4 +75,43 @@ func TextColors(fg, fill string, t Theme) (title, muted string, mutedOpacity flo
 		return title, t.Muted, 0
 	}
 	return title, title, 0.7
+}
+
+// rgbOf parses #rgb / #rrggbb into channels in [0, 1].
+func rgbOf(c string) (rgb [3]float64, ok bool) {
+	c = strings.TrimPrefix(strings.TrimSpace(c), "#")
+	if len(c) == 3 {
+		c = string([]byte{c[0], c[0], c[1], c[1], c[2], c[2]})
+	}
+	if len(c) != 6 {
+		return rgb, false
+	}
+	v, err := strconv.ParseUint(c, 16, 32)
+	if err != nil {
+		return rgb, false
+	}
+	return [3]float64{float64(v>>16&0xff) / 255, float64(v>>8&0xff) / 255, float64(v&0xff) / 255}, true
+}
+
+// hexOf formats channels in [0, 1] as #rrggbb.
+func hexOf(rgb [3]float64) string {
+	b := func(v float64) int { return int(math.Round(Clamp(v, 0, 1) * 255)) }
+	return fmt.Sprintf("#%02x%02x%02x", b(rgb[0]), b(rgb[1]), b(rgb[2]))
+}
+
+// Shade mixes a colour toward black (amount > 0) or white (amount < 0).
+// Unparseable colours are returned unchanged.
+func Shade(c string, amount float64) string {
+	rgb, ok := rgbOf(c)
+	if !ok {
+		return c
+	}
+	for i := range rgb {
+		if amount >= 0 {
+			rgb[i] *= 1 - amount
+		} else {
+			rgb[i] += (1 - rgb[i]) * -amount
+		}
+	}
+	return hexOf(rgb)
 }

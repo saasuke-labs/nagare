@@ -1,0 +1,10 @@
+@layout(w:1000,h:240,theme:dark,style:watercolor)
+
+ci:Terminal(title: "ci", cwd: "~/site", command: "gengo generate --plain", x:20,y:30,w:280,h:170)
+dist:Artifact(title: "dist", filename: "site.tar.gz", size: "1.2 MB", x:350,y:&ci.c,w:170,h:60)
+edge:CDN(title: "edge", provider: "pages", region: "global", x:570,y:&ci.c,w:170,h:60)
+reader:Browser(url: "https://example.com/blog", text: "Blog", x:790,y:30,w:190,h:170)
+
+@ci.request(target: @dist)
+@dist.request(target: @edge)
+@reader.request(target: @edge)

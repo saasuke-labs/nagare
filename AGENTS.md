@@ -51,9 +51,10 @@ Everything else is internal in practice; outside callers should only import `pkg
 `RenderToSVG` picks one of two independent pipelines:
 
 **Charts** — input that starts with `chart` goes to `pkg/chart` (`chart.Parse` →
-`Chart.RenderSVG`). It has its own line-based parser and renderer and shares nothing with
-diagrams. Supports line/dashed/dotted/bar/marker series, stacked bars, multiple y-axes and
-date or duration values.
+`Chart.RenderSVG`). It has its own line-based parser and renderer; the only thing it shares
+with diagrams is the painted primitives from `style` (`pkg/chart/painted.go`). Supports
+line/dashed/dotted/bar/marker series, stacked bars, multiple y-axes and date or duration
+values.
 
 **Diagrams** — everything else goes through `pkg/diagram.CreateDiagram`:
 
@@ -77,6 +78,8 @@ Packages:
   `ActionConnector`, prop helpers).
 - `pkg/diagram/components/style` — the shared visual system: `Light`/`Dark` themes, accent
   palette, icons, text fitting and the `Card`/`Window` primitives every component is drawn with.
+  It also holds the watercolor look (`watercolor.go`, `painted.go`, `paint.go`): pigments,
+  `Wash`, `InkStroke`/`InkLoop`/`InkArrow`/`InkDashes`, the paper and the shared SVG filters.
 - `pkg/components` — older component structs and `html/template` SVG templates. Still used
   for `Arrow`, `Shape` and the `Component` interface, and by the adapters in layout.
 - `pkg/props` — prop string parsing (`ParseToMap`, `ParseProps` into tagged structs).
@@ -99,7 +102,8 @@ browser.e --> nginx.w
 @db.read(begin: 1s, dur: 1s)
 ```
 
-- `@layout(...)` sets canvas size and theme (`light` is the default).
+- `@layout(...)` sets canvas size and theme (`light` is the default). `style: watercolor`
+  paints the diagram (orthogonal to `theme`); `paper: none` drops the paper sheet.
 - `id:Type(props)` declares a component; `{ ... }` nests children (one level).
 - `@id(props)` applies props by id; `id:Type@state` plus `@state(props)` applies a named state.
 - `a.e --> b.w` is an explicit arrow between ports (`n`, `s`, `e`, `w`, `c`).
@@ -113,6 +117,33 @@ Types: `Browser`, `VM`, `Server`, `Terminal`, `Database`, `Cylinder`, `Led`,
 `Artifact`/`File`, `Rectangle`. Colour props `bg`, `fg`, `accent`, `contentBg` override the
 theme. The README has the full syntax and chart reference.
 
+## The watercolor look
+
+`@layout(style: watercolor)` (charts: a `style: watercolor` line) switches every component from
+fills to painted washes and pen lines. How it is wired:
+
+- `Diagram.Theme()` returns `theme.Watercolor()`; `drawNode` passes `_look` and `_seed` (the
+  node id) next to `_theme`, and `style.ThemeFromProps` turns them into `Theme.Look` and
+  `Theme.Seed`. Composites forward them with `style.CopyThemeProps` (see `database`).
+- `Card` and `Window` branch to `cardPainted`/`windowPainted`, so components built on them need
+  no changes. Components that draw their own shapes (`cylinder`, `led`) check
+  `Theme.IsWatercolor()` and paint with `style.Wash` and the ink helpers. A new component that
+  draws its own shapes needs a painted branch too, or it shows flat inside a painted diagram.
+- Arrows are drawn by `paintArrow` in `pkg/diagram/diagram.go`; the root adds the scoped
+  `<style>`, `WatercolorDefs()` and `Paper()`.
+- Geometry is baked in Go from seeded noise (splitmix64, no `math/rand`), so output is
+  deterministic. Texture comes from a few shared filters with fixed ids (`nagare-wc-*`) whose
+  content never depends on the diagram, so several inlined diagrams can share them.
+- Washes multiply on paper, screen on the dark sheet, and light colours (luminance > 0.45) are
+  laid opaque as body colour so they show on dark containers. Dense or very dark washes use the
+  calm `nagare-wc-dense` filter.
+- The flat look must stay byte-identical when `style` is not set: painted code only runs behind
+  `IsWatercolor()` / `Chart.painted()`. `TestWatercolorDoesNotChangeTheFlatLook` guards part of
+  this; compare a few renders before and after when touching shared code.
+- Judge changes by rendering (`.github/testdiagrams/watercolor*.nagare`,
+  `chart-watercolor.nagare`) and looking at them at 1× and 2×; numbers alone do not tell you
+  whether a wash reads as paint.
+
 ## Adding or changing a component
 
 A component type is registered by hand in three places. Missing one fails silently:
@@ -125,6 +156,9 @@ A component type is registered by hand in three places. Missing one fails silent
 An unknown type gets rectangle geometry in layout but draws nothing, because `drawNode`
 returns an empty string for it. Arrows to it still render.
 
+If the component draws its own shapes rather than going through `Card`/`Window`, give it a
+painted branch (see "The watercolor look").
+
 Then add a `.nagare` file under `.github/testdiagrams/` so the PR preview shows it, and
 update `README.md`, `docs/index.html` and the examples in `static/playground.html` if the
 syntax changed.
@@ -135,7 +169,7 @@ syntax changed.
   around them.
 - Reuse the helpers in `pkg/props`; do not parse props inside components.
 - Draw with the `style` package (`Card`, `Window`, theme tokens, accents) so components
-  share one look in both themes. Do not hardcode colours a theme already provides.
+  share one look in both themes and both looks. Do not hardcode colours a theme already provides.
 - Components draw at local origin. `drawNode` sets `x`/`y` to 0 and the surrounding `<g>`
   does the placement; using absolute coordinates doubles the offset.
 - Prefer composing from primitives (`Database` = `Cylinder` + two `Led`s) with

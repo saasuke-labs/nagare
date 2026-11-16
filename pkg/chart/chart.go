@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/saasuke-labs/nagare/pkg/diagram/components/style"
 )
 
 // DataPoint represents a single point in a series
@@ -50,6 +52,8 @@ type Chart struct {
 	Grid       bool
 	Series     []Series
 	Scales     []Scale // Y-axis scales
+	Look       string  // "" (flat) or "watercolor", set with style: watercolor
+	Paperless  bool    // paper: none keeps a painted chart's canvas transparent
 }
 
 // Parse parses chart definition into a Chart struct
@@ -228,6 +232,11 @@ func Parse(input string) (*Chart, error) {
 			chart.Legend = value
 		case "grid":
 			chart.Grid = value == "true"
+		case "paper":
+			switch strings.ToLower(value) {
+			case "none", "false", "off", "no", "transparent":
+				chart.Paperless = true
+			}
 		case "series":
 			// Check if pipe-separated (multi-series format)
 			if strings.Contains(value, "|") {
@@ -243,6 +252,11 @@ func Parse(input string) (*Chart, error) {
 				seriesColors = []string{value}
 			}
 		case "style":
+			// The chart's look; no series style has this name.
+			if strings.EqualFold(value, "watercolor") {
+				chart.Look = "watercolor"
+				continue
+			}
 			// Check if pipe or comma-separated
 			if strings.Contains(value, "|") {
 				seriesStyles = parseDelimitedList(value, "|")
@@ -709,13 +723,17 @@ func (c *Chart) RenderSVG() string {
 	c.calculateScaleRanges()
 
 	var svg strings.Builder
-	svg.WriteString(fmt.Sprintf(`<svg width="%.0f" height="%.0f" viewBox="0 0 %.0f %.0f" xmlns="http://www.w3.org/2000/svg">`, c.Width, c.Height, c.Width, c.Height))
-	svg.WriteString(`<rect width="100%" height="100%" fill="white"/>`)
+	if c.painted() {
+		svg.WriteString(c.paintedOpen())
+	} else {
+		svg.WriteString(fmt.Sprintf(`<svg width="%.0f" height="%.0f" viewBox="0 0 %.0f %.0f" xmlns="http://www.w3.org/2000/svg">`, c.Width, c.Height, c.Width, c.Height))
+		svg.WriteString(`<rect width="100%" height="100%" fill="white"/>`)
+	}
 
 	// Title
 	if c.Title != "" {
-		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="25" text-anchor="middle" font-size="16" font-weight="bold" fill="#333">%s</text>`,
-			c.Width/2, c.Title))
+		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="25" text-anchor="middle" font-size="16" font-weight="bold" fill="%s">%s</text>`,
+			c.Width/2, c.textColor(), c.Title))
 	}
 
 	xTicks := c.xTicks(plotX, plotWidth, xMin, xMax)
@@ -736,6 +754,11 @@ func (c *Chart) RenderSVG() string {
 		svg.WriteString(c.generateLegend(legendLayout))
 	}
 
+	if c.painted() {
+		svg.WriteString(paintedClose)
+		// Axis text keeps the flat greys in its format strings; ink them.
+		return strings.NewReplacer(`fill="#333"`, `fill="`+c.textColor()+`"`, `fill="#666"`, `fill="`+c.labelColor()+`"`).Replace(svg.String())
+	}
 	svg.WriteString(`</svg>`)
 	return svg.String()
 }
@@ -923,7 +946,11 @@ func (c *Chart) generateGrid(plotX, plotY, plotWidth, plotHeight float64, xTicks
 	var lines strings.Builder
 
 	// Vertical lines, one per x tick
-	for _, tick := range xTicks {
+	for i, tick := range xTicks {
+		if c.painted() {
+			lines.WriteString(c.pencil(tick.Pos, plotY+plotHeight, tick.Pos, plotY, "x"+strconv.Itoa(i)))
+			continue
+		}
 		lines.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#e5e7eb" stroke-width="1"/>`,
 			tick.Pos, plotY, tick.Pos, plotY+plotHeight))
 	}
@@ -931,6 +958,10 @@ func (c *Chart) generateGrid(plotX, plotY, plotWidth, plotHeight float64, xTicks
 	// Horizontal lines, one per y tick
 	for i := 0; i <= yAxisIntervals; i++ {
 		y := plotY + float64(i)*plotHeight/yAxisIntervals
+		if c.painted() {
+			lines.WriteString(c.pencil(plotX, y, plotX+plotWidth, y, "y"+strconv.Itoa(i)))
+			continue
+		}
 		lines.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#e5e7eb" stroke-width="1"/>`,
 			plotX, y, plotX+plotWidth, y))
 	}
@@ -942,13 +973,17 @@ func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight float64, xTicks
 	var svg strings.Builder
 
 	// X axis
-	svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
-		plotX, plotY+plotHeight, plotX+plotWidth, plotY+plotHeight))
+	if c.painted() {
+		svg.WriteString(c.axisLine(plotX-4, plotY+plotHeight, plotX+plotWidth+6, plotY+plotHeight, "x"))
+	} else {
+		svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
+			plotX, plotY+plotHeight, plotX+plotWidth, plotY+plotHeight))
+	}
 
 	// X axis labels, each drawn at the position of the value it names
 	for _, tick := range xTicks {
-		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="11" fill="#666">%s</text>`,
-			tick.Pos, plotY+plotHeight+20, tick.Label))
+		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="11" fill="%s">%s</text>`,
+			tick.Pos, plotY+plotHeight+20, c.labelColor(), tick.Label))
 	}
 
 	// X axis label
@@ -964,8 +999,12 @@ func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight float64, xTicks
 
 	// Left Y axis (first scale)
 	leftScale := c.Scales[0]
-	svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
-		plotX, plotY, plotX, plotY+plotHeight))
+	if c.painted() {
+		svg.WriteString(c.axisLine(plotX, plotY+plotHeight+4, plotX, plotY-6, "y"))
+	} else {
+		svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
+			plotX, plotY, plotX, plotY+plotHeight))
+	}
 
 	leftStep := (leftScale.Max - leftScale.Min) / yAxisIntervals
 	for i := 0; i <= yAxisIntervals; i++ {
@@ -998,8 +1037,12 @@ func (c *Chart) generateAxes(plotX, plotY, plotWidth, plotHeight float64, xTicks
 		rightScale := c.Scales[1]
 		rightX := plotX + plotWidth
 
-		svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
-			rightX, plotY, rightX, plotY+plotHeight))
+		if c.painted() {
+			svg.WriteString(c.axisLine(rightX, plotY+plotHeight+4, rightX, plotY-6, "y2"))
+		} else {
+			svg.WriteString(fmt.Sprintf(`<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#333" stroke-width="2"/>`,
+				rightX, plotY, rightX, plotY+plotHeight))
+		}
 
 		rightStep := (rightScale.Max - rightScale.Min) / yAxisIntervals
 		for i := 0; i <= yAxisIntervals; i++ {
@@ -1168,6 +1211,10 @@ func (c *Chart) generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax f
 						yTop, height = yBottom, -height
 					}
 
+					if c.painted() {
+						svg.WriteString(c.paintBar(x-barSlotWidth/2, yTop, barSlotWidth, height, series.Color, series.Name+strconv.FormatFloat(point.X, 'f', -1, 64)))
+						continue
+					}
 					svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>`,
 						x-barSlotWidth/2, yTop, barSlotWidth, height, series.Color))
 				}
@@ -1201,13 +1248,34 @@ func (c *Chart) generateSeries(plotX, plotY, plotWidth, plotHeight, xMin, xMax f
 			for _, point := range series.Data {
 				x := plotX + (point.X-xMin)/(xMax-xMin)*plotWidth
 				y := plotY + plotHeight - (point.Y-yMin)/(yMax-yMin)*plotHeight
-				svg.WriteString(fmt.Sprintf(`<circle cx="%.2f" cy="%.2f" r="3" fill="%s"/>`, x, y, series.Color))
+				if c.painted() {
+					svg.WriteString(c.paintDot(x, y, 3.6, series.Color, series.Name+strconv.Itoa(len(svg.String()))))
+				} else {
+					svg.WriteString(fmt.Sprintf(`<circle cx="%.2f" cy="%.2f" r="3" fill="%s"/>`, x, y, series.Color))
+				}
 				label := fmt.Sprintf("%.0f", point.Y)
 				if point.YIsDuration {
 					label = point.YLabel
 				}
 				svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" text-anchor="middle" font-size="10" fill="%s">%s</text>`,
 					x, y-8, series.Color, label))
+			}
+			continue
+		}
+
+		if c.painted() {
+			pts := make([]style.Pt, 0, len(series.Data))
+			for _, point := range series.Data {
+				pts = append(pts, style.Pt{
+					X: plotX + (point.X-xMin)/(xMax-xMin)*plotWidth,
+					Y: plotY + plotHeight - (point.Y-yMin)/(yMax-yMin)*plotHeight,
+				})
+			}
+			svg.WriteString(c.paintLine(pts, plotY+plotHeight, series.Color, series.Style, series.Name))
+			if len(pts) <= 40 {
+				for i, p := range pts {
+					svg.WriteString(c.paintDot(p.X, p.Y, 3.1, series.Color, series.Name+strconv.Itoa(i)))
+				}
 			}
 			continue
 		}
@@ -1256,8 +1324,12 @@ func (c *Chart) generateLegend(layout legendLayout) string {
 	legendX, legendY := layout.X, layout.Y
 	legendWidth, legendHeight := layout.Width, layout.Height
 
-	svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="white" stroke="#ccc" stroke-width="1" rx="3"/>`,
-		legendX, legendY, legendWidth, legendHeight))
+	if c.painted() {
+		svg.WriteString(c.paintLegendBox(legendX, legendY, legendWidth, legendHeight))
+	} else {
+		svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="white" stroke="#ccc" stroke-width="1" rx="3"/>`,
+			legendX, legendY, legendWidth, legendHeight))
+	}
 
 	const (
 		padding   = 8.0
@@ -1270,10 +1342,14 @@ func (c *Chart) generateLegend(layout legendLayout) string {
 	if layout.Orientation == "left" || layout.Orientation == "right" {
 		for i, series := range c.Series {
 			y := legendY + padding + 12 + float64(i)*rowHeight
-			svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="3" fill="%s"/>`,
-				legendX+padding, y-2, lineWidth, series.Color))
-			svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" font-size="11" fill="#333">%s</text>`,
-				legendX+padding+lineWidth+textGap, y+2, series.Name))
+			if c.painted() {
+				svg.WriteString(c.paintSwatch(legendX+padding, y-1, lineWidth, series.Color, series.Style, i))
+			} else {
+				svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="3" fill="%s"/>`,
+					legendX+padding, y-2, lineWidth, series.Color))
+			}
+			svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" font-size="11" fill="%s">%s</text>`,
+				legendX+padding+lineWidth+textGap, y+2, c.textColor(), series.Name))
 		}
 		return svg.String()
 	}
@@ -1282,10 +1358,14 @@ func (c *Chart) generateLegend(layout legendLayout) string {
 	currentX := legendX + padding
 	baselineY := legendY + padding + 12
 	for i, series := range c.Series {
-		svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="3" fill="%s"/>`,
-			currentX, baselineY-2, lineWidth, series.Color))
-		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" font-size="11" fill="#333">%s</text>`,
-			currentX+lineWidth+textGap, baselineY+2, series.Name))
+		if c.painted() {
+			svg.WriteString(c.paintSwatch(currentX, baselineY-1, lineWidth, series.Color, series.Style, i))
+		} else {
+			svg.WriteString(fmt.Sprintf(`<rect x="%.2f" y="%.2f" width="%.2f" height="3" fill="%s"/>`,
+				currentX, baselineY-2, lineWidth, series.Color))
+		}
+		svg.WriteString(fmt.Sprintf(`<text x="%.2f" y="%.2f" font-size="11" fill="%s">%s</text>`,
+			currentX+lineWidth+textGap, baselineY+2, c.textColor(), series.Name))
 
 		textWidth := float64(len([]rune(series.Name))) * 11.0 * 0.6
 		itemWidth := lineWidth + textGap + textWidth

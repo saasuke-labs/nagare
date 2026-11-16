@@ -1,0 +1,23 @@
+chart
+title: Deploys per week
+style: watercolor
+width: 900
+height: 480
+xaxis: number
+xlabel: Week
+ylabel: Deploys
+legend: top
+
+series: api | web | target
+color: #3b82f6 | #f59e0b | #ec4899
+style: bar | bar | marker
+stack: main | main | none
+data:
+  1: 12 | 5 | 20
+  2: 15 | 7 | 20
+  3: 9 | 11 | 22
+  4: 18 | 6 | 22
+  5: 14 | 9 | 24
+  6: 21 | 8 | 24
+  7: 17 | 12 | 26
+  8: 23 | 10 | 26

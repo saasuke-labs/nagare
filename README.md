@@ -104,6 +104,7 @@ Nagare charts support mixed series styles in the same chart definition:
 - `style: line`, `dashed`, `dotted`
 - `style: bar` for column/bar rendering
 - `style: marker` for point annotations (marker dot + value text above each point)
+- `style: watercolor` on its own line paints the whole chart (see [Watercolor style](#watercolor-style))
 
 Bar series can also be stacked by declaring `stack` values aligned with each series:
 
@@ -165,6 +166,39 @@ Colour props are optional overrides on top of the theme:
 | `contentBg` | Content area of `Browser` and `VM` |
 
 If an `fg` override would be unreadable on its background, a contrasting text colour is used instead.
+
+### Watercolor style
+
+Add `style: watercolor` to the layout directive and the same diagram is painted instead of filled:
+
+```text
+@layout(w: 1000, h: 450, style: watercolor)
+```
+
+Each component becomes a transparent wash of pigment on a sheet of cold-press paper, with one pen line drawn over it slightly off-register:
+
+- **Washes.** Every accent colour maps to the watercolour pigment closest to it (blue → cobalt, teal → viridian, amber → gamboge, pink → quinacridone rose, …). A wash is built from a few deformed layers, so its edge is soft and uneven, it dries darker at the rim, granulates, and pigment settles toward the bottom. Overlapping washes glaze (multiply) the way real paint does.
+- **Ink.** Outlines and arrows are single pen strokes with pressure, a little tremor and tapered ends. The pen lifts once on long outlines, and each outline is a darker mix of its own wash, so line and colour read as one.
+- **Colours you set still apply.** `bg`, `fg` and `accent` become the pigments. Light colours are laid as body colour (opaque, like gouache) so a pale card still shows on a dark container.
+- **Both themes.** `theme: dark` paints on a dark-grey sheet with chalk-white ink, and washes lighten the sheet instead of darkening it.
+- **Deterministic.** Brush marks are seeded from each component's id, so a diagram renders identically every time and two identical components still look hand-made.
+- **Paper.** The sheet is part of the drawing. Add `paper: none` to keep the canvas transparent and paint straight onto the page.
+
+```text
+@layout(w: 1000, h: 240, theme: dark, style: watercolor, paper: none)
+```
+
+The texture comes from a handful of shared SVG filters (paper tooth, wash, ink), so the output is still a single static SVG with no script. Without filter support the drawing still reads as layered washes and ink. Labels switch to a book serif (`Iowan Old Style`, `Palatino`, `Georgia`, …) through a style rule scoped to painted diagrams.
+
+Charts take the same option on a line of their own:
+
+```text
+chart
+title: Deploys per week
+style: watercolor
+```
+
+Axes are drawn in ink, the grid in pencil, lines in each series' pigment with a soft graded wash beneath, and bars are laid as washes. `paper: none` works here too.
 
 ### Browser and VM Example
 

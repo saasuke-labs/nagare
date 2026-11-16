@@ -1,0 +1,19 @@
+@layout(w:1000,h:450,style:watercolor)
+
+shop:Browser(url: "https://shop.example.com", text: "Checkout", x:30,y:120,w:230,h:170)
+gw:APIGateway(title: "gateway", method: "POST", route: "/orders", x:310,y:&shop.c,w:180,h:60)
+vm:VM(title: "prod@ubuntu", x:540,y:40,w:430,h:200) {
+    api:Server(title: "orders-api", icon: "golang", port: 8080, x:30,y:60,w:170,h:50)
+    mailer:BackgroundWorker(title: "mailer", job: "send-receipt", x:240,y:60,w:160,h:50)
+}
+db:Database(title: "orders", engine: "postgres", x:570,y:300,w:120,h:120)
+events:MessageQueue(title: "order.created", kind: "nats", x:770,y:325,w:200,h:70)
+
+@shop.request(target: @gw)
+@gw.request(target: @api)
+@api.request(target: @db)
+@api.request(target: @mailer)
+@mailer.request(target: @events)
+
+@db.write(begin:"0.5s",dur:"1.5s")
+@db.read(begin:"2.5s",dur:"1.5s")

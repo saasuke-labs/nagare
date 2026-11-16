@@ -351,6 +351,8 @@ func (d *Diagram) drawNode(node *RenderNode, shape components.Shape) string {
 	localProps["w"] = shape.Width
 	localProps["h"] = shape.Height
 	localProps[style.ThemeKey] = d.Theme().Name
+	localProps[style.LookKey] = d.Theme().Look
+	localProps[style.SeedKey] = node.ID
 
 	switch node.Type {
 	case "browser":
@@ -446,16 +448,67 @@ func wrapSVG(w, h float64, content string) string {
 	return fmt.Sprintf("<svg viewBox=\"0 0 %.6f %.6f\" xmlns=\"http://www.w3.org/2000/svg\">\n%s</svg>", w, h, content)
 }
 
-// Theme returns the theme selected with @layout(theme:...). The default is light.
+// Theme returns the theme selected with @layout(theme:...), painted when
+// @layout(style: watercolor) is set. The default is the flat light theme.
 func (d *Diagram) Theme() style.Theme {
-	name, _ := nagareprops.ParseToMap(layoutPropsDef(d.AST))["theme"].(string)
-	return style.ThemeByName(name)
+	props := nagareprops.ParseToMap(layoutPropsDef(d.AST))
+	name, _ := props["theme"].(string)
+	t := style.ThemeByName(name)
+	if look, _ := props["style"].(string); strings.EqualFold(strings.TrimSpace(look), style.LookWatercolor) {
+		t = t.Watercolor()
+	}
+	return t
+}
+
+// paperless reports whether @layout(paper: none) asked a painted diagram to
+// keep a transparent canvas.
+func (d *Diagram) paperless() bool {
+	v, _ := nagareprops.ParseToMap(layoutPropsDef(d.AST))["paper"].(string)
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "none", "false", "off", "no", "transparent":
+		return true
+	}
+	return false
+}
+
+// render produces the full SVG for the diagram.
+func (d *Diagram) render() string {
+	w, h := d.Layout.Bounds.Width, d.Layout.Bounds.Height
+	theme := d.Theme()
+
+	renderTree := d.BuildRenderTree()
+	componentsSVG := d.RenderTreeChildren(renderTree)
+	componentsSVG += renderArrowComponents(d.Layout.Children, theme)
+
+	if !theme.IsWatercolor() {
+		return wrapSVG(w, h, componentsSVG)
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "<svg viewBox=\"0 0 %.6f %.6f\" xmlns=\"http://www.w3.org/2000/svg\" class=\"nagare-watercolor\">\n", w, h)
+	b.WriteString(style.WatercolorCSS())
+	b.WriteString(style.WatercolorDefs())
+	b.WriteString("\n")
+	if !d.paperless() {
+		b.WriteString(style.Paper(w, h, theme))
+		b.WriteString("\n")
+	}
+	// Isolate the painting so washes blend with the paper and each other,
+	// not with the page behind the image.
+	b.WriteString(`<g style="isolation:isolate">`)
+	b.WriteString(componentsSVG)
+	b.WriteString("</g>\n</svg>")
+	return b.String()
 }
 
 func renderArrowComponents(children []components.Component, theme style.Theme) string {
 	var b strings.Builder
-	for _, c := range children {
+	for i, c := range children {
 		if arrow, ok := c.(*components.Arrow); ok {
+			if theme.IsWatercolor() {
+				b.WriteString(paintArrow(arrow, theme, i))
+				b.WriteString("\n")
+				continue
+			}
 			// Arrows still carrying the built-in colour follow the theme.
 			if arrow.StrokeColor == components.DefaultArrowStroke {
 				arrow.StrokeColor = theme.Arrow
@@ -475,15 +528,7 @@ func CreateDiagram(code string) (string, error) {
 		return "", err
 	}
 
-	w, h := diagram.Layout.Bounds.Width, diagram.Layout.Bounds.Height
-
-	renderTree := diagram.BuildRenderTree()
-	componentsSVG := diagram.RenderTreeChildren(renderTree)
-	componentsSVG += renderArrowComponents(diagram.Layout.Children, diagram.Theme())
-
-	svg := wrapSVG(w, h, componentsSVG)
-
-	return svg, nil
+	return diagram.render(), nil
 }
 
 // CreateDiagramWithSize generates an SVG diagram and returns it along with
@@ -496,13 +541,7 @@ func CreateDiagramWithSize(code string) (string, int, int, error) {
 	}
 
 	w, h := diagram.Layout.Bounds.Width, diagram.Layout.Bounds.Height
-	renderTree := diagram.BuildRenderTree()
-	componentsSVG := diagram.RenderTreeChildren(renderTree)
-	componentsSVG += renderArrowComponents(diagram.Layout.Children, diagram.Theme())
-
-	svg := wrapSVG(w, h, componentsSVG)
-
-	return svg, normalizedCanvasDimension(w, 800), normalizedCanvasDimension(h, 400), nil
+	return diagram.render(), normalizedCanvasDimension(w, 800), normalizedCanvasDimension(h, 400), nil
 }
 
 func normalizedCanvasDimension(calculated float64, fallback int) int {
@@ -511,4 +550,23 @@ func normalizedCanvasDimension(calculated float64, fallback int) int {
 		dim = fallback
 	}
 	return dim
+}
+
+// paintArrow draws a connector as a pen line in the watercolor look.
+func paintArrow(a *components.Arrow, t style.Theme, index int) string {
+	pts := make([]style.Pt, len(a.Points))
+	for i, p := range a.Points {
+		pts[i] = style.Pt{X: p.X, Y: p.Y}
+	}
+	color := t.Arrow
+	if a.StrokeColor != components.DefaultArrowStroke && strings.TrimSpace(a.StrokeColor) != "" {
+		color = a.StrokeColor
+	}
+	width := a.StrokeWidth * 0.8
+	if width <= 0 {
+		width = 1.6
+	}
+	seed := style.SeedFor("arrow", strconv.Itoa(index), fmt.Sprintf("%.1f,%.1f", a.Points[0].X, a.Points[0].Y))
+	ink := style.InkArrow(pts, style.InkSpec{Width: width, Color: color, Seed: seed}, strings.TrimSpace(a.Style) == "dashed", a.MarkerEnd, a.MarkerStart)
+	return `<g class="connector" filter="url(#nagare-wc-ink)">` + ink + `</g>`
 }

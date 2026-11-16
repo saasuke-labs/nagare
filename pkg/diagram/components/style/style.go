@@ -45,6 +45,13 @@ type Theme struct {
 	Arrow      string
 	CodeBg     string // terminal body
 	CodeFg     string
+
+	// Look is "" for the flat look or LookWatercolor for the painted one.
+	Look  string
+	Paper string // sheet colour (painted look)
+	Ink   string // pen colour (painted look)
+	// Seed varies brush marks per node. The renderer sets it from the id.
+	Seed uint64
 }
 
 var (
@@ -68,10 +75,31 @@ func ThemeByName(name string) Theme {
 	return Light
 }
 
-// ThemeFromProps reads the theme a render node was given.
+// ThemeFromProps reads the theme a render node was given, including the
+// look and the node's seed.
 func ThemeFromProps(props map[string]any) Theme {
 	name, _ := props[ThemeKey].(string)
-	return ThemeByName(name)
+	t := ThemeByName(name)
+	if look, _ := props[LookKey].(string); strings.EqualFold(strings.TrimSpace(look), LookWatercolor) {
+		t = t.Watercolor()
+	}
+	if seed, ok := props[SeedKey].(string); ok {
+		t.Seed = SeedFor(seed)
+	}
+	return t
+}
+
+// CopyThemeProps copies the theme, look and seed props from src to dst, for
+// composites that draw their parts through other components.
+func CopyThemeProps(dst, src map[string]any, seedSuffix string) {
+	for _, k := range []string{ThemeKey, LookKey} {
+		if v, ok := src[k]; ok {
+			dst[k] = v
+		}
+	}
+	if seed, ok := src[SeedKey].(string); ok {
+		dst[SeedKey] = seed + seedSuffix
+	}
 }
 
 // Or returns override when it is set, otherwise fallback.
@@ -190,7 +218,10 @@ var icons = map[string]string{
 }
 
 // iconChip draws an icon inside a tinted rounded square of the given size.
-func iconChip(name, accent string, x, y, size float64) string {
+func iconChip(name, accent string, x, y, size float64, s CardSpec) string {
+	if s.Theme.IsWatercolor() {
+		return iconChipPainted(name, accent, x, y, size, s.surface, s.Theme)
+	}
 	body, ok := icons[name]
 	if !ok {
 		return ""
@@ -222,12 +253,17 @@ type CardSpec struct {
 	Accent     string
 	Bg, Fg     string // explicit overrides; empty means use the theme
 	Theme      Theme
+
+	surface string // painted look: the colour the card's content sits on
 }
 
 // Card renders a card. Wide, short boxes lay out as a row (icon left, text
 // right); everything else stacks the icon above centred text. Lines that do
 // not fit are dropped, never overlapped.
 func Card(s CardSpec) string {
+	if s.Theme.IsWatercolor() {
+		return cardPainted(s)
+	}
 	t := s.Theme
 	fill := Or(s.Bg, t.Surface)
 	titleColor, mutedColor, mutedOpacity := TextColors(s.Fg, fill, t)
@@ -263,7 +299,7 @@ func cardRow(s CardSpec, pad float64, lines []string, accent, titleColor, mutedC
 	hasIcon := s.Icon != "" && s.W >= 70 && s.H >= 22
 	if hasIcon {
 		chip := Clamp(s.H-2*pad, 14, 36)
-		b.WriteString(iconChip(s.Icon, accent, pad, (s.H-chip)/2, chip))
+		b.WriteString(iconChip(s.Icon, accent, pad, (s.H-chip)/2, chip, s))
 		textX = pad + chip + pad*0.8
 	}
 	textW := s.W - textX - pad
@@ -318,7 +354,7 @@ func cardStack(s CardSpec, pad float64, lines []string, accent, titleColor, mute
 	cx := s.W / 2
 	textW := s.W - 2*pad
 	if chip > 0 {
-		b.WriteString(iconChip(s.Icon, accent, cx-chip/2, y, chip))
+		b.WriteString(iconChip(s.Icon, accent, cx-chip/2, y, chip, s))
 		y += chip + chipGap
 	}
 	b.WriteString(Text(s.Title, TextOpts{X: cx, Y: y + titleSize/2, Size: titleSize, Color: titleColor, Weight: "600", Anchor: "middle", Width: textW}))
@@ -352,6 +388,9 @@ type WindowSpec struct {
 // Window renders the chrome and content area. The returned SVG leaves the
 // group open so callers can add content; close it with WindowEnd.
 func Window(s WindowSpec) string {
+	if s.Theme.IsWatercolor() {
+		return windowPainted(s)
+	}
 	t := s.Theme
 	chrome := Or(s.Bg, t.SurfaceAlt)
 	titleFill := chrome

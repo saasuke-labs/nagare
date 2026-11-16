@@ -52,7 +52,7 @@ func New(id string) *Component {
 }
 
 func (l *Component) Draw() string {
-	return drawComposite(l.Text, l.Shape, l.Props, l.Actions, l.Theme)
+	return drawComposite(l.Text, l.Shape, l.Props, l.Actions, map[string]any{style.ThemeKey: l.Theme})
 }
 
 func (l *Component) SetShape(shape components.Shape) { l.Shape = shape }
@@ -68,23 +68,27 @@ func DrawFromRenderNode(id string, nodeProps map[string]any) string {
 	comp.Theme, _ = nodeProps[style.ThemeKey].(string)
 	_ = comp.Props.Parse(propsRaw(nodeProps))
 	comp.Actions = core.ActionMapFromAny(nodeProps["actions"])
-	return comp.Draw()
+	return drawComposite(comp.Text, comp.Shape, comp.Props, comp.Actions, nodeProps)
 }
 
-func drawComposite(id string, shape components.Shape, p Props, actions map[string][]map[string]any, theme string) string {
+// drawComposite draws the cylinder and its two activity lights. themeProps
+// carries the theme, look and seed through to the parts.
+func drawComposite(id string, shape components.Shape, p Props, actions map[string][]map[string]any, themeProps map[string]any) string {
 	cylinderPropsRaw := fmt.Sprintf("title:%q,subtitle:%q,bg:%q,fg:%q,accent:%q", p.Title, p.Engine, p.BackgroundColor, p.ForegroundColor, p.AccentColor)
-	cylinderSVG := cylinder.DrawFromRenderNode(id+"-body", map[string]any{
-		"x":            shape.X,
-		"y":            shape.Y,
-		"w":            shape.Width,
-		"h":            shape.Height,
-		"_rawProps":    cylinderPropsRaw,
-		style.ThemeKey: theme,
-	})
+	cylinderProps := map[string]any{
+		"x":         shape.X,
+		"y":         shape.Y,
+		"w":         shape.Width,
+		"h":         shape.Height,
+		"_rawProps": cylinderPropsRaw,
+	}
+	style.CopyThemeProps(cylinderProps, themeProps, "")
 
 	writeX, readX, ledY, ledSize := ledLayout(shape)
 
-	writeLedSVG := led.DrawFromRenderNode(id+"-write", map[string]any{
+	cylinderSVG := cylinder.DrawFromRenderNode(id+"-body", cylinderProps)
+
+	writeProps := map[string]any{
 		"x":         writeX,
 		"y":         ledY,
 		"w":         ledSize,
@@ -93,9 +97,11 @@ func drawComposite(id string, shape components.Shape, p Props, actions map[strin
 		"actions": map[string][]map[string]any{
 			"blink": cloneActionList(actions["write"]),
 		},
-	})
+	}
+	style.CopyThemeProps(writeProps, themeProps, "-write")
+	writeLedSVG := led.DrawFromRenderNode(id+"-write", writeProps)
 
-	readLedSVG := led.DrawFromRenderNode(id+"-read", map[string]any{
+	readProps := map[string]any{
 		"x":         readX,
 		"y":         ledY,
 		"w":         ledSize,
@@ -104,7 +110,9 @@ func drawComposite(id string, shape components.Shape, p Props, actions map[strin
 		"actions": map[string][]map[string]any{
 			"blink": cloneActionList(actions["read"]),
 		},
-	})
+	}
+	style.CopyThemeProps(readProps, themeProps, "-read")
+	readLedSVG := led.DrawFromRenderNode(id+"-read", readProps)
 
 	return cylinderSVG + writeLedSVG + readLedSVG
 }
